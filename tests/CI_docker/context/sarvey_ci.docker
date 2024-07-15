@@ -1,0 +1,52 @@
+FROM condaforge/mambaforge:latest as conda
+
+# update base environment
+RUN --mount=type=cache,target=/opt/conda/pkgs \
+    mamba update --all -y && \
+    conda clean -afy
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN mkdir actions-runner; cd actions-runner && \
+    apt-get update && apt-get install -y curl
+
+WORKDIR /actions-runner
+
+RUN curl -o actions-runner-linux-x64-2.317.0.tar.gz -L https://github.com/actions/runner/releases/download/v2.317.0/actions-runner-linux-x64-2.317.0.tar.gz && \
+    tar xzf ./actions-runner-linux-x64-2.317.0.tar.gz && \
+    ./bin/installdependencies.sh && \
+    useradd -m runneruser && \
+    chown -R runneruser:runneruser /actions-runner
+
+USER runneruser
+
+RUN  ./config.sh --url https://github.com/luhipi/sarvey --token <TOKEN>  --unattended --replace --name mefe2_sarvey_ci_1.0.0 --labels self-hosted
+
+USER root
+
+# install some needed packages
+RUN --mount=type=cache,target=/opt/conda/pkgs \
+    mamba install -y bzip2 fish gcc gdb git ipython make nano pip tree wget unzip
+
+# use bash shell instead of sh shell for all docker commands
+SHELL ["/bin/bash", "-c"]
+
+# copy some needed stuff to /root
+COPY ../environment_sarvey.yml .
+
+# create ci_env environment
+RUN --mount=type=cache,target=/opt/conda/pkgs \
+    pip install conda-merge && \
+    wget https://raw.githubusercontent.com/insarlab/MiaplPy/main/conda-env.yml && \
+    conda-merge conda-env.yml environment_sarvey.yml > env.yml && \
+    mamba env create -n ci_env -f env.yml && \
+    source /opt/conda/bin/activate ci_env && \
+    pip install git+https://github.com/insarlab/MiaplPy.git && \
+    conda list && \
+    conda clean -afy
+
+USER runneruser
+
+RUN chmod +x /actions-runner/run.sh
+
+ENTRYPOINT ["/actions-runner/run.sh"]

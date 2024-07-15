@@ -1,0 +1,48 @@
+name: sarvey
+
+channels: &id1
+  - conda-forge
+
+dependencies:
+  - python=3.10
+  - setuptools
+  - cython
+  - pyproj
+  - h5py
+  - numpy
+  - isce2
+  - scipy
+  - pip
+  - gcc_linux-64
+  - matplotlib
+  - overpy
+  - numba
+  - mintpy
+  - git
+  - shapely
+  - geopandas
+  - gstools
+  - pydantic=1.10.*
+  # setup requirements
+  - tox
+  # test requirements
+  - pytest
+  - pytest-cov
+  - urlchecker
+  # lint requirements
+  - flake8
+  - pillow
+  - pycodestyle
+  - pydocstyle
+  - pylint
+  # doc requirements
+  - sphinx>=4.1.1
+  - sphinx-argparse
+  - sphinx-autodoc-typehints
+  - sphinxcontrib-jquery
+  # deployment requirements
+  - twine
+
+  - pip:
+          - kamui[extra]
+          - pytest-reporter-html1

@@ -1,0 +1,68 @@
+{
+    "data_directories": {
+        "path_inputs": "tests/testdata/inputs/",
+        "path_outputs": "tests/testdata/output/"
+    },
+    "processing": {
+        "num_cores": 50,
+        "num_patches": 1,
+        "temporal_unwrapping": true,
+        "unwrapping_method": "puma"
+    },
+    "phase_linking": {
+        "phase_linking": false,
+        "path_inverted": "tests/testdata/inverted",
+        "num_siblings": 20,
+        "spatial_mask_file_pl": null,
+        "use_ps": false,
+        "path_mask_file_ps": "tests/testdata/maskPS.h5"
+    },
+    "preparation": {
+        "start_date": "",
+        "stop_date": "",
+        "network_type": "star",
+        "num_ifgs": 3,
+        "max_tbase": 100,
+        "filter_wdw_size": 9
+    },
+    "consistency_check": {
+        "coherence_p1": 0.9,
+        "grid_size": 200,
+        "spatial_mask_file_p1": null,
+        "knn": 30,
+        "max_arc_length": null,
+        "velocity_bound": 0.1,
+        "dem_error_bound": 100.0,
+        "num_samples": 100,
+        "arc_coherence": 0.6,
+        "min_num_arc": 3
+    },
+    "unwrapping": {
+        "use_temporal_unwrapping_arcs": true,
+        "knn": 20
+    },
+    "filtering": {
+        "skip_filtering": false,
+        "interpolation_method": "kriging",
+        "coherence_p2": 0.9,
+        "grid_size": 1000,
+        "spatial_mask_file_p2": null,
+        "use_moving_points": true,
+        "max_auto_corr": 0.3
+    },
+    "densification": {
+        "coherence_threshold": 0.5,
+        "num_connections_p1": 5,
+        "num_connections_p2": 10,
+        "max_distance_p1": 2000,
+        "velocity_bound": 0.15,
+        "dem_error_bound": 100.0,
+        "num_samples": 100,
+        "knn": 20
+    },
+    "logging": {
+        "logging_level": "info",
+        "logfile_path": "tests/testdata/logfiles/"
+
+    }
+}
