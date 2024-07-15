@@ -205,7 +205,7 @@ class Processing:
 
         temp_coh = temp_coh_obj.read(dataset_name="temp_coh")
 
-        fig = plt.figure(figsize=[15, 5])
+        fig = plt.figure(figsize=(15, 5))
         ax = fig.add_subplot()
         im = ax.imshow(temp_coh, cmap=colormaps["gray"], vmin=0, vmax=1)
         auto_flip_direction(slc_stack_obj.metadata, ax=ax, print_msg=True)
@@ -241,7 +241,7 @@ class Processing:
 
         cand_mask1 &= mask_valid_area
 
-        fig = plt.figure(figsize=[15, 5])
+        fig = plt.figure(figsize=(15, 5))
         ax = fig.add_subplot()
         ax.imshow(mask_valid_area, cmap=plt.cm.get_cmap("gray"), alpha=0.5, zorder=10, vmin=0, vmax=1)
         bmap_obj.plot(ax=ax, logger=self.logger)
@@ -664,7 +664,7 @@ class Processing:
                 self.logger.info(msg="load mask for area of interest from: {}.".format(path_mask_pl_aoi))
                 mask_pl_aoi = readfile.read(path_mask_pl_aoi, datasetName='mask')[0].astype(np.bool_)
 
-                fig = plt.figure(figsize=[15, 5])
+                fig = plt.figure(figsize=(15, 5))
                 ax = fig.add_subplot()
                 ax.imshow(mask_pl_aoi, cmap=plt.cm.get_cmap("gray"), alpha=0.5, zorder=10, vmin=0, vmax=1)
                 bmap_obj.plot(ax=ax, logger=self.logger)
@@ -702,7 +702,7 @@ class Processing:
 
         cand_mask2 &= mask_valid_area
 
-        fig = plt.figure(figsize=[15, 5])
+        fig = plt.figure(figsize=(15, 5))
         ax = fig.add_subplot()
         ax.imshow(mask_valid_area, cmap=plt.cm.get_cmap("gray"), alpha=0.5, zorder=10, vmin=0, vmax=1)
         bmap_obj.plot(ax=ax, logger=self.logger)
@@ -921,13 +921,12 @@ class Processing:
         point2_obj.phase = np.angle(np.exp(1j * point2_obj.phase) * np.conjugate(np.exp(1j * aps2_ifg_phase)))
         point1_obj.phase = np.angle(np.exp(1j * point1_obj.phase) * np.conjugate(np.exp(1j * aps1_ifg_phase)))
 
-        demerr, vel, gamma, mean_gamma = densifyNetwork(
+        demerr, vel, gamma = densifyNetwork(
             point1_obj=point1_obj,
             vel_p1=vel_p1,
             demerr_p1=demerr_p1,
             point2_obj=point2_obj,
             num_conn_p1=self.config.densification.num_connections_p1,
-            num_conn_p2=self.config.densification.num_connections_p2,
             max_dist_p1=self.config.densification.max_distance_p1,
             velocity_bound=self.config.densification.velocity_bound,
             demerr_bound=self.config.densification.dem_error_bound,
@@ -945,55 +944,9 @@ class Processing:
             path_inputs=self.config.data_directories.path_inputs
         )
 
-        fig = plt.figure(figsize=(15, 5))
-        axs = fig.subplots(1, 3)
-        axs[0].hist(gamma, bins=100)
-        axs[0].set_xlim([0, 1])
-        axs[0].set_ylabel('Absolute frequency')
-        axs[0].set_xlabel('Temporal coherence\n(temporal unwrapping) [ ]')
-
-        axs[1].hist(mean_gamma, bins=100)
-        axs[1].set_xlim([0, 1])
-        axs[1].set_ylabel('Absolute frequency')
-        axs[1].set_xlabel('Mean temporal coherence\n(temporal unwrapping of neighbours) [ ]')
-
-        axs[2].plot(mean_gamma, gamma, 'k.')
-        axs[2].plot([0, 1], [0, 1], 'k-')
-        axs[2].set_xlim([0, 1])
-        axs[2].set_ylim([0, 1])
-        axs[2].set_ylabel('Temporal Coherence\n(w.r.t. first-order points)')
-        axs[2].set_xlabel('Temporal Coherence\n(w.r.t. neighbouring second-order points)')
-        fig.savefig(join(self.path, "pic", "step_4_consistency_coherence_coh{}.png".format(coh_value)), dpi=300)
-        plt.close(fig)
-
-        # comparison with a priori estimated coherence
-        mask_p2 = point2_obj.createMask()
-        temp_coh_obj = BaseStack(file=join(self.path, "temporal_coherence.h5"), logger=self.logger)
-        temp_coh_img = temp_coh_obj.read(dataset_name="temp_coh")
-        temp_coh = temp_coh_img[mask_p2]
-
-        fig = plt.figure(figsize=(15, 5))
-        axs = fig.subplots(1, 2)
-        axs[0].plot(temp_coh, gamma, 'k.')
-        axs[0].plot([0, 1], [0, 1], 'k-')
-        axs[0].set_xlim([0, 1])
-        axs[0].set_ylim([0, 1])
-        axs[0].set_xlabel('Temporal Coherence\n(a priori)')
-        axs[0].set_ylabel('Temporal Coherence\n(w.r.t. first-order points)')
-
-        axs[1].plot(temp_coh, mean_gamma, 'k.')
-        axs[1].plot([0, 1], [0, 1], 'k-')
-        axs[1].set_xlim([0, 1])
-        axs[1].set_ylim([0, 1])
-        axs[1].set_xlabel('Temporal Coherence\n(a priori)')
-        axs[1].set_ylabel('Temporal Coherence\n(w.r.t. neighbouring second-order points)')
-        fig.savefig(join(self.path, "pic", "step_4_coherence_priori_vs_posteriori{}.png".format(coh_value)),
-                    dpi=300)
-        plt.close(fig)
-
         bmap_obj = AmplitudeImage(file_path=join(self.path, "background_map.h5"))
         fig = viewer.plotScatter(value=gamma, coord=point2_obj.coord_xy, bmap_obj=bmap_obj,
-                                 ttl="Coherence from temporal unwrapping", s=3.5, cmap="autumn",
+                                 ttl="Coherence from temporal unwrapping\nBefore outlier removal", s=3.5, cmap="autumn",
                                  vmin=0, vmax=1, logger=self.logger)[0]
         fig.savefig(join(self.path, "pic", "step_4_temporal_unwrapping_coh{}.png".format(coh_value)), dpi=300)
         plt.close(fig)
@@ -1018,7 +971,7 @@ class Processing:
         plt.close(fig)
 
         fig = viewer.plotScatter(value=gamma[mask_gamma], coord=point2_obj.coord_xy, bmap_obj=bmap_obj,
-                                 ttl="Coherence from temporal unwrapping", s=3.5, cmap="autumn",
+                                 ttl="Coherence from temporal unwrapping\nAfter outlier removal", s=3.5, cmap="autumn",
                                  vmin=0, vmax=1, logger=self.logger)[0]
         fig.savefig(join(self.path, "pic", "step_4_temporal_unwrapping_coh{}_reduced.png".format(coh_value)),
                     dpi=300)

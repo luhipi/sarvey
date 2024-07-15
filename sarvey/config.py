@@ -563,13 +563,6 @@ class Densification(BaseModel, extra=Extra.forbid):
         default=5
     )
 
-    num_connections_p2: int = Field(
-        title="Number of connections in consistency check with neighbouring points.",
-        description="Set number of connections between unwrapped second-order point and closest second-order points for"
-                    " temporal checking consistency.",
-        default=10
-    )
-
     max_distance_p1: int = Field(
         title="Maximum distance to nearest first-order point [m]",
         description="Set threshold on the distance between first-order points and to be temporally unwrapped"
@@ -613,13 +606,6 @@ class Densification(BaseModel, extra=Extra.forbid):
         """Check if num_connections_p1 are valid."""
         if v <= 0:
             raise ValueError(f"num_connections_p1 must be greater than 0: {v}")
-        return v
-
-    @validator('num_connections_p1')
-    def checkNumConn2(cls, v):
-        """Check if num_connections_p2 are valid."""
-        if v < 0:
-            raise ValueError(f"num_connections_p2 cannot be negative: {v}")
         return v
 
     @validator('max_distance_p1')

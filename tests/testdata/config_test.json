@@ -1,7 +1,11 @@
 {
     "data_directories": {
-        "path_inputs": "tests/testdata/inputs/",
+        "path_inputs": "tests/testdata/inputs",
         "path_outputs": "tests/testdata/output/"
+    },
+    "logging": {
+        "logging_level": "INFO",
+        "logfile_path": "tests/testdata/logfiles/"
     },
     "processing": {
         "num_cores": 50,
@@ -18,8 +22,8 @@
         "path_mask_file_ps": "tests/testdata/maskPS.h5"
     },
     "preparation": {
-        "start_date": "",
-        "stop_date": "",
+        "start_date": null,
+        "stop_date": null,
         "network_type": "star",
         "num_ifgs": 3,
         "max_tbase": 100,
@@ -38,8 +42,8 @@
         "min_num_arc": 3
     },
     "unwrapping": {
-        "use_temporal_unwrapping_arcs": true,
-        "knn": 20
+        "knn": 1,
+        "use_temporal_unwrapping_arcs": true
     },
     "filtering": {
         "skip_filtering": false,
@@ -53,16 +57,10 @@
     "densification": {
         "coherence_threshold": 0.5,
         "num_connections_p1": 5,
-        "num_connections_p2": 10,
         "max_distance_p1": 2000,
         "velocity_bound": 0.15,
         "dem_error_bound": 100.0,
         "num_samples": 100,
-        "knn": 20
-    },
-    "logging": {
-        "logging_level": "info",
-        "logfile_path": "tests/testdata/logfiles/"
-
+        "knn": 1
     }
 }
