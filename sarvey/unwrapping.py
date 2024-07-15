@@ -31,6 +31,8 @@
 import multiprocessing
 from os.path import join, dirname
 import time
+from typing import Union
+
 import matplotlib.pyplot as plt
 import numpy as np
 from kamui import unwrap_arbitrary
@@ -781,8 +783,9 @@ def computeAvgCoherencePerPoint(*, net_obj: Network, point_id: np.ndarray, logge
     return mean_gamma_point
 
 
-def removeArcsByPointMask(*, net_obj: Network, point_id: np.ndarray, coord_xy: np.ndarray, p_mask: np.ndarray,
-                          design_mat: np.ndarray, logger: Logger) -> tuple[Network, np.ndarray, np.ndarray, np.ndarray]:
+def removeArcsByPointMask(*, net_obj: Union[Network, NetworkParameter], point_id: np.ndarray, coord_xy: np.ndarray,
+                          p_mask: np.ndarray, design_mat: np.ndarray,
+                          logger: Logger) -> tuple[Network, np.ndarray, np.ndarray, np.ndarray]:
     """Remove all entries related to the arc observations connected to the points which have a False value in p_mask.
 
     Parameters

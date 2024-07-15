@@ -323,7 +323,8 @@ class Processing:
                                                       arcs=net_par_obj.arcs[arc_mask, :],
                                                       val=net_par_obj.gamma[arc_mask],
                                                       ax=ax, linewidth=1, cmap_name="autumn", clim=(0, 1))
-            ax.set_title(f"Coherence from temporal unwrapping\n(only arcs with gamma <= {thrsh_visualisation} shown)")
+            ax.set_title(f"Coherence from temporal unwrapping\n(only arcs with $\gamma \leq$ {thrsh_visualisation} "
+                         f"shown)\nBefore outlier removal")
             fig = ax.get_figure()
             plt.tight_layout()
             fig.savefig(join(self.path, "pic", "step_1_arc_coherence.png"), dpi=300)
@@ -346,7 +347,8 @@ class Processing:
                                                       arcs=net_par_obj.arcs[arc_mask, :],
                                                       val=net_par_obj.gamma[arc_mask],
                                                       ax=ax, linewidth=1, cmap_name="autumn", clim=(0, 1))
-            ax.set_title(f"Coherence from temporal unwrapping\n(only arcs with gamma <= {thrsh_visualisation} shown)")
+            ax.set_title(f"Coherence from temporal unwrapping\n(only arcs with $\gamma \leq$ {thrsh_visualisation} "
+                         f"shown)\nAfter outlier removal")
             fig = ax.get_figure()
             plt.tight_layout()
             fig.savefig(join(self.path, "pic", "step_1_arc_coherence_reduced.png"), dpi=300)
