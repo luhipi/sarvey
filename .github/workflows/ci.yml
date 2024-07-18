@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - githubci
+      - ci_enhancement
 
 env:
     SKIP: true
@@ -47,7 +47,6 @@ jobs:
           python-version: '3.x'
 
       - name: Run tests
-        if: env.SKIP == 'false'
         run: |
           conda init bash
           source ~/.bashrc
