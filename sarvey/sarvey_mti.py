@@ -45,6 +45,7 @@ from pydantic.schema import schema
 from sarvey.console import printStep, printCurrentConfig, showLogoSARvey
 from sarvey.processing import Processing
 from sarvey.config import Config
+from sarvey.utils import checkIfRequiredFilesExist
 
 try:
     matplotlib.use('QtAgg')
@@ -103,15 +104,28 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
                            config_section_default=config_default_dict["preparation"],
                            logger=logger)
         proc_obj.runPreparation()
+    required_files = ["background_map.h5", "coordinates_utm.h5", "ifg_network.h5", "ifg_stack.h5",
+                      "temporal_coherence.h5"]
 
     if 1 in steps:
+        checkIfRequiredFilesExist(
+            path_to_files=config.data_directories.path_outputs,
+            required_files=required_files,
+            logger=logger
+        )
         printStep(step=1, step_dict=STEP_DICT, logger=logger)
         printCurrentConfig(config_section=config.consistency_check.dict(),
                            config_section_default=config_default_dict["consistency_check"],
                            logger=logger)
         proc_obj.runConsistencyCheck()
+    required_files.append(["point_network.h5", "point_network_parameter.h5", "p1_ifg_wr.h5"])
 
     if 2 in steps:
+        checkIfRequiredFilesExist(
+            path_to_files=config.data_directories.path_outputs,
+            required_files=required_files,
+            logger=logger
+        )
         printStep(step=2, step_dict=STEP_DICT, logger=logger)
         printCurrentConfig(config_section=config.unwrapping.dict(),
                            config_section_default=config_default_dict["unwrapping"],
@@ -120,15 +134,28 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
             proc_obj.runUnwrappingTimeAndSpace()
         else:
             proc_obj.runUnwrappingSpace()
+    required_files.append(["p1_ifg_unw.h5", "p1_ts.h5"])
 
     if 3 in steps:
+        checkIfRequiredFilesExist(
+            path_to_files=config.data_directories.path_outputs,
+            required_files=required_files,
+            logger=logger
+        )
         printStep(step=3, step_dict=STEP_DICT, logger=logger)
         printCurrentConfig(config_section=config.filtering.dict(),
                            config_section_default=config_default_dict["filtering"],
                            logger=logger)
         proc_obj.runFiltering()
+    coh_value = int(config.filtering.coherence_p2 * 100)
+    required_files.append(["p1_aps.h5", f"coh{coh_value}_ifg_wr.h5", f"coh{coh_value}_aps.h5"])
 
     if 4 in steps:
+        checkIfRequiredFilesExist(
+            path_to_files=config.data_directories.path_outputs,
+            required_files=required_files,
+            logger=logger
+        )
         printStep(step=4, step_dict=STEP_DICT, logger=logger)
         printCurrentConfig(config_section=config.densification.dict(),
                            config_section_default=config_default_dict["densification"],
