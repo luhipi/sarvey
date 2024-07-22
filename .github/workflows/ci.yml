@@ -1,10 +1,6 @@
 name: CI
 
-on:
-  push:
-    branches:
-      - main
-      - ci_enhancement
+on: [push, pull_request]
 
 env:
     SKIP: true
@@ -168,24 +164,33 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Install dependencies
-        run: |
-          conda init bash
-          source ~/.bashrc
-          mamba update -n base mamba conda
-          mamba info
-          mamba env remove --name sarvey_testinstall --yes || echo "Environment sarvey_testinstall does not exist"
-          pip install conda-merge
-          wget https://raw.githubusercontent.com/insarlab/MiaplPy/main/conda-env.yml
-          conda-merge conda-env.yml tests/CI_docker/context/environment_sarvey.yml > env.yml
-          mamba env create --name sarvey_testinstall -f env.yml
-          source activate sarvey_testinstall
-          pip install git+https://github.com/insarlab/MiaplPy.git
-          pip install .
-          pip check
-          cd ..
-          python -c "import sarvey; print(sarvey)"
-        shell: bash
+      -   name: Install Miniconda
+          run: |
+              wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+              bash miniconda.sh -b -p $HOME/miniconda
+              echo "$HOME/miniconda/bin" >> $GITHUB_PATH
+              source $HOME/miniconda/bin/activate
+              conda init bash
+              source ~/.bashrc
+
+      -   name: Install dependencies
+          run: |
+              source $HOME/miniconda/bin/activate
+              conda install mamba -n base -c conda-forge
+              mamba update -n base mamba conda
+              mamba info
+              mamba env remove --name sarvey_testinstall --yes || echo "Environment sarvey_testinstall does not exist"
+              pip install conda-merge
+              wget https://raw.githubusercontent.com/insarlab/MiaplPy/main/conda-env.yml
+              conda-merge conda-env.yml tests/CI_docker/context/environment_sarvey.yml > env.yml
+              mamba env create --name sarvey_testinstall -f env.yml
+              source activate sarvey_testinstall
+              pip install git+https://github.com/insarlab/MiaplPy.git
+              pip install .
+              pip check
+              cd ..
+              python -c "import sarvey; print(sarvey)"
+          shell: bash
 
   deploy_pages:
     runs-on: self-hosted
