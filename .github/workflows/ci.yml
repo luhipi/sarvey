@@ -47,6 +47,7 @@ jobs:
           python-version: '3.x'
 
       - name: Run tests
+        if: env.SKIP == 'false'
         run: |
           conda init bash
           source ~/.bashrc
