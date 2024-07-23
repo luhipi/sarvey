@@ -52,47 +52,47 @@ class TestProcessing(unittest.TestCase):
     logger = None
 
     @classmethod
-    def setUp(self) -> None:
+    def setUp(cls) -> None:
         """Define the Class method SetUp."""
         # define class variables, create temporary output dir etc. here
-        self.root_path = "./"
+        cls.root_path = "./"
         if os.path.basename(os.getcwd()) == "tests":
-            self.root_path = "../"
+            cls.root_path = "../"
 
-        self.config_file = os.path.abspath(f"{self.root_path}/tests/testdata/config_test.json")
+        cls.config_file = os.path.abspath(f"{cls.root_path}/tests/testdata/config_test.json")
         try:
-            with open(self.config_file) as config_fp:
+            with open(cls.config_file) as config_fp:
                 config_dict = json.load(config_fp)
-                self.configuration = Config(**config_dict)
+                cls.configuration = Config(**config_dict)
         except JSONDecodeError as err:
             raise IOError(f'Failed to load the configuration json file => {err}')
 
-        self.logger = logging.getLogger(__name__)
+        cls.logger = logging.getLogger(__name__)
         console_handler = logging.StreamHandler(sys.stdout)
-        self.logger.addHandler(console_handler)
-        self.logger.setLevel(logging.getLevelName('DEBUG'))
+        cls.logger.addHandler(console_handler)
+        cls.logger.setLevel(logging.getLevelName('DEBUG'))
 
-        self.output_data_path = os.path.abspath(f"{self.root_path}/tests/testdata/output")
+        cls.output_data_path = os.path.abspath(f"{cls.root_path}/tests/testdata/output")
         parser = createParser()
-        self.args = parser.parse_args(["-f", self.config_file, "0", "4", "-w", self.output_data_path])
+        cls.args = parser.parse_args(["-f", cls.config_file, "0", "4", "-w", cls.output_data_path])
 
-        if not os.path.exists(self.output_data_path):
-            os.makedirs(join(self.output_data_path, "pic"))
+        if not os.path.exists(cls.output_data_path):
+            os.makedirs(join(cls.output_data_path, "pic"))
         else:
-            if not os.path.exists(join(self.output_data_path, "pic")):
-                os.mkdir(join(self.output_data_path, "pic"))
+            if not os.path.exists(join(cls.output_data_path, "pic")):
+                os.mkdir(join(cls.output_data_path, "pic"))
 
     @classmethod
-    def tearDown(self) -> None:
+    def tearDown(cls) -> None:
         """Define the Class method tearDown."""
         # delete testfolder or do some other cleanup here
         try:
-            if os.path.exists(self.output_data_path):
-                shutil.rmtree(self.output_data_path)
+            if os.path.exists(cls.output_data_path):
+                shutil.rmtree(cls.output_data_path)
         except OSError:
-            print("Deletion of the directory %s failed" % self.output_data_path)
+            print("Deletion of the directory %s failed" % cls.output_data_path)
         else:
-            print("Successfully deleted the directory %s" % self.output_data_path)
+            print("Successfully deleted the directory %s" % cls.output_data_path)
 
     def testUnwrappingTimeAndSpace(self):
         """TestUnwrappingTimeAndSpace."""
