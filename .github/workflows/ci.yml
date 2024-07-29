@@ -48,7 +48,7 @@ jobs:
           source ~/.bashrc
           source activate ci_env
           rm -rf tests/testdata
-          wget -c https://seafile.projekt.uni-hannover.de/f/4b3be399dffa488e98db/?dl=1
+          wget -c -O testdata.zip https://seafile.projekt.uni-hannover.de/f/4b3be399dffa488e98db/?dl=1
           echo "Listing current dir to see if download worked:"
           ls -la
           unzip testdata.zip
