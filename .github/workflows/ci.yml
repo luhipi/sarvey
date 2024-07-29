@@ -49,6 +49,8 @@ jobs:
           source activate ci_env
           rm -rf tests/testdata
           wget -c https://seafile.projekt.uni-hannover.de/f/4b3be399dffa488e98db/?dl=1 -P tests/
+          ls -la
+          ls tests/
           unzip tests/testdata.zip
           ls tests/testdata
           make pytest
