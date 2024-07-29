@@ -48,11 +48,13 @@ jobs:
           source ~/.bashrc
           source activate ci_env
           rm -rf tests/testdata
-          wget -c https://seafile.projekt.uni-hannover.de/f/4b3be399dffa488e98db/?dl=1 -P tests/
+          wget -c https://seafile.projekt.uni-hannover.de/f/4b3be399dffa488e98db/?dl=1
+          echo "Listing current dir to see if download worked:"
           ls -la
-          ls tests/
-          unzip tests/testdata.zip
-          ls tests/testdata
+          unzip testdata.zip
+          echo "Listing testdata dir to see if unzipping worked:"
+          ls -ls testdata
+          mv testdata tests/
           make pytest
         shell: bash
 
