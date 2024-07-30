@@ -49,11 +49,7 @@ jobs:
           source activate ci_env
           rm -rf tests/testdata
           wget -c -O testdata.zip https://seafile.projekt.uni-hannover.de/f/4b3be399dffa488e98db/?dl=1
-          echo "Listing current dir to see if download worked:"
-          ls -la
           unzip testdata.zip
-          echo "Listing testdata dir to see if unzipping worked:"
-          ls -ls testdata
           mv testdata tests/
           make pytest
         shell: bash
@@ -216,7 +212,6 @@ jobs:
           python-version: '3.x'
 
       - name: Deploy to GitHub Pages
-        if: env.SKIP == 'false'
         run: |
           rm -rf public
           mkdir -p public/doc
