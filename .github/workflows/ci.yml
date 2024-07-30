@@ -212,6 +212,7 @@ jobs:
           python-version: '3.x'
 
       - name: Deploy to GitHub Pages
+        if: env.SKIP == 'false'
         run: |
           rm -rf public
           mkdir -p public/doc
