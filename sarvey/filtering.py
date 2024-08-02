@@ -41,6 +41,73 @@ from mintpy.utils import ptime
 import sarvey.utils as ut
 
 
+def applySpatialFilteringToP2(*, coord_utm1, residuals, coord_utm2, model_name, model_params, logger):
+    """
+    Apply spatial filtering to second-order points using kriging.
+
+    Parameters
+    ----------
+    coord_utm1 : np.ndarray
+        Coordinates of the first-order points in UTM.
+    residuals : np.ndarray
+        Residuals of the first-order points that were used to estimate APS parameters.
+    coord_utm2 : np.ndarray
+        Coordinates of the second-order points in UTM.
+    model_name : str
+        Name of the variogram model used in APS estimation.
+    model_params : np.ndarray
+        Parameters of variogram model used in APS estimation.
+    logger : Logger
+        Logger instance for logging messages.
+
+    Returns
+    -------
+    aps2 : np.ndarray
+        Interpolated phase values for the second-order points.
+    """
+    num_time = model_params.shape[1]
+    num_points2 = coord_utm2.shape[0]
+    logger.debug(f"Starting applying {num_time} time APS to {num_points2} second-order points using Kriging"
+                 f" interpolation.")
+
+    if model_name == 'Stable':
+        logger.debug(f"Recreate {model_name} gs model using {model_params.shape[0]} parameters.")
+        model = gs.Stable(dim=2)
+        if model_params.shape[0] != 4:
+            error_msg = (f"Number of model parameters does not match the number of parameters required by "
+                         f"{model_name} model")
+            logger.error(msg=error_msg)
+            raise ValueError(error_msg)
+    else:
+        error_msg = f"Model {model_name} not implemented yet."
+        logger.warning(msg=error_msg)
+        raise ValueError(error_msg)
+
+    coord_point1 = [coord_utm1[:, 0], coord_utm1[:, 1]]
+
+    aps2 = np.zeros((num_points2, num_time), dtype=np.float32)
+
+    logger.debug(msg=f"Start looping for kriging parameters estimation and APS interpolation for {num_time} snapshots.")
+    for i in range(num_time):
+        try:
+            model = applyModelParams(model, model_params[:, i], logger)
+        except Exception as e:
+            warning_msg = f"Model parameters for time step {i} are not provided: {e}"
+            logger.warning(msg=warning_msg)
+            raise ValueError(warning_msg)
+
+        field = residuals[:, i].astype(np.float32)
+
+        # estimate kriging parameters based on the variogram model and the residuals of first order points
+        sk = gs.krige.Simple(model=model, cond_pos=coord_point1, cond_val=field)
+
+        # evaluate the kriging model at new locations
+        aps2[:, i], var_sk_new = sk((coord_utm2[:, 1], coord_utm2[:, 0]), return_var=True)
+
+    logger.debug(msg="Finished applying spatial filtering to second-order points using Kriging interpolation.")
+    return aps2
+
+
 def launchSpatialFiltering(parameters: tuple):
     """Launch_spatial_filtering.
 
