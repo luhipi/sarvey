@@ -1018,7 +1018,8 @@ def parameterBasedNoisyPointRemoval(*, net_par_obj: NetworkParameter, point_id: 
             ax.set_title("{}. iteration\nDEM correction - RMSE per point in [m]".format(it_count))
             fig = ax.get_figure()
             plt.tight_layout()
-            fig.savefig(join(dirname(net_par_obj.file_path), "pic", f"step_1_rmse_dem_correction_{it_count}th_iter.png"),
+            fig.savefig(join(dirname(net_par_obj.file_path), "pic",
+                             f"step_1_rmse_dem_correction_{it_count}th_iter.png"),
                         dpi=300)
             plt.close(fig)
 

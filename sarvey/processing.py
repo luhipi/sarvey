@@ -323,7 +323,7 @@ class Processing:
                                                       arcs=net_par_obj.arcs[arc_mask, :],
                                                       val=net_par_obj.gamma[arc_mask],
                                                       ax=ax, linewidth=1, cmap_name="autumn", clim=(0, 1))
-            ax.set_title("Coherence from temporal unwrapping\n(only arcs with $\gamma \leq$ {} "
+            ax.set_title(r"Coherence from temporal unwrapping\n(only arcs with $\gamma \leq$ {} "
                          "shown)\nBefore outlier removal".format(thrsh_visualisation))
             fig = ax.get_figure()
             plt.tight_layout()
@@ -347,7 +347,7 @@ class Processing:
                                                       arcs=net_par_obj.arcs[arc_mask, :],
                                                       val=net_par_obj.gamma[arc_mask],
                                                       ax=ax, linewidth=1, cmap_name="autumn", clim=(0, 1))
-            ax.set_title("Coherence from temporal unwrapping\n(only arcs with $\gamma \leq$ {} "
+            ax.set_title(r"Coherence from temporal unwrapping\n(only arcs with $\gamma \leq$ {} "
                          "shown)\nAfter outlier removal".format(thrsh_visualisation))
             fig = ax.get_figure()
             plt.tight_layout()
@@ -399,7 +399,8 @@ class Processing:
         #                                               spatial_ref_idx=spatial_ref_idx,
         #                                               res_tol=5.0,
         #                                               max_rm_fraction=0.001)
-        fig = viewer.plotScatter(value=-demerr, coord=point_obj.coord_xy, ttl="Parameter integration: DEM correction in [m]",
+        fig = viewer.plotScatter(value=-demerr, coord=point_obj.coord_xy,
+                                 ttl="Parameter integration: DEM correction in [m]",
                                  bmap_obj=bmap_obj, s=3.5, cmap="jet_r", symmetric=True, logger=self.logger)[0]
         fig.savefig(join(self.path, "pic", "step_2_estimation_dem_correction.png"), dpi=300)
         plt.close(fig)

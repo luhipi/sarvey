@@ -836,6 +836,7 @@ def setReferenceToPeakOfHistogram(*, phase: np.ndarray, vel: np.ndarray, num_bin
 
 def checkIfRequiredFilesExist(*, path_to_files: str, required_files: list, logger: Logger):
     """
+    Check if all required files exist from previous processing steps.
 
     Parameters
     ----------
