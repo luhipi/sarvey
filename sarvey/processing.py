@@ -387,7 +387,7 @@ class Processing:
         bmap_obj = AmplitudeImage(file_path=join(self.path, "background_map.h5"))
 
         self.logger.info(msg="Integrate parameters from arcs to points.")
-        self.logger.info(msg="Integrate DEM error.")
+        self.logger.info(msg="Integrate DEM correction.")
         demerr = spatialParameterIntegration(val_arcs=net_par_obj.demerr,
                                              arcs=net_par_obj.arcs,
                                              coord_xy=point_obj.coord_xy,
@@ -399,9 +399,9 @@ class Processing:
         #                                               spatial_ref_idx=spatial_ref_idx,
         #                                               res_tol=5.0,
         #                                               max_rm_fraction=0.001)
-        fig = viewer.plotScatter(value=-demerr, coord=point_obj.coord_xy, ttl="Parameter integration: DEM error in [m]",
+        fig = viewer.plotScatter(value=-demerr, coord=point_obj.coord_xy, ttl="Parameter integration: DEM correction in [m]",
                                  bmap_obj=bmap_obj, s=3.5, cmap="jet_r", symmetric=True, logger=self.logger)[0]
-        fig.savefig(join(self.path, "pic", "step_2_estimation_dem_error.png"), dpi=300)
+        fig.savefig(join(self.path, "pic", "step_2_estimation_dem_correction.png"), dpi=300)
         plt.close(fig)
 
         self.logger.info(msg="Integrate mean velocity.")
@@ -424,7 +424,7 @@ class Processing:
         plt.close(fig)
 
         self.logger.info(msg="Remove phase contributions from mean velocity"
-                             " and DEM error from wrapped phase of points.")
+                             " and DEM correction from wrapped phase of points.")
         pred_phase_demerr, pred_phase_vel = ut.predictPhase(
             obj=point_obj, vel=vel, demerr=demerr,
             ifg_space=True, logger=self.logger
@@ -453,7 +453,7 @@ class Processing:
         # use same reference point for spatial integration and Puma unwrapping before recombining phases
         unw_res_phase = unw_res_phase - unw_res_phase[spatial_ref_idx, :]
 
-        self.logger.info(msg="Add phase contributions from mean velocity and DEM error back to "
+        self.logger.info(msg="Add phase contributions from mean velocity and DEM correction back to "
                              "spatially unwrapped residual phase.")
         unw_phase = unw_res_phase + pred_phase
         # unw_phase = unw_res_phase  # debug: don't add phase back.
@@ -987,11 +987,11 @@ class Processing:
 
         fig = viewer.plotScatter(value=-demerr[mask_gamma], coord=point2_obj.coord_xy, ttl="DEM error in [m]",
                                  bmap_obj=bmap_obj, s=3.5, cmap="jet_r", symmetric=True, logger=self.logger)[0]
-        fig.savefig(join(self.path, "pic", "step_4_estimation_dem_error_coh{}.png".format(coh_value)), dpi=300)
+        fig.savefig(join(self.path, "pic", "step_4_estimation_dem_correction_coh{}.png".format(coh_value)), dpi=300)
         plt.close(fig)
 
         self.logger.info(msg="Remove phase contributions from mean velocity "
-                             "and DEM error from wrapped phase of points.")
+                             "and DEM correction from wrapped phase of points.")
         pred_phase_demerr, pred_phase_vel = ut.predictPhase(
             obj=point2_obj,
             vel=vel[mask_gamma],
@@ -1017,7 +1017,7 @@ class Processing:
                                           num_cores=self.config.processing.num_cores, logger=self.logger)
 
         self.logger.info(msg="Add phase contributions from mean velocity "
-                             "and DEM error back to spatially unwrapped residual phase.")
+                             "and DEM correction back to spatially unwrapped residual phase.")
         unw_phase = unw_res_phase + pred_phase
 
         point2_obj.phase = unw_phase

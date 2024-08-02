@@ -131,7 +131,7 @@ def exportDataToGisFormat(*, file_path: str, output_path: str, path_inputs: str,
         coord_correction_norm = np.linalg.norm(coord_correction, axis=1)
         max_error_index = np.argmax(coord_correction_norm)
         logger.info(f"Maximum geolocation correction: {coord_correction_norm[max_error_index]:.1f} m "
-                    f"corresponding to {demerr[max_error_index]:.1f} m DEM error")
+                    f"corresponding to {demerr[max_error_index]:.1f} m DEM correction")
     else:
         coord_correction = 0
         logger.info("geolocation correction skipped.")
@@ -280,7 +280,7 @@ def main(iargs=None):
     logger.info(msg=f"Output file: {args.output_path}")
 
     # specify geolocation status
-    logger.info(msg=f"Correct geolocation error: {args.correct_geolocation}")
+    logger.info(msg=f"Correct geolocation: {args.correct_geolocation}")
 
     # specify time series flag
     logger.info(msg=f"Export time series data: {not args.no_timeseries}")

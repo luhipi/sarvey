@@ -60,7 +60,7 @@ except ImportError as e:
 
 EXAMPLE = """Example:
   sarvey_plot outputs/coh60_ts.h5 -t                # plot average velocity and time series
-  sarvey_plot outputs/coh80_ts.h5 -m -a             # plot velocity map and DEM error interactively
+  sarvey_plot outputs/coh80_ts.h5 -m -a             # plot velocity map and DEM correction interactively
   sarvey_plot outputs/coh80_ts.h5 -r -n 0 5         # plot residuals for image 0 to 5
   sarvey_plot outputs/coh80_ifg_wr.h5 -p -n 0 1 -a  # plot wrapped phase of final point selection for interferogram 0
   sarvey_plot outputs/p1_ifg_wr.h5 -p -n 0 1 -a     # plot wrapped phase of the first order network
@@ -102,11 +102,11 @@ def plotMap(*, obj_name: str, save_path: str, interactive: bool = False, path_in
     sc = ax.scatter(point_obj.coord_xy[:, 1], point_obj.coord_xy[:, 0], c=demerr, s=scatter_size,
                     cmap=colormaps["jet_r"])
     plt.colorbar(sc, label="[m]", pad=0.03, shrink=0.5)
-    plt.title("DEM error")
+    plt.title("DEM correction")
     plt.ylabel('Azimuth')
     plt.xlabel('Range')
     plt.tight_layout()
-    plt.gcf().savefig(join(save_path, "map_dem_error.png"), dpi=300)
+    plt.gcf().savefig(join(save_path, "map_dem_correction.png"), dpi=300)
     if interactive:
         plt.show()
     else:
@@ -377,7 +377,7 @@ def createParser():
                         help='Plots the residual phase after substracting known components.')
 
     parser.add_argument('-m', '--plot-map', default=False, dest="plotMap", action="store_true",
-                        help='Plots the velocity map and DEM error.')
+                        help='Plots the velocity map and DEM correction.')
 
     parser.add_argument('-i', '--plot-all-ifgs', default=False, dest="plotAllIfgs", action="store_true",
                         help='Plots all ifgs.')

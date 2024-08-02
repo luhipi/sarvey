@@ -672,7 +672,7 @@ class Logging(BaseModel):
 
 
 class Config(BaseModel):
-    """Configuration for SAR4Infra sarvey."""
+    """Configuration for sarvey."""
 
     # title has to be the name of the class. Needed for creating default file
     data_directories: DataDirectories = Field(

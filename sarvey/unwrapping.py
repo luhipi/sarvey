@@ -994,7 +994,7 @@ def parameterBasedNoisyPointRemoval(*, net_par_obj: NetworkParameter, point_id: 
 
         rmse = rmse_vel.copy()
         max_rmse = np.max(rmse.ravel())
-        logger.info(msg="Maximum RMSE DEM error: {:.2f} m".format(np.max(rmse_demerr.ravel())))
+        logger.info(msg="Maximum RMSE DEM correction: {:.2f} m".format(np.max(rmse_demerr.ravel())))
         logger.info(msg="Maximum RMSE velocity: {:.4f} m / year".format(np.max(rmse_vel.ravel())))
 
         if bool_plot:
@@ -1015,10 +1015,10 @@ def parameterBasedNoisyPointRemoval(*, net_par_obj: NetworkParameter, point_id: 
             sc = ax.scatter(coord_xy[:, 1], coord_xy[:, 0], c=rmse_demerr, s=3.5,
                             cmap=plt.cm.get_cmap("autumn_r"))
             plt.colorbar(sc, pad=0.03, shrink=0.5)
-            ax.set_title("{}. iteration\nDEM error - RMSE per point in [m]".format(it_count))
+            ax.set_title("{}. iteration\nDEM correction - RMSE per point in [m]".format(it_count))
             fig = ax.get_figure()
             plt.tight_layout()
-            fig.savefig(join(dirname(net_par_obj.file_path), "pic", f"step_1_rmse_dem_error_{it_count}th_iter.png"),
+            fig.savefig(join(dirname(net_par_obj.file_path), "pic", f"step_1_rmse_dem_correction_{it_count}th_iter.png"),
                         dpi=300)
             plt.close(fig)
 
