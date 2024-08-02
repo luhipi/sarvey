@@ -108,6 +108,55 @@ def applySpatialFilteringToP2(*, coord_utm1, residuals, coord_utm2, model_name, 
     return aps2
 
 
+def applySimpleInterpolationToP2(*, residuals: np.ndarray, coord_utm1: np.ndarray, coord_utm2: np.ndarray,
+                                 logger: Logger, interp_method: str = "linear",):
+    """
+    Apply simple interpolation to second-order points.
+
+    Parameters
+    ----------
+    logger
+    residuals : np.ndarray
+        Residual phase values from the first-order points (size: num_points_p1 x num_ifgs)
+    coord_utm1 : np.ndarray
+        coordinates in UTM of the points for which the residuals are given (size: num_points_p1 x 2)
+    coord_utm2 : np.ndarray
+        Coordinates of the second-order points in UTM. (size: num_points_p2 x 2)
+    logger: Logger
+        Logger instance for logging messages.
+
+    interp_method : str
+        Interpolation method (default: "linear"; options: "linear", "cubic")
+
+    Returns
+    -------
+    interpolated_phase : np.ndarray
+        Atmospheric phase screen for the second order points (size: num_points_p2 x num_images)
+    """
+    num_points2 = coord_utm2.shape[0]
+    num_images = residuals.shape[1]
+    logger.debug(f"Start applying {num_images} APS to {num_points2} second-order points using"
+                 f" {interp_method} interpolation.")
+
+    aps2 = np.zeros((num_points2, num_images), dtype=np.float32)
+
+    logger.debug(msg=f"Start looping for APS interpolation for {num_images} snapshots.")
+    for i in range(num_images):
+        aps2[:, i] = griddata(coord_utm1, residuals[:, i], coord_utm2, method=interp_method)
+        # interpolation with 'linear' or 'cubic' yields nan values for pixel that need to be extrapolated.
+        # interpolation with 'knn' solves this problem.
+        mask_extrapolate = np.isnan(aps2[:, i])
+        aps2[mask_extrapolate, i] = griddata(
+            coord_utm1,
+            residuals[:, i],
+            coord_utm2[mask_extrapolate, :],
+            method='nearest'
+        )
+
+    logger.debug(msg=f"Finished applying spatial filtering to second-order points using {interp_method} interpolation.")
+    return aps2
+
+
 def launchSpatialFiltering(parameters: tuple):
     """Launch_spatial_filtering.
 
