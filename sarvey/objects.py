@@ -793,3 +793,89 @@ class NetworkParameter(Network):
             self.demerr = f["demerr"][:]
             self.vel = f["vel"][:]
             self.gamma = f["gamma"][:]
+
+
+class ApsParameters:
+    """APS model parameters."""
+    def __init__(self, *, file_path: str, logger: Logger):
+        """Init.
+
+        Parameters
+        ----------
+        file_path: str
+            path to filename
+        logger: Logger
+            Logging handler
+        """
+        self.file_path = file_path
+        self.model_name = None
+        self.model_params = None
+        self.num_params = None
+        self.phase = None
+        self.logger = logger
+        self.logger.debug(f"ApsParameters initialized with file path: {file_path}")
+
+    def prepare(self, *, model_name: str = "Stable", model_params: np.ndarray, phase: np.ndarray):
+        """prepare APS model parameters and store it into a file.
+
+        Parameters
+        ----------
+        model_name: str
+            name of the model
+        model_params: np.ndarray
+            Model parameters
+        phase: np.ndarray
+            Residual phase of P1 used for APS estimation
+        """
+        self.logger.info(f"Preparing ApsParameters with model: {model_name}")
+
+        if model_params is None or model_params.size == 0:
+            self.logger.debug("Model parameters are empty; defaulting to an empty list.")
+            model_params = []
+
+        self.model_name = model_name
+        self.model_params = model_params
+        self.num_params = model_params.shape[0] if model_params is not None and model_params.size > 0 else 0
+        self.phase = phase
+
+        self.logger.debug(f"Model parameters set with {self.num_params} parameters.")
+        self.logger.debug(f"Phase data shape: {phase.shape}")
+
+        self.writeToFile()
+
+    def open(self):
+        """Read data from file.
+
+        Read stored information from already existing .h5 file.
+        """
+
+        self.logger.info(f"Opening file: {self.file_path}")
+
+        try:
+            with h5py.File(self.file_path, 'r') as f:
+                self.model_params = f["model_params"][:]
+                self.phase = f["phase"][:]
+                self.model_name = f.attrs["model_name"]
+                self.num_params = f.attrs["num_params"]
+                self.logger.debug(f"Loaded model name: {self.model_name}, number of parameters: {self.num_params}")
+        except Exception as e:
+            self.logger.error(f"Failed to open file {self.file_path}: {e}")
+
+    def writeToFile(self):
+        """Write data to .h5 file."""
+        self.logger.info(msg="write data to {}...".format(self.file_path))
+
+        try:
+            if exists(self.file_path):
+                self.logger.warning(f"File {self.file_path} exists and will be overwritten.")
+                os.remove(self.file_path)
+
+            with h5py.File(self.file_path, 'w') as f:
+                f.create_dataset('model_params', data=self.model_params)
+                f.create_dataset('phase', data=self.phase)
+                f.attrs["model_name"] = self.model_name
+                f.attrs["num_params"] = self.num_params
+
+            self.logger.info(f"Data successfully written to {self.file_path}.")
+        except Exception as e:
+            self.logger.error(f"Error writing data to {self.file_path}: {e}")
