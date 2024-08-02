@@ -797,6 +797,7 @@ class NetworkParameter(Network):
 
 class ApsParameters:
     """APS model parameters."""
+
     def __init__(self, *, file_path: str, logger: Logger):
         """Init.
 
@@ -816,7 +817,7 @@ class ApsParameters:
         self.logger.debug(f"ApsParameters initialized with file path: {file_path}")
 
     def prepare(self, *, model_name: str = "Stable", model_params: np.ndarray, phase: np.ndarray):
-        """prepare APS model parameters and store it into a file.
+        """Prepare APS model parameters and store it into a file.
 
         Parameters
         ----------
@@ -848,7 +849,6 @@ class ApsParameters:
 
         Read stored information from already existing .h5 file.
         """
-
         self.logger.info(f"Opening file: {self.file_path}")
 
         try:
