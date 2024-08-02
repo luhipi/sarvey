@@ -67,7 +67,7 @@ def applySpatialFilteringToP2(*, coord_utm1, residuals, coord_utm2, model_name, 
     """
     num_time = model_params.shape[1]
     num_points2 = coord_utm2.shape[0]
-    logger.debug(f"Starting applying {num_time} time APS to {num_points2} second-order points using Kriging"
+    logger.debug(f"Start applying {num_time} time APS to {num_points2} second-order points using Kriging"
                  f" interpolation.")
 
     if model_name == 'Stable':
