@@ -832,7 +832,7 @@ class ApsParameters:
 
         if model_params is None or model_params.size == 0:
             self.logger.debug("Model parameters are empty; defaulting to an empty list.")
-            model_params = []
+            model_params = np.array([])
 
         self.model_name = model_name
         self.model_params = model_params
