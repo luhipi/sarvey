@@ -51,15 +51,15 @@ The configuration file has various sections, as detailed below:
 * phase_linking
 
 
- This section specifies the Phase Linking parameters. By default, `"phase_linking": false`.
- If you wish to perform DS analysis, change it to `true`. Note: If `"phase_linking": true`, you must complete the corresponding step of MiaplPy as described in `preparation <preparation.rst/#Phase Linking>`_. In the configuration file, set `path_inverted` to the path of the inverted directory of MiaplPy data.
+ This section specifies the Phase Linking parameters. By default, `"use_phase_linking_results": false`.
+ If you wish to perform DS analysis, change it to `true`. Note: If `"use_phase_linking_results": true`, you must complete the corresponding step of MiaplPy as described in `preparation <preparation.rst/#Phase Linking>`_. In the configuration file, set `inverted_path` to the path of the inverted directory of MiaplPy data.
 
 
 
 * preparation
 
 
- This section includes network parameters, such as the start and end dates, network type, and `filter_wdw_size`, which specifies the window size used to estimate the temporal coherence for each pixel.
+ This section includes network parameters, such as the start and end dates, network type, and `filter_window_size`, which specifies the window size used to estimate the temporal coherence for each pixel.
 
 
 * consistency_check
@@ -75,7 +75,7 @@ The configuration file has various sections, as detailed below:
 * filtering
 
 
- This section defines the parameters for atmospheric estimation and filtering. Atmospheric filtering is enabled by default. To skip it, set `"skip_filtering": true`.
+ This section defines the parameters for atmospheric estimation and filtering. Atmospheric filtering is enabled by default. To skip it, set `"apply_aps_filtering": false`.
 
 
 * densification
@@ -96,13 +96,13 @@ Step 0: Preparation
 - Loading the resampled SLC data:
     The resampled SLC (Single Look Complex) data is read from the inputs/slcStack.h5
     This data is complex-valued and contains both amplitude and phase information.
-    The data is subsetted to the specified time span (via **preparation:start_date** and **preparation:stop_date** in the config file).
+    The data is subsetted to the specified time span (via **preparation:start_date** and **preparation:end_date** in the config file).
     A description of how to prepare the data and make a spatial subset of the data is described in `data preparation in MiaplPy <preparation.rst>`_.
 
 - Designing the interferogram network:
     From the stack of SLC images, the interferogram network is designed.
     The network of interferograms is designed based on the temporal and perpendicular baselines of the SLC images.
-    Different networks can be created (via **preparation:network_type** in the config file) and should be chosen based on the characteristics of the displacement (spatial extend, magnitude, temporal behaviour).
+    Different networks can be created (via **preparation:ifg_network_type** in the config file) and should be chosen based on the characteristics of the displacement (spatial extend, magnitude, temporal behaviour).
     Currently five types of networks are supported:
 
     a) small baseline network ('sb') (Berardino et al. 2002),
@@ -117,7 +117,7 @@ Step 0: Preparation
 
 - Estimating the temporal coherence:
     The phase noise of each pixel is approximated by the estimation of the temporal phase coherence (Zhao and Mallorqui 2019).
-    Thereby, a low-pass filter with a certain window size is used (**preparation:filter_wdw_size**).
+    Thereby, a low-pass filter with a certain window size is used (**preparation:filter_window_size**).
     The temporal coherence is used to select the first- and second-order points in the later steps (**consistency_check:coherence_p1** and **filtering:coherence_p2**).
 
 - Output of this step
@@ -135,18 +135,18 @@ Step 1: Consistency Check
 - Selecting candidates for first order points:
     Candidates for the first-order points are selected based on the temporal coherence threshold (**consistency_check:coherence_p1**).
     However, not all points with a coherence above the threshold are selected, but only those which have the highest coherence within a grid cell of size **consistency_check:grid_size** (in [m]).
-    A mask file can be specified (**consistency_check:spatial_mask_file_p1**) to limit the first-order points to the given area of interest.
+    A mask file can be specified (**consistency_check:mask_p1_file**) to limit the first-order points to the given area of interest.
 
 - Creating a spatial network:
     After selecting the candidates for first order points, the method creates a spatial network to connect the first-order points.
     For each arc in the network, the double difference phase time series is calculated.
-    A delaunay network ensures the connectivity in the spatial network and k-nearest neighbors (**consistency_check:knn**) can be used to increase the redundancy in the network.
+    A delaunay network ensures the connectivity in the spatial network and k-nearest neighbors (**consistency_check:num_nearest_neighbours**) can be used to increase the redundancy in the network.
     Arcs with a distance above a threshold (**consistency_check:max_arc_length**) are removed from the network to reduce the impact of the atmospheric effects.
 
 - Temporal unwrapping:
     All arcs in the spatial network are temporally unwrapped based on a phase model consisting of DEM error difference and velocity difference between the two points of the arc.
     The temporal coherence derived from the model fit is maximized by searching within a search space of given bounds (**consistency_check:velocity_bound** and **consistency_check:dem_error_bound**).
-    Within the bounds, the search space is discretized (**consistency_check:num_samples**).
+    Within the bounds, the search space is discretized (**consistency_check:num_optimization_samples**).
     The final parameters for each arc are derived from a gradient descent refinement of the discrete search space result.
 
 - Performing a consistency check on the data:
@@ -154,8 +154,8 @@ Step 1: Consistency Check
     Therefore, outliers among the candidates are removed with a consistency check.
     The consistency check is based on the estimated temporal coherence of the temporal unwrapping of each arc.
     A point is assumed to be an outlier, if it is connected by many arcs having a low temporal coherence from temporal unwrapping.
-    Arcs with a temporal coherence below a threshold are removed (**consistency_check:arc_coherence**).
-    Similarly, points with mean coherence of all connected arcs are removed (specified by the same parameter **consistency_check:arc_coherence**).
+    Arcs with a temporal coherence below a threshold are removed (**consistency_check:arc_unwrapping_coherence**).
+    Similarly, points with mean coherence of all connected arcs are removed (specified by the same parameter **consistency_check:arc_unwrapping_coherence**).
     Moreover, points which are connected by a number of arcs less than a threshold (**consistency_check:min_num_arc**) are removed.
     Afterwards, the consistency within the spatial network is checked.
     For this purpose, the parameters (DEM error difference and velocity difference) of all arcs are integrated in the spatial network relative to an arbitrary reference point using least squares.
@@ -169,7 +169,7 @@ Step 1: Consistency Check
 Step 2: Unwrapping
 ^^^^^^^^^^^^^^^^^^
 
-Two unwrapping options (**processing:temporal_unwrapping**, also applies to step 4) are implemented and should be chosen based on the characteristics of the displacement (spatial extend, magnitude, temporal behaviour).
+Two unwrapping options (**processing:apply_temporal_unwrapping**, also applies to step 4) are implemented and should be chosen based on the characteristics of the displacement (spatial extend, magnitude, temporal behaviour).
 
 - Output of this step
     - p1_ifg_unw.h5
@@ -186,11 +186,11 @@ Option 1) Unwrapping in time and space
     After integrating the parameters, the phase contributions are removed from the wrapped interferometric phase of the first-order points.
 
 - Spatial unwrapping of the residuals:
-    The residuals in each interferogram are unwrapped in space using a sparse point network unwrapping method (**processing:unwrapping_method**) (Bioucas-Dias and Valadao 2007, Boykov and Kolmogorov 2004).
+    The residuals in each interferogram are unwrapped in space using a sparse point network unwrapping method (**processing:spatial_unwrapping_method**) (Bioucas-Dias and Valadao 2007, Boykov and Kolmogorov 2004).
     The spatial neighbourhood for unwrapping is defined by the arcs of the spatial network.
-    There are two options (**unwrapping:use_temporal_unwrapping_arcs**).
+    There are two options (**unwrapping:use_arcs_from_temporal_unwrapping**).
     Either the spatial network from consistency check (step 2) can be used for unwrapping, i.e. the spatial network after removing arcs with a low temporal coherence from temporal unwrapping.
-    Or, the spatial network is re-created with a delaunay network and k-nearest neighbors (**unwrapping:knn**).
+    Or, the spatial network is re-created with a delaunay network.
 
 - Restore phase contributions to the spatially unwrapped residual phase:
     Finally, the phase contributions are added back to the spatially unwrapped residual phase of each point.
@@ -205,11 +205,11 @@ Option 2) Unwrapping in space
 """""""""""""""""""""""""""""
 
 - Spatial unwrapping:
-    The interferograms are unwrapped independently in space with a sparse point network unwrapping method (**processing:unwrapping_method**) (Bioucas-Dias and Valadao 2007, Boykov and Kolmogorov 2004).
+    The interferograms are unwrapped independently in space with a sparse point network unwrapping method (**processing:spatial_unwrapping_method**) (Bioucas-Dias and Valadao 2007, Boykov and Kolmogorov 2004).
     The spatial neighbourhood for unwrapping is defined by the arcs of the spatial network.
-    There are two options (**unwrapping:use_temporal_unwrapping_arcs**).
+    There are two options (**unwrapping:use_arcs_from_temporal_unwrapping**).
     Either the spatial network from consistency check (step 2) can be used for unwrapping, i.e. the spatial network after removing arcs with a low temporal coherence from temporal unwrapping.
-    Or, the spatial network is re-created with a delaunay network and k-nearest neighbors (**unwrapping:knn**).
+    Or, the spatial network is re-created with a delaunay network.
 
 - Adjust reference:
     All unwrapped interferograms are referenced to the peak of velocity histogram derived from all points.
@@ -222,23 +222,23 @@ Step 3: Filtering
 
 In this step, the atmospheric phase screen (APS) is estimated from the displacement time series of the first-order points.
 Afterwards, the APS is interpolated to the location of the second-order points.
-The filtering can be skipped by setting **filtering:skip_filtering** to True.
+The filtering can be skipped by setting **filtering:apply_aps_filtering** to True.
 However, the step 3 has to be executed as the second-order points are selected during this step.
 
 - Selecting pixels with no or linear displacement:
     Among the first-order points, the points with no or merely linear displacement are selected (**filtering:use_moving_points**).
     It is assumed that for these points, the phase consists only of atmospheric effect and noise after removing the mean velocity and DEM error.
-    Points with a non-linear displacement behaviour are removed by a threshold on the temporal autocorrelation of the displacement time series (**filtering:max_auto_corr**) (Crosetto et al. 2018).
+    Points with a non-linear displacement behaviour are removed by a threshold on the temporal autocorrelation of the displacement time series (**filtering:max_temporal_autocorrelation**) (Crosetto et al. 2018).
     A regular grid (**filtering:grid_size** in [m]) is applied to select the first-order points with the lowest temporal autocorrelation to reduce the computational complexity during filtering.
 
 - Selecting second-order points:
     Second-order points are selected based on a temporal coherence threshold (**filtering:coherence_p2**) on the temporal phase coherence computed during step 0.
-    A mask file can be specified (**filtering:spatial_mask_file_p2**) to limit the second-order points to the given area of interest.
-    Second-order points can also be selected based on the results of phase-linking (set **phase_linking:phase_linking** to True) implemented in MiaplPy (Mirzaee et al. 2023).
+    A mask file can be specified (**filtering:mask_p2_file**) to limit the second-order points to the given area of interest.
+    Second-order points can also be selected based on the results of phase-linking (set **phase_linking:use_phase_linking_results** to True) implemented in MiaplPy (Mirzaee et al. 2023).
     More information on Miaplpy and phase-linking can be found `here <preparation>`_.
     The number of siblings (**phase_linking:num_siblings**) used during phase-linking within MiaplPy processing needs to be specified to identify the distributed scatterers (DS) among the pixels selected by MiaplPy.
-    A mask file can be specified (**phase_linking:spatial_mask_file_pl**) to limit the phase-linking to the given area of interest.
-    MiaplPy also provides a selection of persistent scatterers (PS) which can be included as second-order points (set **phase_linking:use_ps** to True).
+    A mask file can be specified (**phase_linking:mask_phase_linking_file**) to limit the phase-linking to the given area of interest.
+    MiaplPy also provides a selection of persistent scatterers (PS) which can be included as second-order points (set **phase_linking:use_ps** to True) and also specify the path to the maskPS.h5 (**phase_linking:mask_ps_file**) which is also an output of MiaplPy.
     In case the second-order points are selected among the results from MiaplPy, the filtered interferometric phase (MiaplPy result) is used for the respective points.
     The DS pixels from MiaplPy and the pixels selected with the temporal phase coherence from step 0 are both selected with the same coherence threshold (**filtering:coherence_p2**).
 
@@ -261,7 +261,7 @@ For example, a threshold of 0.8 would result in coh80_aps.h5 and coh80_ifg_wr.h5
 Step 4: Densification
 ^^^^^^^^^^^^^^^^^^^^^
 
-Two unwrapping options (**processing:temporal_unwrapping**, also applies to step 2) are implemented and should be chosen based on the characteristics of the displacement (spatial extend, magnitude, temporal behaviour).
+Two unwrapping options (**processing:apply_temporal_unwrapping**, also applies to step 2) are implemented and should be chosen based on the characteristics of the displacement (spatial extend, magnitude, temporal behaviour).
 
 - Output of this step
     - cohXX_ifg_unw.h5
@@ -278,23 +278,21 @@ Option 1: Unwrapping in time and space
 
 - Densify network:
     The parameters (DEM error and velocity) of each second-order point are estimated independently from the other second-order points.
-    The parameters are estimated by temporal unwrapping with respect to the closest first-order points (**densification:num_connections_p1**, **densification:max_distance_p1**) with a phase model consisting of DEM error and velocity (**densification:velocity_bound** and **densification:dem_error_bound**, **densification:num_samples**).
+    The parameters are estimated by temporal unwrapping with respect to the closest first-order points (**densification:num_connections_to_p1**, **densification:max_distance_to_p1**) with a phase model consisting of DEM error and velocity (**densification:velocity_bound** and **densification:dem_error_bound**, **densification:num_optimization_samples**).
     The densification is similar to the approach described by Van Leijen (2014), but jointly maximizes the temporal coherence to find the parameters that fit best to all arcs connecting the second-order point to the first-order points.
-    The estimated parameters are validated by estimating the fit for the arcs connecting the second-order point to the closest second-order points (**densification:num_connections_p2**).
-    However, this validation is only visualized in the pic/ directory, but has no impact on the final results.
 
 - Remove outliers:
     Second-order points which could not be temporally unwrapped with respect to the closest first-order points are removed.
-    For this purpose, a threshold on the joint temporal coherence considering the residuals of all arcs connecting the respective second-order point to the closest first-order points is applied (**densification:coherence_threshold**).
+    For this purpose, a threshold on the joint temporal coherence considering the residuals of all arcs connecting the respective second-order point to the closest first-order points is applied (**densification:arc_unwrapping_coherence**).
     First-order points receive a joint temporal coherence value of 1.0 to avoid them being removed from the final set of points.
 
 - Removing phase contributions (mean velocity and DEM error):
     After estimating the parameters of the second-order points, the phase contributions are removed from the wrapped interferometric phase of the first-order points.
 
 - Spatial unwrapping of the residuals:
-    The residuals in each interferogram are unwrapped in space using a sparse point network unwrapping method (**processing:unwrapping_method**) (Bioucas-Dias and Valadao 2007, Boykov and Kolmogorov 2004).
+    The residuals in each interferogram are unwrapped in space using a sparse point network unwrapping method (**processing:spatial_unwrapping_method**) (Bioucas-Dias and Valadao 2007, Boykov and Kolmogorov 2004).
     The spatial neighbourhood for unwrapping is defined by spatial network including both first- and second-order points.
-    It is created with a delaunay network and k-nearest neighbors (**unwrapping:knn**).
+    It is created with a delaunay network.
 
 - Restore phase contributions to the spatially unwrapped residual phase:
     Finally, the phase contributions are added back to the spatially unwrapped residual phase of each point.

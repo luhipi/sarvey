@@ -57,7 +57,7 @@ from sarvey.geolocation import calculateGeolocationCorrection
 warnings.filterwarnings("ignore", category=ShapelyDeprecationWarning)
 
 
-def exportDataToGisFormat(*, file_path: str, output_path: str, path_inputs: str,
+def exportDataToGisFormat(*, file_path: str, output_path: str, input_path: str,
                           correct_geolocation: bool = False, no_timeseries: bool = False, logger: Logger):
     """Export data to GIS format (shp or gpkg).
 
@@ -67,7 +67,7 @@ def exportDataToGisFormat(*, file_path: str, output_path: str, path_inputs: str,
         Path to the input file.
     output_path: str
         Path for writing output file.
-    path_inputs: str
+    input_path: str
         Path to slcStack.h5 and geometryRadar.h5.
     correct_geolocation: bool
         Correct geolocation or not
@@ -78,7 +78,7 @@ def exportDataToGisFormat(*, file_path: str, output_path: str, path_inputs: str,
     """
     point_obj = Points(file_path=file_path, logger=logger)
 
-    point_obj.open(path_inputs=path_inputs)
+    point_obj.open(input_path=input_path)
 
     # todo: add corrected height to output
     # todo: add option to mask the output to e.g. linear infrastructures or other AOI
@@ -124,7 +124,7 @@ def exportDataToGisFormat(*, file_path: str, output_path: str, path_inputs: str,
 
     if correct_geolocation:
         logger.info("Calculate geolocation correction.")
-        coord_correction = calculateGeolocationCorrection(path_geom=path_inputs,
+        coord_correction = calculateGeolocationCorrection(path_geom=input_path,
                                                           point_obj=point_obj,
                                                           demerr=demerr,
                                                           logger=logger)
@@ -289,7 +289,7 @@ def main(iargs=None):
         os.mkdir(output_dir)
 
     exportDataToGisFormat(file_path=args.file_path, output_path=args.output_path,
-                          path_inputs=config.data_directories.path_inputs,
+                          input_path=config.data_directories.input_path,
                           correct_geolocation=args.correct_geolocation, no_timeseries=args.no_timeseries,
                           logger=logger)
 

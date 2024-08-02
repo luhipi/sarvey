@@ -238,7 +238,7 @@ def plotGridFromBoxList(*, box_list: list, ax: plt.Axes = None, edgecolor: str =
 class TimeSeriesViewer:
     """TimeSeriesViewer."""
 
-    def __init__(self, *, point_obj: Points, vel_scale: str = "mm", path_inputs: str, logger: Logger):
+    def __init__(self, *, point_obj: Points, vel_scale: str = "mm", input_path: str, logger: Logger):
         """Init."""
         self.sc = None
         self.point_obj = point_obj
@@ -266,7 +266,7 @@ class TimeSeriesViewer:
         self.bmap_obj = AmplitudeImage(file_path=os.path.join(os.path.dirname(self.point_obj.file_path),
                                                               "background_map.h5"))
         self.bmap_obj.open()
-        self.height = readfile.read(os.path.join(path_inputs, "geometryRadar.h5"), datasetName='height')[0]
+        self.height = readfile.read(os.path.join(input_path, "geometryRadar.h5"), datasetName='height')[0]
 
         temp_coh_obj = BaseStack(
             file=os.path.join(os.path.dirname(self.point_obj.file_path), "temporal_coherence.h5"),
