@@ -314,7 +314,7 @@ def extractModelParams(model: gs.covmodel.models, logger: Logger):
     """
     if model.name == 'Stable':
         params = (model.var, model.len_scale, model.nugget, model.alpha)
-        logger.debug(msg=f"Extract {params.size} parameters from gs model {model.name}.")
+        logger.debug(msg=f"Extract {len(params)} parameters from gs model {model.name}.")
     # elif model.name == 'Gaussian':
     #     params = (model.var, model.len_scale, model.nugget)
     else:
