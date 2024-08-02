@@ -289,3 +289,72 @@ def simpleInterpolation(*, residuals: np.ndarray, coord_utm1: np.ndarray, coord_
         )
 
     return aps1, aps2
+
+
+def extractModelParams(model: gs.covmodel.models, logger: Logger):
+    """
+    Extract parameters from the given gstools model.
+
+    Parameters
+    ----------
+    model : gs.covmodel.models
+        The model from which to extract parameters.
+    logger : Logger
+        Logging handler.
+
+    Returns
+    -------
+    tuple
+        A tuple containing the model parameters.
+
+    Raises
+    ------
+    ValueError
+        If the model is not implemented.
+    """
+    if model.name == 'Stable':
+        params = (model.var, model.len_scale, model.nugget, model.alpha)
+        logger.debug(msg=f"Extract {params.size} parameters from gs model {model.name}.")
+    # elif model.name == 'Gaussian':
+    #     params = (model.var, model.len_scale, model.nugget)
+    else:
+        error_msg = f"Model {model.name} not implemented yet."
+        logger.error(msg=error_msg)
+        raise ValueError(error_msg)
+    return params
+
+
+def applyModelParams(model: gs.covmodel.models, params: tuple, logger: Logger):
+    """
+    Apply parameters to the given gstools model.
+
+    Parameters
+    ----------
+    model : gs.covmodel.models
+        The model to which parameters will be applied.
+    params : tuple
+        A tuple containing the model parameters.
+    logger : Logger
+        Logging handler.
+
+    Returns
+    -------
+    model
+        The model with applied parameters.
+
+    Raises
+    ------
+    ValueError
+        If the model is not implemented.
+    """
+
+    if model.name == 'Stable':
+        logger.debug(msg=f"Applying {params.size} parameters to gs model {model.name}.")
+        model.var, model.len_scale, model.nugget, model.alpha = params
+    # elif model.name == 'Gaussian':  # TODO: implement other models
+    #     model.var, model.len_scale, model.nugget = params
+    else:
+        error_msg = f"Model {model.name} not implemented yet."
+        logger.error(msg=error_msg)
+        raise ValueError(error_msg)
+    return model
