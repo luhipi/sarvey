@@ -349,7 +349,6 @@ def applyModelParams(model: gs.covmodel.models, params: tuple, logger: Logger):
     """
 
     if model.name == 'Stable':
-        logger.debug(msg=f"Applying {params.size} parameters to gs model {model.name}.")
         model.var, model.len_scale, model.nugget, model.alpha = params
     # elif model.name == 'Gaussian':  # TODO: implement other models
     #     model.var, model.len_scale, model.nugget = params
