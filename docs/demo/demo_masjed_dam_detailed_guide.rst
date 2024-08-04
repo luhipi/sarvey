@@ -261,15 +261,12 @@ Outputs of this step are:
 .. code-block:: none
 
     outputs/
-    ├── coh80_ifg_wr.h5
-    ├── coh80_aps.h5
     ├── p1_aps.h5
     ├── p1_ts_filt.h5
+    ├── aps_parameters.h5
     └── pic/
         ├── step_3_temporal_autocorrelation.png
-        ├── step_3_stable_points.png
-        ├── selected_pixels_temp_coh_0.8.png
-        └── step_3_mask_coh80.png
+        └── step_3_stable_points.png
 
 
 Step 2.4: Run Step 4 of SARvey
@@ -279,7 +276,18 @@ Step 2.4: Run Step 4 of SARvey
 
     sarvey -f config.json 4 4
 
-.. outputs directory structure to be added
+Outputs of this step are:
+
+.. code-block:: none
+
+    outputs/
+    ├── coh80_ifg_wr.h5
+    ├── coh80_aps.h5
+    ├── coh80_ifg_unw.h5
+    ├── coh80_ts.h5
+    └── pic/
+        ├── selected_pixels_temp_coh_0.8.png
+        └── step_4_mask_coh80.png
 
 
 The results of step 4 of SARvey, including the time series, are stored in the `coh80_ts.h5` file. The file is named based on the `coherence_p2` parameter in the config.json file.
@@ -310,11 +318,11 @@ Step 4: Modify Config File and Rerun SARvey
 
 Modify the config.json file and change **coherence_p2** from 0.8 to 0.7.
 
-Run steps 3 and 4 using the following command:
+Rerun steps 4 using the following command:
 
 .. code-block:: bash
 
-    sarvey -f config.json 3 4
+    sarvey -f config.json 4 4
 
 
 A new file `coh70_ts.h5` is created. You can now visualize this file that has a higher point density.
