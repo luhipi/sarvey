@@ -678,8 +678,8 @@ class Processing:
 
     def runDensificationTimeAndSpace(self):
         """RunDensificationTimeAndSpace."""
-        coherence_p2 = self.config.filtering.coherence_p2
-        coh_value = int(self.config.filtering.coherence_p2 * 100)
+        coherence_p2 = self.config.densification.coherence_p2
+        coh_value = int(self.config.densification.coherence_p2 * 100)
         self.logger.info(f"Select second-order points using coherence threshold {coherence_p2:.2f}.")
 
         _, aps2_obj = selectP2(output_path=self.path, config=self.config, logger=self.logger)
@@ -955,7 +955,7 @@ class Processing:
 
     def runDensificationSpace(self):
         """RunDensification."""
-        coherence_p2 = self.config.filtering.coherence_p2
+        coherence_p2 = self.config.densification.coherence_p2
         coh_value = int(coherence_p2 * 100)
 
         self.logger.info(f"Select second-order points using coherence threshold {coherence_p2:.2f}.")
