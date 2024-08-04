@@ -204,7 +204,8 @@ def launchSpatialFiltering(parameters: tuple):
         model = gs.Stable(dim=2)
         params = extractModelParams(model, logger)
         model_params = np.array([np.full(num_time, param) for param in params], dtype=np.float32)
-    else:  #  TODO: Other models to be added later
+    else:
+        # TODO: Other models to be added later
         error_msg = f"Model {model_name} not implemented yet."
         logger.error(msg=error_msg)
         raise ValueError(error_msg)

@@ -555,7 +555,6 @@ class Processing:
             other_file_path=join(self.path, "p1_ts.h5"),
             path_inputs=self.config.data_directories.path_inputs
         )
-        p1_mask = point1_obj.createMask()  # used later for selecting psCand2 when a spatial mask AOI is given.
 
         # select only pixels which have low phase noise and are well distributed
         mask = point1_obj.createMask()
