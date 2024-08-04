@@ -150,11 +150,8 @@ class TestProcessing(unittest.TestCase):
             'Processing failed (p1_ts_filt.h5 not created).'
         assert glob(os.path.join(config.data_directories.path_outputs, "p1_aps.h5")), \
             'Processing failed (p1_aps.h5 not created).'
-        coh_value = int(config.filtering.coherence_p2 * 100)
-        assert glob(os.path.join(config.data_directories.path_outputs, f"coh{coh_value}_ifg_wr.h5")), \
-            f'Processing failed (coh{coh_value}_ifg_wr.h5 not created).'
-        assert glob(os.path.join(config.data_directories.path_outputs, f"coh{coh_value}_aps.h5")), \
-            f'Processing failed (coh{coh_value}_aps.h5 not created).'
+        assert glob(os.path.join(config.data_directories.path_outputs, f"aps_parameters.h5")), \
+            f'Processing failed (aps_parameters.h5 not created).'
 
         # densification
         args.start = 4
@@ -162,6 +159,10 @@ class TestProcessing(unittest.TestCase):
 
         run(config=config, args=args, logger=self.logger)
         coh_value = int(config.filtering.coherence_p2 * 100)
+        assert glob(os.path.join(config.data_directories.path_outputs, f"coh{coh_value}_ifg_wr.h5")), \
+            f'Processing failed (coh{coh_value}_ifg_wr.h5 not created).'
+        assert glob(os.path.join(config.data_directories.path_outputs, f"coh{coh_value}_aps.h5")), \
+            f'Processing failed (coh{coh_value}_aps.h5 not created).'
         assert glob(os.path.join(config.data_directories.path_outputs, f"coh{coh_value}_ifg_unw.h5")), \
             f'Processing failed (coh{coh_value}_ifg_unw.h5 not created).'
         assert glob(os.path.join(config.data_directories.path_outputs, f"coh{coh_value}_ts.h5")), \
@@ -223,11 +224,8 @@ class TestProcessing(unittest.TestCase):
             'Processing failed (p1_ts_filt.h5 not created).'
         assert glob(os.path.join(config.data_directories.path_outputs, "p1_aps.h5")), \
             'Processing failed (p1_aps.h5 not created).'
-        coh_value = int(config.filtering.coherence_p2 * 100)
-        assert glob(os.path.join(config.data_directories.path_outputs, f"coh{coh_value}_ifg_wr.h5")), \
-            f'Processing failed (coh{coh_value}_ifg_wr.h5 not created).'
-        assert glob(os.path.join(config.data_directories.path_outputs, f"coh{coh_value}_aps.h5")), \
-            f'Processing failed (coh{coh_value}_aps.h5 not created).'
+        assert glob(os.path.join(config.data_directories.path_outputs, f"aps_parameters.h5")), \
+            f'Processing failed (aps_parameters.h5 not created).'
 
         # densification
         args.start = 4
@@ -235,6 +233,10 @@ class TestProcessing(unittest.TestCase):
 
         run(config=config, args=args, logger=self.logger)
         coh_value = int(config.filtering.coherence_p2 * 100)
+        assert glob(os.path.join(config.data_directories.path_outputs, f"coh{coh_value}_ifg_wr.h5")), \
+            f'Processing failed (coh{coh_value}_ifg_wr.h5 not created).'
+        assert glob(os.path.join(config.data_directories.path_outputs, f"coh{coh_value}_aps.h5")), \
+            f'Processing failed (coh{coh_value}_aps.h5 not created).'
         assert glob(os.path.join(config.data_directories.path_outputs, f"coh{coh_value}_ifg_unw.h5")), \
             f'Processing failed (coh{coh_value}_ifg_unw.h5 not created).'
         assert glob(os.path.join(config.data_directories.path_outputs, f"coh{coh_value}_ts.h5")), \
@@ -298,11 +300,8 @@ class TestProcessing(unittest.TestCase):
             'Processing failed (p1_ts_filt.h5 not created).'
         assert glob(os.path.join(config.data_directories.path_outputs, "p1_aps.h5")), \
             'Processing failed (p1_aps.h5 not created).'
-        coh_value = int(config.filtering.coherence_p2 * 100)
-        assert glob(os.path.join(config.data_directories.path_outputs, f"coh{coh_value}_ifg_wr.h5")), \
-            f'Processing failed (coh{coh_value}_ifg_wr.h5 not created).'
-        assert glob(os.path.join(config.data_directories.path_outputs, f"coh{coh_value}_aps.h5")), \
-            f'Processing failed (coh{coh_value}_aps.h5 not created).'
+        assert glob(os.path.join(config.data_directories.path_outputs, f"aps_parameters.h5")), \
+            f'Processing failed (aps_parameters.h5 not created).'
 
         # densification
         args.start = 4
@@ -310,6 +309,10 @@ class TestProcessing(unittest.TestCase):
 
         run(config=config, args=args, logger=self.logger)
         coh_value = int(config.filtering.coherence_p2 * 100)
+        assert glob(os.path.join(config.data_directories.path_outputs, f"coh{coh_value}_ifg_wr.h5")), \
+            f'Processing failed (coh{coh_value}_ifg_wr.h5 not created).'
+        assert glob(os.path.join(config.data_directories.path_outputs, f"coh{coh_value}_aps.h5")), \
+            f'Processing failed (coh{coh_value}_aps.h5 not created).'
         assert glob(os.path.join(config.data_directories.path_outputs, f"coh{coh_value}_ifg_unw.h5")), \
             f'Processing failed (coh{coh_value}_ifg_unw.h5 not created).'
         assert glob(os.path.join(config.data_directories.path_outputs, f"coh{coh_value}_ts.h5")), \
@@ -373,11 +376,8 @@ class TestProcessing(unittest.TestCase):
             'Processing failed (p1_ts_filt.h5 not created).'
         assert glob(os.path.join(config.data_directories.path_outputs, "p1_aps.h5")), \
             'Processing failed (p1_aps.h5 not created).'
-        coh_value = int(config.filtering.coherence_p2 * 100)
-        assert glob(os.path.join(config.data_directories.path_outputs, f"coh{coh_value}_ifg_wr.h5")), \
-            f'Processing failed (coh{coh_value}_ifg_wr.h5 not created).'
-        assert glob(os.path.join(config.data_directories.path_outputs, f"coh{coh_value}_aps.h5")), \
-            f'Processing failed (coh{coh_value}_aps.h5 not created).'
+        assert glob(os.path.join(config.data_directories.path_outputs, f"aps_parameters.h5")), \
+            f'Processing failed (aps_parameters.h5 not created).'
 
         # densification
         args.start = 4
@@ -385,6 +385,10 @@ class TestProcessing(unittest.TestCase):
 
         run(config=config, args=args, logger=self.logger)
         coh_value = int(config.filtering.coherence_p2 * 100)
+        assert glob(os.path.join(config.data_directories.path_outputs, f"coh{coh_value}_ifg_wr.h5")), \
+            f'Processing failed (coh{coh_value}_ifg_wr.h5 not created).'
+        assert glob(os.path.join(config.data_directories.path_outputs, f"coh{coh_value}_aps.h5")), \
+            f'Processing failed (coh{coh_value}_aps.h5 not created).'
         assert glob(os.path.join(config.data_directories.path_outputs, f"coh{coh_value}_ifg_unw.h5")), \
             f'Processing failed (coh{coh_value}_ifg_unw.h5 not created).'
         assert glob(os.path.join(config.data_directories.path_outputs, f"coh{coh_value}_ts.h5")), \
