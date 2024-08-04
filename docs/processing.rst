@@ -118,7 +118,7 @@ Step 0: Preparation
 - Estimating the temporal coherence:
     The phase noise of each pixel is approximated by the estimation of the temporal phase coherence (Zhao and Mallorqui 2019).
     Thereby, a low-pass filter with a certain window size is used (**preparation:filter_wdw_size**).
-    The temporal coherence is used to select the first- and second-order points in the later steps (**consistency_check:coherence_p1** and **filtering:coherence_p2**).
+    The temporal coherence is used to select the first- and second-order points in the later steps (**consistency_check:coherence_p1** and **densification:coherence_p2**).
 
 - Output of this step
     - background_map.h5
@@ -249,7 +249,7 @@ In this step, second order points are selected. Afterwards, the APS, estimated i
 Two unwrapping options (**processing:temporal_unwrapping**, also applies to step 2) are implemented and should be chosen based on the characteristics of the displacement (spatial extend, magnitude, temporal behaviour).
 
 - Selecting second-order points:
-    Second-order points are selected based on a temporal coherence threshold (**filtering:coherence_p2**) on the temporal phase coherence computed during step 0.
+    Second-order points are selected based on a temporal coherence threshold (**densification:coherence_p2**) on the temporal phase coherence computed during step 0.
     A mask file can be specified (**filtering:spatial_mask_file_p2**) to limit the second-order points to the given area of interest.
     Second-order points can also be selected based on the results of phase-linking (set **phase_linking:phase_linking** to True) implemented in MiaplPy (Mirzaee et al. 2023).
     More information on Miaplpy and phase-linking can be found `here <preparation>`_.
@@ -257,7 +257,7 @@ Two unwrapping options (**processing:temporal_unwrapping**, also applies to step
     A mask file can be specified (**phase_linking:spatial_mask_file_pl**) to limit the phase-linking to the given area of interest.
     MiaplPy also provides a selection of persistent scatterers (PS) which can be included as second-order points (set **phase_linking:use_ps** to True).
     In case the second-order points are selected among the results from MiaplPy, the filtered interferometric phase (MiaplPy result) is used for the respective points.
-    The DS pixels from MiaplPy and the pixels selected with the temporal phase coherence from step 0 are both selected with the same coherence threshold (**filtering:coherence_p2**).
+    The DS pixels from MiaplPy and the pixels selected with the temporal phase coherence from step 0 are both selected with the same coherence threshold (**densification:coherence_p2**).
 
 - Apply estimated atmospheric phase screen (APS) to second-order points:
     The APS, estimated in step 3, is interpolated to the location of the second-order points.
