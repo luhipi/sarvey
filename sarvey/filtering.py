@@ -411,7 +411,6 @@ def applyModelParams(model: gs.covmodel.models, params: tuple, logger: Logger):
     ValueError
         If the model is not implemented.
     """
-
     if model.name == 'Stable':
         model.var, model.len_scale, model.nugget, model.alpha = params
     # elif model.name == 'Gaussian':  # TODO: implement other models

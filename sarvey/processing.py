@@ -548,7 +548,6 @@ class Processing:
 
     def runFiltering(self):
         """RunFiltering."""
-
         # create output file which contains filtered phase time series
         point1_obj = Points(file_path=join(self.path, "p1_ts_filt.h5"), logger=self.logger)
         point1_obj.open(

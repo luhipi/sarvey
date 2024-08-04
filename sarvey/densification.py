@@ -330,7 +330,7 @@ def densifyNetwork(*, point1_obj: Points, vel_p1: np.ndarray, demerr_p1: np.ndar
 
 
 def selectP2(*, output_path: str, config: dict, logger: Logger):
-    """Select second order points and interpolate APS to them
+    """Select second order points and interpolate APS to them.
 
     Parameters
     ----------
@@ -341,13 +341,12 @@ def selectP2(*, output_path: str, config: dict, logger: Logger):
     logger : Logger
         Logger instance for logging messages.
 
-    Returns:
+    Returns
     -------
     point2_obj : Points
         Points object with second-order points
     aps2_obj: Points
         Points object with APS estimation for second-order points
-
     """
     # this function is mainly adapted from sarvey.processing.runFiltering
     # TODO: Directly pass input parameters instead of config dictionary
