@@ -416,7 +416,7 @@ def selectP2(*, output_path: str, config: dict, logger: Logger):
             cbar.ax.set_visible(False)  # make size of axis consistent with all others
             plt.tight_layout()
             plt.title("Mask for phase linking points")
-            fig.savefig(join(output_path, "pic", "step_3_mask_coh{}_phase_linking.png".format(coh_value)), dpi=300)
+            fig.savefig(join(output_path, "pic", "step_4_mask_coh{}_phase_linking.png".format(coh_value)), dpi=300)
             plt.close(fig)
 
             # mask points after plotting, so that available coherent points are visible in figure
@@ -456,7 +456,7 @@ def selectP2(*, output_path: str, config: dict, logger: Logger):
     cbar.ax.set_visible(False)  # make size of axis consistent with all others
     plt.tight_layout()
     plt.title("Mask for dense point set")
-    fig.savefig(join(output_path, "pic", "step_3_mask_coh{}.png".format(coh_value)), dpi=300)
+    fig.savefig(join(output_path, "pic", "step_4_mask_coh{}.png".format(coh_value)), dpi=300)
     plt.close(fig)
 
     p2_file = join(output_path, f"coh{coh_value}_ifg_wr.h5")
