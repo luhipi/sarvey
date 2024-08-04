@@ -158,7 +158,7 @@ class TestProcessing(unittest.TestCase):
         args.stop = 4
 
         run(config=config, args=args, logger=self.logger)
-        coh_value = int(config.filtering.coherence_p2 * 100)
+        coh_value = int(config.densification.coherence_p2 * 100)
         assert glob(os.path.join(config.data_directories.path_outputs, f"coh{coh_value}_ifg_wr.h5")), \
             f'Processing failed (coh{coh_value}_ifg_wr.h5 not created).'
         assert glob(os.path.join(config.data_directories.path_outputs, f"coh{coh_value}_aps.h5")), \
@@ -232,7 +232,7 @@ class TestProcessing(unittest.TestCase):
         args.stop = 4
 
         run(config=config, args=args, logger=self.logger)
-        coh_value = int(config.filtering.coherence_p2 * 100)
+        coh_value = int(config.densification.coherence_p2 * 100)
         assert glob(os.path.join(config.data_directories.path_outputs, f"coh{coh_value}_ifg_wr.h5")), \
             f'Processing failed (coh{coh_value}_ifg_wr.h5 not created).'
         assert glob(os.path.join(config.data_directories.path_outputs, f"coh{coh_value}_aps.h5")), \
@@ -251,7 +251,7 @@ class TestProcessing(unittest.TestCase):
         config.phase_linking.phase_linking = True
         config.phase_linking.use_ps = True
         config.processing.temporal_unwrapping = True
-        config.filtering.coherence_p2 = 0.75
+        config.densification.coherence_p2 = 0.75
 
         # preparation
         args.start = 0
@@ -308,7 +308,7 @@ class TestProcessing(unittest.TestCase):
         args.stop = 4
 
         run(config=config, args=args, logger=self.logger)
-        coh_value = int(config.filtering.coherence_p2 * 100)
+        coh_value = int(config.densification.coherence_p2 * 100)
         assert glob(os.path.join(config.data_directories.path_outputs, f"coh{coh_value}_ifg_wr.h5")), \
             f'Processing failed (coh{coh_value}_ifg_wr.h5 not created).'
         assert glob(os.path.join(config.data_directories.path_outputs, f"coh{coh_value}_aps.h5")), \
@@ -384,7 +384,7 @@ class TestProcessing(unittest.TestCase):
         args.stop = 4
 
         run(config=config, args=args, logger=self.logger)
-        coh_value = int(config.filtering.coherence_p2 * 100)
+        coh_value = int(config.densification.coherence_p2 * 100)
         assert glob(os.path.join(config.data_directories.path_outputs, f"coh{coh_value}_ifg_wr.h5")), \
             f'Processing failed (coh{coh_value}_ifg_wr.h5 not created).'
         assert glob(os.path.join(config.data_directories.path_outputs, f"coh{coh_value}_aps.h5")), \

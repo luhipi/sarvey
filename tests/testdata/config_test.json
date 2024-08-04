@@ -44,13 +44,13 @@
     "filtering": {
         "skip_filtering": false,
         "interpolation_method": "kriging",
-        "coherence_p2": 0.9,
         "grid_size": 1000,
         "spatial_mask_file_p2": null,
         "use_moving_points": true,
         "max_auto_corr": 0.3
     },
     "densification": {
+        "coherence_p2": 0.9,
         "coherence_threshold": 0.5,
         "num_connections_p1": 5,
         "num_connections_p2": 10,
