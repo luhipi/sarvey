@@ -175,8 +175,6 @@ def launchSpatialFiltering(parameters: tuple):
             residual phase (size: num_points x num_ifgs)
         coord_utm1: np.ndarray
             coordinates in UTM of the first-order points for which the residuals are given (size: num_points_p1 x 2)
-        coord_utm2: np.ndarray
-            coordinates in UTM of the new points which shall be interpolated (size: num_points_p2 x 2)
         bins: np.ndarray
             bin edges for the variogram
         bool_plot: bool
@@ -190,21 +188,26 @@ def launchSpatialFiltering(parameters: tuple):
         range of indices for the time series
     aps1: np.ndarray
         atmospheric phase screen for the known points (size: num_points_p1 x num_ifgs)
-    aps2: np.ndarray
-        atmospheric phase screen for the new points (size: num_points_p2 x num_ifgs)
     """
     # Unpack the parameters
-    (idx_range, num_time, residuals, coord_utm1, coord_utm2, bins, bool_plot, logger) = parameters
+    (idx_range, num_time, residuals, coord_utm1, bins, bool_plot, logger) = parameters
 
     x = coord_utm1[:, 1]
     y = coord_utm1[:, 0]
-    x_new = coord_utm2[:, 1]
-    y_new = coord_utm2[:, 0]
 
     aps1 = np.zeros((coord_utm1.shape[0], num_time), dtype=np.float32)
-    aps2 = np.zeros((coord_utm2.shape[0], num_time), dtype=np.float32)
 
     prog_bar = ptime.progressBar(maxValue=num_time)
+
+    model_name = 'Stable'
+    if model_name == 'Stable':
+        model = gs.Stable(dim=2)
+        params = extractModelParams(model, logger)
+        model_params = np.array([np.full(num_time, param) for param in params], dtype=np.float32)
+    else:  #  TODO: Other models to be added later
+        error_msg = f"Model {model_name} not implemented yet."
+        logger.error(msg=error_msg)
+        raise ValueError(error_msg)
 
     for i in range(num_time):
         field = residuals[:, i].astype(np.float32)
@@ -213,9 +216,9 @@ def launchSpatialFiltering(parameters: tuple):
         bin_center, vario = gs.vario_estimate(pos=[x, y], field=field, bin_edges=bins)
 
         # 2) fit model to empirical variogram
-        model = gs.Stable(dim=2)
         try:
             model.fit_variogram(x_data=bin_center, y_data=vario, nugget=True, max_eval=1500)
+            model_params[:, i] = extractModelParams(model=model, logger=logger)
         except RuntimeError as err:
             logger.error(msg="\nIMAGE {}: Not able to fit variogram! {}".format(idx_range[i], err))
             if bool_plot:
@@ -241,47 +244,12 @@ def launchSpatialFiltering(parameters: tuple):
         fld_sk, _ = sk((x, y), return_var=True)
         aps1[:, i] = fld_sk
 
-        # 5) evaluate the kriging model at NEW locations
-        fld_sk_new, var_sk_new = sk((x_new, y_new), return_var=True)
-        aps2[:, i] = fld_sk_new
-
         prog_bar.update(value=i + 1, every=1, suffix='{}/{} images'.format(i + 1, num_time))
 
-        # 5) show results
-        if bool_plot:
-            min_val = np.min(field)
-            max_val = np.max(field)
-
-            fig, ax = plt.subplots(2, 2, figsize=[10, 5])
-
-            cur_ax = ax[0, 0]
-            sca1 = cur_ax.scatter(x, y, c=field, vmin=min_val, vmax=max_val)
-            plt.colorbar(sca1, ax=cur_ax, pad=0.03, shrink=0.5)
-            cur_ax.set_title("PS1 residuals")
-
-            cur_ax = ax[0, 1]
-            cur_ax = model.plot(x_max=bin_center[-1], ax=cur_ax)
-            cur_ax.scatter(bin_center, vario)
-            cur_ax.set_xlabel("distance in [m]")
-            cur_ax.set_ylabel("semi-variogram")
-
-            if coord_utm2 is not None:
-                cur_ax = ax[1, 0]
-                sca2 = cur_ax.scatter(x_new, y_new, c=fld_sk_new, vmin=min_val, vmax=max_val)
-                plt.colorbar(sca2, ax=cur_ax, pad=0.03, shrink=0.5)
-                cur_ax.set_title("PS2 prediction of atmospheric effect")
-
-                cur_ax = ax[0, 1]
-                sca4 = cur_ax.scatter(x_new, y_new, c=var_sk_new)
-                plt.colorbar(sca4, ax=cur_ax, pad=0.03, shrink=0.5)
-                cur_ax.set_title("Variance of predicted atmospheric effect")
-
-            plt.close(fig)
-
-    return idx_range, aps1, aps2
+    return idx_range, aps1, model_params
 
 
-def estimateAtmosphericPhaseScreen(*, residuals: np.ndarray, coord_utm1: np.ndarray, coord_utm2: np.ndarray,
+def estimateAtmosphericPhaseScreen(*, residuals: np.ndarray, coord_utm1: np.ndarray,
                                    num_cores: int = 1, bool_plot: bool = False,
                                    logger: Logger) -> tuple[np.ndarray, np.ndarray]:
     """Estimate_atmospheric_phase_screen.
@@ -295,8 +263,6 @@ def estimateAtmosphericPhaseScreen(*, residuals: np.ndarray, coord_utm1: np.ndar
         residual phase (size: num_points1 x num_images)
     coord_utm1: np.ndarray
         coordinates in UTM of the points for which the residuals are given (size: num_points1 x 2)
-    coord_utm2: np.ndarray
-        coordinates in UTM of the new points which shall be interpolated (size: num_points2 x 2)
     num_cores: int
         Number of cores
     bool_plot: bool
@@ -308,8 +274,8 @@ def estimateAtmosphericPhaseScreen(*, residuals: np.ndarray, coord_utm1: np.ndar
     -------
     aps1: np.ndarray
         atmospheric phase screen for the known points (size: num_points1 x num_images)
-    aps2: np.ndarray
-        atmospheric phase screen for the new points (size: num_points2 x num_images)
+    model_params: np.ndarray
+        model parameters for the variogram model (size: num_model_parameters x num_images)
     """
     msg = "#" * 10
     msg += " ESTIMATE ATMOSPHERIC PHASE SCREEN (KRIGING) "
@@ -319,21 +285,20 @@ def estimateAtmosphericPhaseScreen(*, residuals: np.ndarray, coord_utm1: np.ndar
     start_time = time.time()
 
     num_points1 = residuals.shape[0]
-    num_points2 = coord_utm2.shape[0]
     num_time = residuals.shape[1]  # can be either num_ifgs or num_images
 
     bins = gs.variogram.standard_bins(pos=(coord_utm1[:, 1], coord_utm1[:, 0]),
                                       dim=2, latlon=False, mesh_type='unstructured', bin_no=30, max_dist=None)
 
     if num_cores == 1:
-        args = (np.arange(0, num_time), num_time, residuals, coord_utm1, coord_utm2, bins, bool_plot, logger)
-        _, aps1, aps2 = launchSpatialFiltering(parameters=args)
+        args = (np.arange(0, num_time), num_time, residuals, coord_utm1, bins, bool_plot, logger)
+        _, aps1, model_params = launchSpatialFiltering(parameters=args)
     else:
         logger.info(msg="start parallel processing with {} cores.".format(num_cores))
         pool = multiprocessing.Pool(processes=num_cores)
 
         aps1 = np.zeros((num_points1, num_time), dtype=np.float32)
-        aps2 = np.zeros((num_points2, num_time), dtype=np.float32)
+        model_params = np.zeros((4, num_time), dtype=np.float32)   # 4 parameters for the Stable variogram model.
 
         num_cores = num_time if num_cores > num_time else num_cores  # avoids having more samples than cores
         idx = ut.splitDatasetForParallelProcessing(num_samples=num_time, num_cores=num_cores)
@@ -343,7 +308,6 @@ def estimateAtmosphericPhaseScreen(*, residuals: np.ndarray, coord_utm1: np.ndar
             idx_range.shape[0],
             residuals[:, idx_range],
             coord_utm1,
-            coord_utm2,
             bins,
             False,
             logger) for idx_range in idx]
@@ -351,18 +315,17 @@ def estimateAtmosphericPhaseScreen(*, residuals: np.ndarray, coord_utm1: np.ndar
         results = pool.map(func=launchSpatialFiltering, iterable=args)
 
         # retrieve results
-        for i, aps1_i, aps2_i in results:
+        for i, aps1_i, model_params_i in results:
             aps1[:, i] = aps1_i
-            aps2[:, i] = aps2_i
+            model_params[:, i] = model_params_i
 
     m, s = divmod(time.time() - start_time, 60)
     logger.debug(msg='time used: {:02.0f} mins {:02.1f} secs.\n'.format(m, s))
 
-    return aps1, aps2
+    return aps1, model_params
 
 
-def simpleInterpolation(*, residuals: np.ndarray, coord_utm1: np.ndarray, coord_utm2: np.ndarray,
-                        interp_method: str = "linear"):
+def simpleInterpolation(*, residuals: np.ndarray, coord_utm1: np.ndarray, interp_method: str = "linear"):
     """SimpleInterpolation.
 
     Simple interpolation of atmospheric phase screen using scipy's griddata function with options "linear" or "cubic".
@@ -374,8 +337,6 @@ def simpleInterpolation(*, residuals: np.ndarray, coord_utm1: np.ndarray, coord_
         residual phase (size: num_points x num_ifgs)
     coord_utm1: np.ndarray
         coordinates in UTM of the points for which the residuals are given (size: num_points_p1 x 2)
-    coord_utm2: np.ndarray
-        coordinates in UTM of the new points which shall be interpolated (size: num_points_p2 x 2)
     interp_method: str
         interpolation method (default: "linear"; options: "linear", "cubic")
 
@@ -383,28 +344,14 @@ def simpleInterpolation(*, residuals: np.ndarray, coord_utm1: np.ndarray, coord_
     -------
     aps1: np.ndarray
         atmospheric phase screen for the known points (size: num_points_p1 x num_images)
-    aps2: np.ndarray
-        atmospheric phase screen for the new points (size: num_points_p2 x num_images)
     """
-    num_points2 = coord_utm2.shape[0]
     num_images = residuals.shape[1]
 
     aps1 = np.zeros_like(residuals, dtype=np.float32)
-    aps2 = np.zeros((num_points2, num_images), dtype=np.float32)
     for i in range(num_images):
         aps1[:, i] = griddata(coord_utm1, residuals[:, i], coord_utm1, method=interp_method)
-        aps2[:, i] = griddata(coord_utm1, residuals[:, i], coord_utm2, method=interp_method)
-        # interpolation with 'linear' or 'cubic' yields nan values for pixel that need to be extrapolated.
-        # interpolation with 'knn' solves this problem.
-        mask_extrapolate = np.isnan(aps2[:, i])
-        aps2[mask_extrapolate, i] = griddata(
-            coord_utm1,
-            residuals[:, i],
-            coord_utm2[mask_extrapolate, :],
-            method='nearest'
-        )
 
-    return aps1, aps2
+    return aps1
 
 
 def extractModelParams(model: gs.covmodel.models, logger: Logger):

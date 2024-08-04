@@ -39,11 +39,11 @@ from mintpy.utils import readfile
 from mintpy.utils.plot import auto_flip_direction
 
 from sarvey import viewer
-from sarvey.densification import densifyNetwork
+from sarvey.densification import densifyNetwork, selectP2
 from sarvey.filtering import estimateAtmosphericPhaseScreen, simpleInterpolation
 from sarvey.ifg_network import (DelaunayNetwork, SmallBaselineYearlyNetwork, SmallTemporalBaselinesNetwork,
                                 SmallBaselineNetwork, StarNetwork)
-from sarvey.objects import Network, Points, AmplitudeImage, CoordinatesUTM, NetworkParameter, BaseStack
+from sarvey.objects import Network, Points, AmplitudeImage, CoordinatesUTM, NetworkParameter, BaseStack, ApsParameters
 from sarvey.unwrapping import spatialParameterIntegration, \
     parameterBasedNoisyPointRemoval, temporalUnwrapping, spatialUnwrapping, removeGrossOutliers
 from sarvey.preparation import createArcsBetweenPoints, selectPixels, createTimeMaskFromDates
@@ -548,7 +548,6 @@ class Processing:
 
     def runFiltering(self):
         """RunFiltering."""
-        coh_value = int(self.config.filtering.coherence_p2 * 100)
 
         # create output file which contains filtered phase time series
         point1_obj = Points(file_path=join(self.path, "p1_ts_filt.h5"), logger=self.logger)
@@ -634,187 +633,58 @@ class Processing:
             path_inputs=self.config.data_directories.path_inputs
         )
 
-        # select second-order points
-        cand_mask2 = selectPixels(
-            path=self.path, selection_method="temp_coh",
-            thrsh=self.config.filtering.coherence_p2,
-            grid_size=None, bool_plot=True,
-            logger=self.logger
-        )  # first-order points are included in second-order points
-
-        if self.config.phase_linking.phase_linking:
-            # read PL results
-            pl_coh = readfile.read(join(self.config.phase_linking.path_inverted, "phase_series.h5"),
-                                   datasetName='temporalCoherence')[0]
-            pl_coh = pl_coh[1, :, :]
-            siblings = readfile.read(join(self.config.phase_linking.path_inverted, "phase_series.h5"),
-                                     datasetName='shp')[0]
-
-            if self.config.phase_linking.use_ps:
-                mask_ps = readfile.read(self.config.phase_linking.path_mask_file_ps,
-                                        datasetName='mask')[0].astype(np.bool_)
-                cand_mask_pl = (pl_coh > self.config.filtering.coherence_p2) | mask_ps
-            else:
-                cand_mask_pl = (pl_coh > self.config.filtering.coherence_p2)
-                # remove ps candidates, because the ps detection strategy in miaplpy seems to be biased.
-                cand_mask_pl[siblings <= self.config.phase_linking.num_siblings] = False
-
-            if self.config.phase_linking.spatial_mask_file_pl is not None:
-                path_mask_pl_aoi = join(self.config.phase_linking.spatial_mask_file_pl)
-                self.logger.info(msg="load mask for area of interest from: {}.".format(path_mask_pl_aoi))
-                mask_pl_aoi = readfile.read(path_mask_pl_aoi, datasetName='mask')[0].astype(np.bool_)
-
-                fig = plt.figure(figsize=[15, 5])
-                ax = fig.add_subplot()
-                ax.imshow(mask_pl_aoi, cmap=plt.cm.get_cmap("gray"), alpha=0.5, zorder=10, vmin=0, vmax=1)
-                bmap_obj.plot(ax=ax, logger=self.logger)
-                coord_xy = np.array(np.where(cand_mask_pl)).transpose()
-                val = np.ones_like(cand_mask_pl)
-                sc = ax.scatter(coord_xy[:, 1], coord_xy[:, 0], c=val[cand_mask_pl], s=0.5,
-                                cmap=plt.get_cmap("autumn_r"),
-                                vmin=1, vmax=2)  # set min, max to ensure that points are yellow
-                cbar = plt.colorbar(sc, pad=0.03, shrink=0.5)
-                cbar.ax.set_visible(False)  # make size of axis consistent with all others
-                plt.tight_layout()
-                plt.title("Mask for phase linking points")
-                fig.savefig(join(self.path, "pic", "step_3_mask_coh{}_phase_linking.png".format(coh_value)), dpi=300)
-                plt.close(fig)
-
-                # mask points after plotting, so that available coherent points are visible in figure
-                cand_mask_pl[~mask_pl_aoi] = False
-
-            # combine phase linking coherence with TPC cand_mask2
-            cand_mask2 = cand_mask2 | cand_mask_pl
-
-        mask_valid_area = ut.detectValidAreas(bmap_obj=bmap_obj, logger=self.logger)
-
-        if self.config.filtering.spatial_mask_file_p2 is not None:
-            path_mask_aoi = join(self.config.filtering.spatial_mask_file_p2)
-            self.logger.info(msg="load mask for area of interest from: {}.".format(path_mask_aoi))
-            mask_aoi = readfile.read(path_mask_aoi, datasetName='mask')[0].astype(np.bool_)
-            mask_valid_area &= mask_aoi
-            # todo: add unstable points from p1 for densification
-        else:
-            self.logger.info(msg="No mask for area of interest given.")
-
-        cand_mask2[p1_mask] = True  # add all selected 1.order points to avoid spatial gaps in 2D unwrapping
-        # cand_mask2[cand_mask_sparse] = True  # add only stable points from 1.order points
-
-        cand_mask2 &= mask_valid_area
-
-        fig = plt.figure(figsize=[15, 5])
-        ax = fig.add_subplot()
-        ax.imshow(mask_valid_area, cmap=plt.cm.get_cmap("gray"), alpha=0.5, zorder=10, vmin=0, vmax=1)
-        bmap_obj.plot(ax=ax, logger=self.logger)
-        coord_xy = np.array(np.where(cand_mask2)).transpose()
-        val = np.ones_like(cand_mask2)
-        sc = ax.scatter(coord_xy[:, 1], coord_xy[:, 0], c=val[cand_mask2], s=0.5, cmap=plt.get_cmap("autumn_r"),
-                        vmin=1, vmax=2)  # set min, max to ensure that points are yellow
-        cbar = plt.colorbar(sc, pad=0.03, shrink=0.5)
-        cbar.ax.set_visible(False)  # make size of axis consistent with all others
-        plt.tight_layout()
-        plt.title("Mask for dense point set")
-        fig.savefig(join(self.path, "pic", "step_3_mask_coh{}.png".format(coh_value)), dpi=300)
-        plt.close(fig)
-
-        point2_obj = Points(file_path=join(self.path, "coh{}_ifg_wr.h5".format(coh_value)), logger=self.logger)
-        coord_xy = np.array(np.where(cand_mask2)).transpose()
-        point_id2 = point_id_img[cand_mask2]
-        point2_obj.prepare(
-            point_id=point_id2,
-            coord_xy=coord_xy,
-            path_inputs=self.config.data_directories.path_inputs
-        )
-
-        ifg_stack_obj = BaseStack(file=join(self.path, "ifg_stack.h5"), logger=self.logger)
-
-        point2_obj.phase = ut.readPhasePatchwise(stack_obj=ifg_stack_obj, dataset_name="ifgs",
-                                                 num_patches=self.config.processing.num_patches, cand_mask=cand_mask2,
-                                                 point_id_img=point_id_img, logger=self.logger)
-
-        if self.config.phase_linking.phase_linking:
-            self.logger.info(msg="read phase from MiaplPy results...")
-            phase_linking_obj = BaseStack(file=join(self.config.phase_linking.path_inverted, "phase_series.h5"),
-                                          logger=self.logger)
-
-            pl_phase = ut.readPhasePatchwise(
-                stack_obj=phase_linking_obj, dataset_name="phase",
-                num_patches=self.config.processing.num_patches,
-                cand_mask=cand_mask2,
-                point_id_img=point_id_img, logger=self.logger
-            )
-
-            # subset to time span
-            slc_stack_obj = slcStack(join(self.config.data_directories.path_inputs, "slcStack.h5"))
-            slc_stack_obj.open()
-            time_mask = createTimeMaskFromDates(
-                start_date=self.config.preparation.start_date,
-                stop_date=self.config.preparation.stop_date,
-                date_list=slc_stack_obj.dateList,
-                logger=self.logger
-            )[0]
-            pl_phase = pl_phase[:, time_mask]
-
-            pl_ifgs = np.zeros((point2_obj.num_points, point2_obj.ifg_net_obj.num_ifgs), dtype=np.float32)
-
-            c = 0
-            for i, j in np.asarray(point1_obj.ifg_net_obj.ifg_list):
-                pl_ifgs[:, c] = np.angle(np.exp(1j * pl_phase[:, i]) * np.conjugate(np.exp(1j * pl_phase[:, j])))
-                c += 1
-
-            # change only phase for good phase linking pixels and keep original phase for good tpc pixels
-            mask_pl = cand_mask_pl[cand_mask2]
-            point2_obj.phase[mask_pl] = pl_ifgs[mask_pl]
-
-        point2_obj.writeToFile()
-        del point2_obj, ifg_stack_obj
-
-        aps2_obj = Points(file_path=join(self.path, "coh{}_aps.h5".format(coh_value)), logger=self.logger)
-        aps2_obj.open(
-            other_file_path=join(self.path, "coh{}_ifg_wr.h5".format(coh_value)),
-            path_inputs=self.config.data_directories.path_inputs
-        )
+        # select second-order points moved to selectP2()
 
         if self.config.filtering.skip_filtering:
             msg = "#" * 10
             msg += " SKIP ATMOSPHERIC FILTERING! "
             msg += "#" * 10
             self.logger.info(msg=msg)
+            model_name = "None"
+            aps_model_params = None
             num_points1 = phase_for_aps_filtering.shape[0]
-            num_points2 = aps2_obj.coord_utm.shape[0]
             num_time = phase_for_aps_filtering.shape[1]
             aps1_phase = np.zeros((num_points1, num_time), dtype=np.float32)
-            aps2_phase = np.zeros((num_points2, num_time), dtype=np.float32)
         else:
             # spatial filtering of points with linear motion only (no non-linear motion)
             if self.config.filtering.interpolation_method == "kriging":
-                aps1_phase, aps2_phase = estimateAtmosphericPhaseScreen(
+                model_name = "Stable"  # To be integrated in the config?
+                aps1_phase, aps_model_params = estimateAtmosphericPhaseScreen(
                     residuals=phase_for_aps_filtering,
                     coord_utm1=point1_obj.coord_utm,
-                    coord_utm2=aps2_obj.coord_utm,
                     num_cores=self.config.processing.num_cores,
                     bool_plot=False,
                     logger=self.logger
                 )
             else:
-                aps1_phase, aps2_phase = simpleInterpolation(
+                model_name = "Linear"  # To be integrated in the config?
+                aps_model_params = None
+                aps1_phase = simpleInterpolation(
                     residuals=phase_for_aps_filtering,
                     coord_utm1=point1_obj.coord_utm,
-                    coord_utm2=aps2_obj.coord_utm,
                     interp_method=self.config.filtering.interpolation_method
                 )
+
+        # save APS parameters for later use in step 4
+        aps_file = join(self.path, "aps_parameters.h5")
+        self.logger.debug(f"Prepare Aps Parameters file {aps_file}")
+        aps_params_obj = ApsParameters(file_path=aps_file, logger=self.logger)
+        aps_params_obj.prepare(model_name=model_name, model_params=aps_model_params,
+                               phase=phase_for_aps_filtering)
 
         point1_obj.phase -= aps1_phase
         point1_obj.writeToFile()
 
         aps1_obj.phase = aps1_phase
-        aps2_obj.phase = aps2_phase
         aps1_obj.writeToFile()
-        aps2_obj.writeToFile()
 
     def runDensificationTimeAndSpace(self):
         """RunDensificationTimeAndSpace."""
+        coherence_p2 = self.config.filtering.coherence_p2
         coh_value = int(self.config.filtering.coherence_p2 * 100)
+        self.logger.info(f"Select second-order points using coherence threshold {coherence_p2:.2f}.")
+
+        _, aps2_obj = selectP2(output_path=self.path, config=self.config, logger=self.logger)
 
         point2_obj = Points(file_path=join(self.path, "coh{}_ifg_unw.h5".format(coh_value)), logger=self.logger)
         point2_obj.open(
@@ -833,9 +703,6 @@ class Processing:
 
         aps1_obj = Points(file_path=join(self.path, "p1_aps.h5"), logger=self.logger)
         aps1_obj.open(path_inputs=self.config.data_directories.path_inputs)
-
-        aps2_obj = Points(file_path=join(self.path, "coh{}_aps.h5".format(coh_value)), logger=self.logger)
-        aps2_obj.open(path_inputs=self.config.data_directories.path_inputs)
 
         if self.config.filtering.spatial_mask_file_p2 is None:
             """
@@ -1090,16 +957,17 @@ class Processing:
 
     def runDensificationSpace(self):
         """RunDensification."""
-        coh_value = int(self.config.filtering.coherence_p2 * 100)
+        coherence_p2 = self.config.filtering.coherence_p2
+        coh_value = int(coherence_p2 * 100)
+
+        self.logger.info(f"Select second-order points using coherence threshold {coherence_p2:.2f}.")
+        _, aps2_obj = selectP2(output_path=self.path, config=self.config, logger=self.logger)
 
         point_obj = Points(file_path=join(self.path, "coh{}_ifg_unw.h5".format(coh_value)), logger=self.logger)
         point_obj.open(
             other_file_path=join(self.path, "coh{}_ifg_wr.h5".format(coh_value)),
             path_inputs=self.config.data_directories.path_inputs
         )  # open wr phase
-
-        aps2_obj = Points(file_path=join(self.path, "coh{}_aps.h5".format(coh_value)), logger=self.logger)
-        aps2_obj.open(path_inputs=self.config.data_directories.path_inputs)
 
         # return to ifg-space
         a_ifg = point_obj.ifg_net_obj.getDesignMatrix()
