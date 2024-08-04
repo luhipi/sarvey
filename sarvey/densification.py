@@ -352,7 +352,7 @@ def selectP2(*, output_path: str, config: dict, logger: Logger):
     # this function is mainly adapted from sarvey.processing.runFiltering
     # TODO: Directly pass input parameters instead of config dictionary
     coherence_p2 = config.filtering.coherence_p2
-    logger.debug(f"Start Selecting 2nd order points with coherence threshold {coherence_p2:.2f}.")
+    logger.debug(f"Start Selecting 2nd order points.")
 
     coh_value = int(coherence_p2 * 100)
 
