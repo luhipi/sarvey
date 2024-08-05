@@ -124,7 +124,14 @@ class IfgNetwork:
         logger: Logger
             Logging handler.
         """
-        logger.info(msg="write IfgNetwork to {}".format(path))
+        self.logger.info(msg="write IfgNetwork to {}".format(path))
+
+        self.logger.debug(f"Image stack perpendicular baselines (m):\n{self.pbase.astype(int)}")
+        self.logger.debug(f"Image stack temporl baselines (years):\n{self.tbase.round(3)}")
+
+        self.logger.debug(f"Interferogram network number of connections: {self.num_ifgs}")
+        self.logger.debug(f"Interferogram network perpendicular baselines (m):\n{self.pbase_ifg.astype(int)}")
+        self.logger.debug(f"Interferogram network temporal baselines (years):\n{self.tbase_ifg.round(3)}")
 
         if os.path.exists(path):
             os.remove(path)
@@ -197,6 +204,8 @@ class SmallTemporalBaselinesNetwork(IfgNetwork):
         self.num_images = pbase.shape[0]
         self.dates = dates
 
+        self.logger.debug(f"Number of links for the network: {num_link}")
+
         for i in range(self.num_images):
             for j in range(num_link):
                 if i + j + 1 >= self.num_images:
@@ -234,6 +243,9 @@ class SmallBaselineNetwork(IfgNetwork):
         self.num_images = pbase.shape[0]
         self.dates = dates
         flag_restrict_to_max_tbase = False
+
+        self.logger.debug(f"Maximum actual temporal baseline in SLC stack: {tbase.max()-tbase.min()} days")
+        self.logger.debug(f"Maximum allowed Temporal Baseline in network: {max_tbase} days")
 
         # in this section use tbase in [days] (function argument, not self.)
         for i in range(self.num_images - 1):
@@ -290,6 +302,8 @@ class DelaunayNetwork(IfgNetwork):
         self.dates = dates
         scale = 0.25
 
+        self.logger.debug(f"Delaunay network scale: {scale}")
+
         network = Delaunay(points=np.stack([self.pbase, self.tbase * 365.25 * scale]).T)
         for p1, p2, p3 in network.simplices:
             self.ifg_list.append((p1, p2))
@@ -325,6 +339,7 @@ class SmallBaselineYearlyNetwork(IfgNetwork):
         self.dates = dates
 
         # add small temporal baselines
+        self.logger.debug(f"Construct a network of interferograms with {num_link} small temporal baselines.")
         for i in range(self.num_images):
             for j in range(num_link):
                 if i + j + 1 >= self.num_images:
@@ -332,6 +347,7 @@ class SmallBaselineYearlyNetwork(IfgNetwork):
                 self.ifg_list.append((i, i + j + 1))
 
         # add yearly ifgs
+        self.logger.debug("Add yearly interferograms.")
         for i in range(self.num_images):
             # find index of image at roughly one year distance
             diff = np.abs(tbase - (tbase[i] + 365.25))
