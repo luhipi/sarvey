@@ -92,7 +92,7 @@ class Processing:
             logger=log
         )
         log.info(msg=f"Start date: {date_list[0]}")
-        log.info(msg=f"Stop date: {date_list[-1]}")
+        log.info(msg=f"End date: {date_list[-1]}")
         log.info(msg=f"Number of SLC: {num_slc}")
 
         msg = "#" * 10
