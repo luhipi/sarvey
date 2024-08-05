@@ -100,9 +100,10 @@ class Processing:
         msg += "#" * 10
         log.info(msg=msg)
 
+        log.debug("Prepare interferogram network")
         ifg_net_obj = None
         if self.config.preparation.ifg_network_type == "star":
-            ifg_net_obj = StarNetwork()
+            log.info(msg="Star ifg network")
             ifg_net_obj = StarNetwork(logger=self.logger)
             ifg_net_obj.configure(
                 pbase=slc_stack_obj.pbase[time_mask],
@@ -110,18 +111,16 @@ class Processing:
                 ref_idx=int(np.floor(num_slc/2)),
                 dates=date_list
             )
-            log.info(msg="Star ifg network")
         elif self.config.preparation.ifg_network_type == "sb":
-            ifg_net_obj = SmallBaselineNetwork()
+            log.info(msg="Small baseline network")
             ifg_net_obj = SmallBaselineNetwork(logger=self.logger)
             ifg_net_obj.configure(pbase=slc_stack_obj.pbase[time_mask],
                                   tbase=slc_stack_obj.tbase[time_mask],
                                   num_link=self.config.preparation.num_ifgs,
                                   max_tbase=self.config.preparation.max_tbase,
                                   dates=date_list)
-            log.info(msg="Small baseline network")
         elif self.config.preparation.ifg_network_type == "stb":
-            ifg_net_obj = SmallTemporalBaselinesNetwork()
+            log.info(msg="Small temporal baseline network")
             ifg_net_obj = SmallTemporalBaselinesNetwork(logger=self.logger)
             ifg_net_obj.configure(
                 pbase=slc_stack_obj.pbase[time_mask],
@@ -129,9 +128,8 @@ class Processing:
                 num_link=self.config.preparation.num_ifgs,
                 dates=date_list
             )
-            log.info(msg="Small temporal baseline network")
         elif self.config.preparation.ifg_network_type == "stb_year":
-            ifg_net_obj = SmallBaselineYearlyNetwork()
+            log.info(msg="Small temporal baseline and yearly ifg network")
             ifg_net_obj = SmallBaselineYearlyNetwork(logger=self.logger)
             ifg_net_obj.configure(
                 pbase=slc_stack_obj.pbase[time_mask],
@@ -139,16 +137,14 @@ class Processing:
                 num_link=self.config.preparation.num_ifgs,
                 dates=date_list
             )
-            log.info(msg="Small temporal baseline and yearly ifg network")
         elif self.config.preparation.ifg_network_type == "delaunay":
-            ifg_net_obj = DelaunayNetwork()
+            log.info(msg="Delaunay ifg network")
             ifg_net_obj = DelaunayNetwork(logger=self.logger)
             ifg_net_obj.configure(
                 pbase=slc_stack_obj.pbase[time_mask],
                 tbase=slc_stack_obj.tbase[time_mask],
                 dates=date_list
             )
-            log.info(msg="Delaunay ifg network")
 
         ifg_net_obj.writeToFile(path=join(self.path, "ifg_network.h5"), logger=log)
         log.info(msg=f"temporal baselines: {np.unique(np.round(np.abs(ifg_net_obj.tbase_ifg) * 365.25).astype(int))}")
