@@ -34,7 +34,6 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 from typing import Union
-import warnings
 from logging import Logger
 from scipy.spatial import Delaunay
 
@@ -272,7 +271,7 @@ class SmallBaselineNetwork(IfgNetwork):
         self.ifg_list = np.unique(self.ifg_list, axis=0)
 
         if flag_restrict_to_max_tbase:
-            warnings.warn(f"Cannot restrict ifgs to maximum temporal baseline of {max_tbase} days.")
+            self.logger.warning(f"Cannot restrict ifgs to maximum temporal baseline of {max_tbase} days.")
 
         self.ifg_list = [(i, j) for i, j in self.ifg_list if i != j]  # remove connections to itself, e.g. (0, 0)
 
