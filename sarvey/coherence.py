@@ -87,6 +87,7 @@ def computeIfgsAndTemporalCoherence(*, path_temp_coh: str, path_ifgs: str, path_
     num_ifgs = ifg_array.shape[0]
 
     for idx in range(num_boxes):
+        logger.debug(f"processing patch {idx + 1}/{num_boxes}")
         bbox = box_list[idx]
         block2d = convertBboxToBlock(bbox=bbox)
 
@@ -97,6 +98,7 @@ def computeIfgsAndTemporalCoherence(*, path_temp_coh: str, path_ifgs: str, path_
         mean_amp_img[bbox[1]:bbox[3], bbox[0]:bbox[2]] = np.log10(np.mean(np.abs(slc), axis=0))
 
         # compute ifgs
+        logger.debug(f"Compute interferograms and write to file {ifg_stack_obj.file}.")
         ifgs = computeIfgs(slc=slc, ifg_array=ifg_array)
         ifg_stack_obj.writeToFileBlock(data=ifgs, dataset_name="ifgs", block=block2d, print_msg=False)
         del slc
@@ -104,9 +106,11 @@ def computeIfgsAndTemporalCoherence(*, path_temp_coh: str, path_ifgs: str, path_
         # filter ifgs
         avg_neighbours = np.zeros_like(ifgs)
         if num_cores == 1:
+            logger.debug("Filter interferograms using 1 core for temporal coherence estimation.")
             for i in range(num_ifgs):
                 avg_neighbours[:, :, i] = convolve2d(in1=ifgs[:, :, i], in2=filter_kernel, mode='same', boundary="symm")
         else:
+            logger.debug(f"Filter interferograms using {num_cores} parallel cores for temporal coherence estimation.")
             pool = multiprocessing.Pool(processes=num_cores)
 
             args = [(
@@ -116,18 +120,23 @@ def computeIfgsAndTemporalCoherence(*, path_temp_coh: str, path_ifgs: str, path_
 
             results = pool.map(func=launchConvolve2d, iterable=args)
 
-            # retrieve results
+            logger.debug(f"Retrieve {len(results)} parallel processed results.")
             for j, avg_neigh in results:
                 avg_neighbours[:, :, j] = avg_neigh
             del results, args, avg_neigh
 
-        # compute temporal coherence
+        logger.debug(f"Compute temporal coherence and write to file {temp_coh_obj.file}.")
         residual_phase = np.angle(ifgs * np.conjugate(avg_neighbours))
         del ifgs, avg_neighbours
         temp_coh = np.abs(np.mean(np.exp(1j * residual_phase), axis=2))
         temp_coh_obj.writeToFileBlock(data=temp_coh, dataset_name="temp_coh", block=block2d, print_msg=False)
+        logger.debug(
+            (f"Number of valid temporal coherence values in patch {idx+1}: "
+             f"{np.sum(np.isfinite(temp_coh))}/{np.size(temp_coh)} with "
+             f"Min: {np.nanmin(temp_coh):.2}, Max: {np.nanmax(temp_coh):.2}, Mean: {np.nanmean(temp_coh):.2}"))
+
         del residual_phase, temp_coh
-        logger.info(msg="Patches processed:\t {}/{}".format(idx + 1, num_boxes))
+        logger.info(f"Patches processed:\t {idx+1}/{num_boxes}")
 
     m, s = divmod(time.time() - start_time, 60)
     logger.debug(msg='\ntime used: {:02.0f} mins {:02.1f} secs.\n'.format(m, s))
