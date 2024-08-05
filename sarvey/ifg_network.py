@@ -137,17 +137,22 @@ class IfgNetwork:
 
         dates = np.array(self.dates, dtype=np.string_)
 
-        with h5py.File(path, 'w') as f:
-            f.attrs["num_images"] = self.num_images
-            f.attrs["num_ifgs"] = self.num_ifgs
+        try:
+            with h5py.File(path, 'w') as f:
+                f.attrs["num_images"] = self.num_images
+                f.attrs["num_ifgs"] = self.num_ifgs
 
-            f.create_dataset('tbase_ifg', data=self.tbase_ifg)
-            f.create_dataset('pbase_ifg', data=self.pbase_ifg)
-            f.create_dataset('tbase', data=self.tbase)
-            f.create_dataset('pbase', data=self.pbase)
-            f.create_dataset('ifg_list', data=self.ifg_list)
-            f.create_dataset('dates', data=dates)
+                f.create_dataset('tbase_ifg', data=self.tbase_ifg)
+                f.create_dataset('pbase_ifg', data=self.pbase_ifg)
+                f.create_dataset('tbase', data=self.tbase)
+                f.create_dataset('pbase', data=self.pbase)
+                f.create_dataset('ifg_list', data=self.ifg_list)
+                f.create_dataset('dates', data=dates)
+            self.logger.debug(f"File {path} created successfully.")
 
+        except Exception as e:
+            self.logger.error(f"An error occurred while creating the file {path}: {e}")
+            raise
 
 class StarNetwork(IfgNetwork):
     """Star network of interferograms (single-reference)."""
