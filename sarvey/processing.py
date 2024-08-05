@@ -222,6 +222,7 @@ class Processing:
 
         del mean_amp_img
 
+        self.logger.info(f"Read temporal coherence file {temp_coh_obj.file} and make a plot as a png file.")
         temp_coh = temp_coh_obj.read(dataset_name="temp_coh")
 
         fig = plt.figure(figsize=(15, 5))
