@@ -103,7 +103,10 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
         printCurrentConfig(config_section=config.preparation.dict(),
                            config_section_default=config_default_dict["preparation"],
                            logger=logger)
+        start_time = time.time()
         proc_obj.runPreparation()
+        m, s = divmod(time.time() - start_time, 60)
+        logger.info(f"Finished step 0 Preparation normally in {m:02.0f} mins {s:02.1f} secs.")
     required_files = ["background_map.h5", "coordinates_utm.h5", "ifg_network.h5", "ifg_stack.h5",
                       "temporal_coherence.h5"]
 
