@@ -194,10 +194,14 @@ class Processing:
         )
 
         # store auxilliary datasets for faster access during processing
-        if not exists(join(self.path, "coordinates_utm.h5")):
-            coord_utm_obj = CoordinatesUTM(file_path=join(self.path, "coordinates_utm.h5"), logger=self.logger)
+        coordinates_utm_file = join(self.path, "coordinates_utm.h5")
+        if not exists(coordinates_utm_file):
+            self.logger.debug(f"Prepare UTM coordinates and store to file {coordinates_utm_file}.")
+            coord_utm_obj = CoordinatesUTM(file_path=coordinates_utm_file, logger=self.logger)
             coord_utm_obj.prepare(input_path=join(self.config.data_directories.input_path, "geometryRadar.h5"))
             del coord_utm_obj
+        else:
+            self.logger.info(f"Skip creating UTM coordinates file. The file {coordinates_utm_file}  already exists.")
 
         if not exists(join(self.path, "background_map.h5")):
             bmap_obj = AmplitudeImage(file_path=join(self.path, "background_map.h5"))
