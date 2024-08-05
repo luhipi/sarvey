@@ -146,7 +146,7 @@ def computeIfgsAndTemporalCoherence(*, path_temp_coh: str, path_ifgs: str, path_
         logger.info(f"Patches processed:\t {idx+1}/{num_boxes}")
 
     m, s = divmod(time.time() - start_time, 60)
-    logger.debug(msg='\ntime used: {:02.0f} mins {:02.1f} secs.\n'.format(m, s))
+    logger.debug(f"\ntime used: {m:02.0f} mins {s:02.1f} secs.\n")
     return mean_amp_img
 
 
