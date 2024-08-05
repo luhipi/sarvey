@@ -126,11 +126,11 @@ class IfgNetwork:
         self.logger.info(msg="write IfgNetwork to {}".format(path))
 
         self.logger.debug(f"Image stack perpendicular baselines (m):\n{self.pbase.astype(int)}")
-        self.logger.debug(f"Image stack temporl baselines (years):\n{self.tbase.round(3)}")
+        self.logger.debug(f"Image stack temporl baselines (days):\n{np.round(self.tbase*365.25).astype(int)}")
 
         self.logger.debug(f"Interferogram network number of connections: {self.num_ifgs}")
         self.logger.debug(f"Interferogram network perpendicular baselines (m):\n{self.pbase_ifg.astype(int)}")
-        self.logger.debug(f"Interferogram network temporal baselines (years):\n{self.tbase_ifg.round(3)}")
+        self.logger.debug(f"Interferogram network temporal baselines (days):\n{(self.tbase_ifg*365.25).astype(int)}")
 
         if os.path.exists(path):
             os.remove(path)
