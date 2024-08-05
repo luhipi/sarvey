@@ -146,7 +146,7 @@ class Processing:
                 dates=date_list
             )
 
-        ifg_net_obj.writeToFile(path=join(self.path, "ifg_network.h5"), logger=log)
+        ifg_net_obj.writeToFile(path=join(self.path, "ifg_network.h5"))
         log.info(msg=f"temporal baselines: {np.unique(np.round(np.abs(ifg_net_obj.tbase_ifg) * 365.25).astype(int))}")
 
         fig = ifg_net_obj.plot()

@@ -114,7 +114,7 @@ class IfgNetwork:
 
             f.close()
 
-    def writeToFile(self, *, path: str, logger: Logger):
+    def writeToFile(self, *, path: str):
         """Write all existing data to .h5 file.
 
         Parameters
