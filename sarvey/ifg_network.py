@@ -44,7 +44,7 @@ class IfgNetwork:
 
     ifg_list: Union[list, np.ndarray] = None
 
-    def __init__(self):
+    def __init__(self, logger: Logger):
         """Init."""
         self.pbase = None
         self.tbase = None
@@ -54,6 +54,7 @@ class IfgNetwork:
         self.tbase_ifg = None
         self.num_ifgs = None
         self.dates = list()
+        self.logger = logger
 
     def plot(self):
         """Plot the network of interferograms."""

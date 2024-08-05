@@ -103,6 +103,7 @@ class Processing:
         ifg_net_obj = None
         if self.config.preparation.ifg_network_type == "star":
             ifg_net_obj = StarNetwork()
+            ifg_net_obj = StarNetwork(logger=self.logger)
             ifg_net_obj.configure(
                 pbase=slc_stack_obj.pbase[time_mask],
                 tbase=slc_stack_obj.tbase[time_mask],
@@ -112,6 +113,7 @@ class Processing:
             log.info(msg="Star ifg network")
         elif self.config.preparation.ifg_network_type == "sb":
             ifg_net_obj = SmallBaselineNetwork()
+            ifg_net_obj = SmallBaselineNetwork(logger=self.logger)
             ifg_net_obj.configure(pbase=slc_stack_obj.pbase[time_mask],
                                   tbase=slc_stack_obj.tbase[time_mask],
                                   num_link=self.config.preparation.num_ifgs,
@@ -120,6 +122,7 @@ class Processing:
             log.info(msg="Small baseline network")
         elif self.config.preparation.ifg_network_type == "stb":
             ifg_net_obj = SmallTemporalBaselinesNetwork()
+            ifg_net_obj = SmallTemporalBaselinesNetwork(logger=self.logger)
             ifg_net_obj.configure(
                 pbase=slc_stack_obj.pbase[time_mask],
                 tbase=slc_stack_obj.tbase[time_mask],
@@ -129,6 +132,7 @@ class Processing:
             log.info(msg="Small temporal baseline network")
         elif self.config.preparation.ifg_network_type == "stb_year":
             ifg_net_obj = SmallBaselineYearlyNetwork()
+            ifg_net_obj = SmallBaselineYearlyNetwork(logger=self.logger)
             ifg_net_obj.configure(
                 pbase=slc_stack_obj.pbase[time_mask],
                 tbase=slc_stack_obj.tbase[time_mask],
@@ -138,6 +142,7 @@ class Processing:
             log.info(msg="Small temporal baseline and yearly ifg network")
         elif self.config.preparation.ifg_network_type == "delaunay":
             ifg_net_obj = DelaunayNetwork()
+            ifg_net_obj = DelaunayNetwork(logger=self.logger)
             ifg_net_obj.configure(
                 pbase=slc_stack_obj.pbase[time_mask],
                 tbase=slc_stack_obj.tbase[time_mask],
