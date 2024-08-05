@@ -166,12 +166,16 @@ class Processing:
 
         # create placeholder in result file for datasets which are stored patch-wise
         dshape = (slc_stack_obj.length, slc_stack_obj.width, ifg_net_obj.num_ifgs)
-        ifg_stack_obj = BaseStack(file=join(self.path, "ifg_stack.h5"), logger=log)
+        ifg_stack_file = join(self.path, "ifg_stack.h5")
+        log.debug(f"Initialize interferogram stack file {ifg_stack_file}")
+        ifg_stack_obj = BaseStack(file=ifg_stack_file, logger=log)
         ifg_stack_obj.prepareDataset(dataset_name="ifgs", dshape=dshape, dtype=np.csingle,
                                      metadata=slc_stack_obj.metadata, mode='w', chunks=(30, 30, ifg_net_obj.num_ifgs))
 
         # create placeholder in result file for datasets which are stored patch-wise
-        temp_coh_obj = BaseStack(file=join(self.path, "temporal_coherence.h5"), logger=log)
+        temp_coh_file = join(self.path, "temporal_coherence.h5")
+        log.debug(f"Initialize temporal coherence file {temp_coh_file}")
+        temp_coh_obj = BaseStack(file=temp_coh_file, logger=log)
         dshape = (slc_stack_obj.length, slc_stack_obj.width)
         temp_coh_obj.prepareDataset(dataset_name="temp_coh", metadata=slc_stack_obj.metadata,
                                     dshape=dshape, dtype=np.float32, mode="w", chunks=True)
