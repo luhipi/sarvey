@@ -69,9 +69,12 @@ def createTimeMaskFromDates(*, start_date: str, stop_date: str, date_list: list,
     date_list = [datetime.date(year=int(d[:4]), month=int(d[4:6]), day=int(d[6:])) for d in date_list]
 
     if (start_date is None) and (stop_date is None):
-        # use all images.
+        num_slc = time_mask.shape[0]
         result_date_list = [date.isoformat() for date in date_list]
-        return time_mask, time_mask.shape[0], result_date_list
+        logger.debug(
+            f"Use all {num_slc}/{num_slc} images in SLC stack. Time frame: "
+            f"{result_date_list[0]} - {result_date_list[-1]}")
+        return time_mask, num_slc, result_date_list
 
     if start_date is None:
         start_date = min(date_list)
@@ -109,6 +112,10 @@ def createTimeMaskFromDates(*, start_date: str, stop_date: str, date_list: list,
         logger.debug(msg=shift + "{:>10} {:>3}".format(date.isoformat(), val))
 
     num_slc = time_mask[time_mask].shape[0]
+    total_num_slc = time_mask.shape[0]
+    logger.debug(
+        f"Use {num_slc}/{total_num_slc} images in time frame: {start_date.isoformat()} - {stop_date.isoformat()}")
+
     return time_mask, num_slc, result_date_list
 
 
