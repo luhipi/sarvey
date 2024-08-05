@@ -351,10 +351,11 @@ class SmallBaselineYearlyNetwork(IfgNetwork):
             # find index of image at roughly one year distance
             diff = np.abs(tbase - (tbase[i] + 365.25))
             year_idx = np.where(diff == diff.min())[0][0]
-            print(year_idx)
             if year_idx != self.num_images - 1:  # avoid connections to the last image
+                self.logger.debug(f"Add yearly interferogram {dates[i]} - {dates[year_idx]}")
                 self.ifg_list.append((i, year_idx))
-                print("found!")
+            else:
+                self.logger.debug(f"No yearly interferogram for image {dates[i]}")
 
         self.ifg_list = np.unique(self.ifg_list, axis=0)
         self.ifg_list = [(i, j) for i, j in self.ifg_list if i != j]  # remove connections to itself, e.g. (0, 0)
