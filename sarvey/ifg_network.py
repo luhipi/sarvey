@@ -57,6 +57,7 @@ class IfgNetwork:
 
     def plot(self):
         """Plot the network of interferograms."""
+        self.logger.debug("Plot network of interferograms.")
         fig = plt.figure(figsize=(15, 5))
         axs = fig.subplots(1, 3)
         dt = [datetime.date.fromisoformat(d) for d in self.dates]
