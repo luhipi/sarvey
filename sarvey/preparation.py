@@ -109,7 +109,7 @@ def createTimeMaskFromDates(*, start_date: str, stop_date: str, date_list: list,
         else:
             result_date_list.append(date.isoformat())
         val = "      x" if time_mask[i] else ""
-        logger.debug(msg=shift + "{:>10} {:>3}".format(date.isoformat(), val))
+        logger.debug(msg=shift + f"{date.isoformat():>10} {val:>3}")
 
     num_slc = time_mask[time_mask].shape[0]
     total_num_slc = time_mask.shape[0]
