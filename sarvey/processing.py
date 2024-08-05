@@ -201,7 +201,7 @@ class Processing:
             coord_utm_obj.prepare(input_path=join(self.config.data_directories.input_path, "geometryRadar.h5"))
             del coord_utm_obj
         else:
-            self.logger.info(f"Skip creating UTM coordinates file. The file {coordinates_utm_file}  already exists.")
+            self.logger.info(f"Skip creating UTM coordinates file. The file {coordinates_utm_file} already exists.")
 
         background_map_file = join(self.path, "background_map.h5")
         if not exists(background_map_file):
@@ -218,7 +218,7 @@ class Processing:
             plt.close(plt.gcf())
             del bmap_obj
         else:
-            self.logger.info(f"Skip creating background map file. The file {background_map_file}  already exists.")
+            self.logger.info(f"Skip creating background map file. The file {background_map_file} already exists.")
 
         del mean_amp_img
 
