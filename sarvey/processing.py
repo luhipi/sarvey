@@ -203,10 +203,13 @@ class Processing:
         else:
             self.logger.info(f"Skip creating UTM coordinates file. The file {coordinates_utm_file}  already exists.")
 
-        if not exists(join(self.path, "background_map.h5")):
-            bmap_obj = AmplitudeImage(file_path=join(self.path, "background_map.h5"))
+        background_map_file = join(self.path, "background_map.h5")
+        if not exists(background_map_file):
+            self.logger.debug(f"Prepare background map and store to file {background_map_file}.")
+            bmap_obj = AmplitudeImage(file_path=background_map_file)
             bmap_obj.prepare(slc_stack_obj=slc_stack_obj, img=mean_amp_img, logger=self.logger)
             ax = bmap_obj.plot(logger=self.logger)
+            # TODO: add a saveFig function to AmplitudeImage and move the following code there
             img = ax.get_images()[0]
             cbar = plt.colorbar(img, pad=0.03, shrink=0.5)
             cbar.ax.set_visible(False)
@@ -214,6 +217,9 @@ class Processing:
             plt.gcf().savefig(join(self.path, "pic", "step_0_amplitude_image.png"), dpi=300)
             plt.close(plt.gcf())
             del bmap_obj
+        else:
+            self.logger.info(f"Skip creating background map file. The file {background_map_file}  already exists.")
+
         del mean_amp_img
 
         temp_coh = temp_coh_obj.read(dataset_name="temp_coh")
