@@ -447,7 +447,7 @@ class Points:
         logger: Logger
             Logging handler.
         """
-        self.ifg_net_obj = IfgNetwork()  # use parent class here which doesn't know and care about 'star' or 'sb'
+        self.ifg_net_obj = IfgNetwork(logger=logger)  # use parent class here which doesn't know and care about 'star' or 'sb'
         self.coord_utm = None
         self.coord_lalo = None
         self.height = None
@@ -687,7 +687,7 @@ class Network:
         self.width = slc_stack_obj.width  # x-coordinate axis (range)
 
         # 3) read IfgNetwork
-        self.ifg_net_obj = IfgNetwork()
+        self.ifg_net_obj = IfgNetwork(logger=self.logger)
         self.ifg_net_obj.open(path=join(dirname(self.file_path), "ifg_network.h5"))
 
     def computeArcObservations(self, *, point_obj: Points, arcs: np.ndarray):
