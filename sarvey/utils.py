@@ -495,11 +495,13 @@ def preparePatches(*, num_patches: int, width: int, length: int, logger: Logger)
     if num_patches == 1:
         box_list = [tuple(i for i in (0, 0, width, length))]
         num_patches = 1
+        logger.debug(f"Process the whole image as one patch of size {length}x{width}.")
     else:
         num_patches = num_patches
-        if num_patches > max(patch_size_lut.keys()):
-            num_patches = max(patch_size_lut.keys())
-            logger.info(msg=f"Number of patches is higher than expected. Reduce to {num_patches} boxes.")
+        max_num_patches = max(patch_size_lut.keys())
+        if num_patches > max_num_patches:
+            logger.info(f"Number of patches {num_patches} is higher than allowed. Reducing to {max_num_patches}.")
+            num_patches = max_num_patches
         else:
             while not (num_patches in patch_size_lut.keys()):
                 num_patches += 1
