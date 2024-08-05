@@ -262,7 +262,7 @@ class Preparation(BaseModel, extra=Extra.forbid):
     def checkNetworkType(cls, v):
         """Check if the ifg network type is valid."""
         if (v != "sb") and (v != "star") and (v != "delaunay") and (v != "stb") and (v != "stb_year"):
-            raise ValueError("Interferogram network type has to be 'sb', 'stb', Ästb_year', 'delaunay' or 'star'.")
+            raise ValueError("Interferogram network type has to be 'sb', 'stb', 'stb_year', 'delaunay' or 'star'.")
         return v
 
     @validator('num_ifgs')
