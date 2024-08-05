@@ -75,6 +75,9 @@ class Processing:
         slc_stack_obj = slcStack(join(self.config.data_directories.input_path, "slcStack.h5"))
         slc_stack_obj.open()
 
+        for key, val in slc_stack_obj.metadata.items():
+            log.debug(f"SLC stack {key}: {val}")
+
         if "ORBIT_DIRECTION" in slc_stack_obj.metadata:
             log.info(msg="Orbit direction: {}".format(slc_stack_obj.metadata["ORBIT_DIRECTION"]))
         else:
