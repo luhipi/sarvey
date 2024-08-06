@@ -243,11 +243,11 @@ However, the step 3 has to be executed as the second-order points are selected d
 - Output of this step
     - p1_ts_filt.h5
     - p1_aps.h5
-    - cohXX_aps.h5
-    - cohXX_ifg_wr.h5
+    - p2_cohXX_aps.h5
+    - p2_cohXX_ifg_wr.h5
 
 The placeholder XX depends on the threshold for the temporal coherence used for selecting the second-order points.
-For example, a threshold of 0.8 would result in coh80_aps.h5 and coh80_ifg_wr.h5.
+For example, a threshold of 0.8 would result in p2_coh80_aps.h5 and p2_coh80_ifg_wr.h5.
 
 Step 4: Densification
 ^^^^^^^^^^^^^^^^^^^^^
@@ -255,11 +255,11 @@ Step 4: Densification
 Two unwrapping options (**general:apply_temporal_unwrapping**, also applies to step 2) are implemented and should be chosen based on the characteristics of the displacement (spatial extend, magnitude, temporal behaviour).
 
 - Output of this step
-    - cohXX_ifg_unw.h5
-    - cohXX_ts.h5
+    - p2_cohXX_ifg_unw.h5
+    - p2_cohXX_ts.h5
 
 The placeholder XX depends on the threshold for the temporal coherence used for selecting the second-order points during filtering in step 3.
-For example, a threshold of 0.8 would result in coh80_ifg_unw.h5 and coh80_ts.h5.
+For example, a threshold of 0.8 would result in p2_coh80_ifg_unw.h5 and p2_coh80_ts.h5.
 
 Option 1: Unwrapping in time and space
 """"""""""""""""""""""""""""""""""""""

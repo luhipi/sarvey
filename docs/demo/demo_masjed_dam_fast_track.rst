@@ -62,7 +62,7 @@ The final products, including the time series, are stored in the coh\*\*_ts.h5 f
 
 .. code-block:: bash
 
-    sarvey_plot outputs/coh80_ts.h5 -t
+    sarvey_plot outputs/p2_coh80_ts.h5 -t
 
 You can visualize velocity and DEM error estimation of second-order points. You can also visualize amplitude, DEM, or temporal coherence as the background. Right-click on any point to see its time series.
 
@@ -79,7 +79,7 @@ Export the data to Shapefiles using the following command.
 
 .. code-block:: bash
 
-    sarvey_export outputs/coh80_ts.h5 -o outputs/shp/coh80_ts.shp
+    sarvey_export outputs/p2_coh80_ts.h5 -o outputs/shp/p2_coh80_ts.shp
 
 You can visualize the data in any GIS software. If you use QGIS, you can use the `PS Time Series Viewer <https://plugins.qgis.org/plugins/pstimeseries/>`_ plugin to draw the time series.
 

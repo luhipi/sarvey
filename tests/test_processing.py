@@ -144,10 +144,10 @@ class TestProcessing(unittest.TestCase):
         assert glob(os.path.join(config.general.output_path, "p1_aps.h5")), \
             'Processing failed (p1_aps.h5 not created).'
         coh_value = int(config.filtering.coherence_p2 * 100)
-        assert glob(os.path.join(config.general.output_path, f"coh{coh_value}_ifg_wr.h5")), \
-            f'Processing failed (coh{coh_value}_ifg_wr.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, f"coh{coh_value}_aps.h5")), \
-            f'Processing failed (coh{coh_value}_aps.h5 not created).'
+        assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_ifg_wr.h5")), \
+            f'Processing failed (p2_coh{coh_value}_ifg_wr.h5 not created).'
+        assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_aps.h5")), \
+            f'Processing failed (p2_coh{coh_value}_aps.h5 not created).'
 
         # densification
         args.start = 4
@@ -155,10 +155,10 @@ class TestProcessing(unittest.TestCase):
 
         run(config=config, args=args, logger=self.logger)
         coh_value = int(config.filtering.coherence_p2 * 100)
-        assert glob(os.path.join(config.general.output_path, f"coh{coh_value}_ifg_unw.h5")), \
-            f'Processing failed (coh{coh_value}_ifg_unw.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, f"coh{coh_value}_ts.h5")), \
-            f'Processing failed (coh{coh_value}_ts.h5 not created).'
+        assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_ifg_unw.h5")), \
+            f'Processing failed (p2_coh{coh_value}_ifg_unw.h5 not created).'
+        assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_ts.h5")), \
+            f'Processing failed (p2_coh{coh_value}_ts.h5 not created).'
 
     def testUnwrappingSpace(self):
         """TestUnwrappingTimeAndSpace."""
@@ -217,10 +217,10 @@ class TestProcessing(unittest.TestCase):
         assert glob(os.path.join(config.general.output_path, "p1_aps.h5")), \
             'Processing failed (p1_aps.h5 not created).'
         coh_value = int(config.filtering.coherence_p2 * 100)
-        assert glob(os.path.join(config.general.output_path, f"coh{coh_value}_ifg_wr.h5")), \
-            f'Processing failed (coh{coh_value}_ifg_wr.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, f"coh{coh_value}_aps.h5")), \
-            f'Processing failed (coh{coh_value}_aps.h5 not created).'
+        assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_ifg_wr.h5")), \
+            f'Processing failed (p2_coh{coh_value}_ifg_wr.h5 not created).'
+        assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_aps.h5")), \
+            f'Processing failed (p2_coh{coh_value}_aps.h5 not created).'
 
         # densification
         args.start = 4
@@ -228,10 +228,10 @@ class TestProcessing(unittest.TestCase):
 
         run(config=config, args=args, logger=self.logger)
         coh_value = int(config.filtering.coherence_p2 * 100)
-        assert glob(os.path.join(config.general.output_path, f"coh{coh_value}_ifg_unw.h5")), \
-            f'Processing failed (coh{coh_value}_ifg_unw.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, f"coh{coh_value}_ts.h5")), \
-            f'Processing failed (coh{coh_value}_ts.h5 not created).'
+        assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_ifg_unw.h5")), \
+            f'Processing failed (p2_coh{coh_value}_ifg_unw.h5 not created).'
+        assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_ts.h5")), \
+            f'Processing failed (p2_coh{coh_value}_ts.h5 not created).'
 
     def testPhaseLinking(self):
         """TestUnwrappingTimeAndSpace."""
@@ -292,10 +292,10 @@ class TestProcessing(unittest.TestCase):
         assert glob(os.path.join(config.general.output_path, "p1_aps.h5")), \
             'Processing failed (p1_aps.h5 not created).'
         coh_value = int(config.filtering.coherence_p2 * 100)
-        assert glob(os.path.join(config.general.output_path, f"coh{coh_value}_ifg_wr.h5")), \
-            f'Processing failed (coh{coh_value}_ifg_wr.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, f"coh{coh_value}_aps.h5")), \
-            f'Processing failed (coh{coh_value}_aps.h5 not created).'
+        assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_ifg_wr.h5")), \
+            f'Processing failed (p2_coh{coh_value}_ifg_wr.h5 not created).'
+        assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_aps.h5")), \
+            f'Processing failed (p2_coh{coh_value}_aps.h5 not created).'
 
         # densification
         args.start = 4
@@ -303,10 +303,10 @@ class TestProcessing(unittest.TestCase):
 
         run(config=config, args=args, logger=self.logger)
         coh_value = int(config.filtering.coherence_p2 * 100)
-        assert glob(os.path.join(config.general.output_path, f"coh{coh_value}_ifg_unw.h5")), \
-            f'Processing failed (coh{coh_value}_ifg_unw.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, f"coh{coh_value}_ts.h5")), \
-            f'Processing failed (coh{coh_value}_ts.h5 not created).'
+        assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_ifg_unw.h5")), \
+            f'Processing failed (p2_coh{coh_value}_ifg_unw.h5 not created).'
+        assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_ts.h5")), \
+            f'Processing failed (p2_coh{coh_value}_ts.h5 not created).'
 
     def testMasking(self):
         """TestUnwrappingTimeAndSpace."""
@@ -367,10 +367,10 @@ class TestProcessing(unittest.TestCase):
         assert glob(os.path.join(config.general.output_path, "p1_aps.h5")), \
             'Processing failed (p1_aps.h5 not created).'
         coh_value = int(config.filtering.coherence_p2 * 100)
-        assert glob(os.path.join(config.general.output_path, f"coh{coh_value}_ifg_wr.h5")), \
-            f'Processing failed (coh{coh_value}_ifg_wr.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, f"coh{coh_value}_aps.h5")), \
-            f'Processing failed (coh{coh_value}_aps.h5 not created).'
+        assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_ifg_wr.h5")), \
+            f'Processing failed (p2_coh{coh_value}_ifg_wr.h5 not created).'
+        assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_aps.h5")), \
+            f'Processing failed (p2_coh{coh_value}_aps.h5 not created).'
 
         # densification
         args.start = 4
@@ -378,7 +378,7 @@ class TestProcessing(unittest.TestCase):
 
         run(config=config, args=args, logger=self.logger)
         coh_value = int(config.filtering.coherence_p2 * 100)
-        assert glob(os.path.join(config.general.output_path, f"coh{coh_value}_ifg_unw.h5")), \
-            f'Processing failed (coh{coh_value}_ifg_unw.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, f"coh{coh_value}_ts.h5")), \
-            f'Processing failed (coh{coh_value}_ts.h5 not created).'
+        assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_ifg_unw.h5")), \
+            f'Processing failed (p2_coh{coh_value}_ifg_unw.h5 not created).'
+        assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_ts.h5")), \
+            f'Processing failed (p2_coh{coh_value}_ts.h5 not created).'
