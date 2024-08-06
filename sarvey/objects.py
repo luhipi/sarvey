@@ -447,7 +447,8 @@ class Points:
         logger: Logger
             Logging handler.
         """
-        self.ifg_net_obj = IfgNetwork(logger=logger)  # use parent class here which doesn't know and care about 'star' or 'sb'
+        # use parent class here which doesn't know and care about 'star' or 'sb'
+        self.ifg_net_obj = IfgNetwork(logger=logger)
         self.coord_utm = None
         self.coord_lalo = None
         self.height = None

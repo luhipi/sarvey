@@ -155,6 +155,7 @@ class IfgNetwork:
             self.logger.error(f"An error occurred while creating the file {path}: {e}")
             raise
 
+
 class StarNetwork(IfgNetwork):
     """Star network of interferograms (single-reference)."""
 
