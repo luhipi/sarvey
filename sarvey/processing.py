@@ -638,6 +638,7 @@ class Processing:
             msg += " SKIP ATMOSPHERIC FILTERING! "
             msg += "#" * 10
             self.logger.info(msg=msg)
+            method = "None"
             model_name = "None"
             aps_model_params = None
             num_points1 = phase_for_aps_filtering.shape[0]
@@ -646,7 +647,8 @@ class Processing:
         else:
             # spatial filtering of points with linear motion only (no non-linear motion)
             if self.config.filtering.interpolation_method == "kriging":
-                model_name = "Stable"  # To be integrated in the config?
+                method = "kriging"
+                model_name = "stable"  # To be integrated in the config?
                 aps1_phase, aps_model_params = estimateAtmosphericPhaseScreen(
                     residuals=phase_for_aps_filtering,
                     coord_utm1=point1_obj.coord_utm,
@@ -655,7 +657,8 @@ class Processing:
                     logger=self.logger
                 )
             else:
-                model_name = "Linear"  # To be integrated in the config?
+                method = "simple"
+                model_name = "linear"  # To be integrated in the config?
                 aps_model_params = None
                 aps1_phase = simpleInterpolation(
                     residuals=phase_for_aps_filtering,
@@ -667,7 +670,7 @@ class Processing:
         aps_file = join(self.path, "aps_parameters.h5")
         self.logger.debug(f"Prepare Aps Parameters file {aps_file}")
         aps_params_obj = ApsParameters(file_path=aps_file, logger=self.logger)
-        aps_params_obj.prepare(model_name=model_name, model_params=aps_model_params,
+        aps_params_obj.prepare(method=method, model_name=model_name, model_params=aps_model_params,
                                phase=phase_for_aps_filtering)
 
         point1_obj.phase -= aps1_phase

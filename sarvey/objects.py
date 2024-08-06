@@ -809,6 +809,7 @@ class ApsParameters:
             Logging handler
         """
         self.file_path = file_path
+        self.method = None
         self.model_name = None
         self.model_params = None
         self.num_params = None
@@ -816,24 +817,28 @@ class ApsParameters:
         self.logger = logger
         self.logger.debug(f"ApsParameters initialized with file path: {file_path}")
 
-    def prepare(self, *, model_name: str = "Stable", model_params: np.ndarray, phase: np.ndarray):
+    def prepare(self, *, method: str = "kriging", model_name: str = "stable", model_params: np.ndarray,
+                phase: np.ndarray):
         """Prepare APS model parameters and store it into a file.
 
         Parameters
         ----------
+        method: str
+            method used for interpolation (kriging/simple)
         model_name: str
-            name of the model
+            name of the variogram model/interpolation type for kriging/simple
         model_params: np.ndarray
             Model parameters
         phase: np.ndarray
             Residual phase of P1 used for APS estimation
         """
-        self.logger.info(f"Preparing ApsParameters with model: {model_name}")
+        self.logger.info(f"Preparing ApsParameters with method {method} and model {model_name}")
 
         if model_params is None or model_params.size == 0:
             self.logger.debug("Model parameters are empty; defaulting to an empty list.")
             model_params = np.array([])
 
+        self.method = method
         self.model_name = model_name
         self.model_params = model_params
         self.num_params = model_params.shape[0] if model_params is not None and model_params.size > 0 else 0
@@ -855,6 +860,7 @@ class ApsParameters:
             with h5py.File(self.file_path, 'r') as f:
                 self.model_params = f["model_params"][:]
                 self.phase = f["phase"][:]
+                self.method = f.attrs["method"]
                 self.model_name = f.attrs["model_name"]
                 self.num_params = f.attrs["num_params"]
                 self.logger.debug(f"Loaded model name: {self.model_name}, number of parameters: {self.num_params}")
@@ -873,6 +879,7 @@ class ApsParameters:
             with h5py.File(self.file_path, 'w') as f:
                 f.create_dataset('model_params', data=self.model_params)
                 f.create_dataset('phase', data=self.phase)
+                f.attrs["method"] = self.method
                 f.attrs["model_name"] = self.model_name
                 f.attrs["num_params"] = self.num_params
 

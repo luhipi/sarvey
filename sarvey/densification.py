@@ -527,24 +527,27 @@ def selectP2(*, output_path: str, config: Config, logger: Logger):
     aps_params_obj = ApsParameters(file_path=aps_params_file, logger=logger)
     aps_params_obj.open()
 
-    if config.filtering.skip_filtering:
-        logger.info("Skip APS filtering")
+    filtering_method = aps_params_obj.method
+
+    if filtering_method == "None":
+        logger.info("Skip APS filtering. To enable APS filtering, update the config file and rerun step 3.")
         aps2_phase = np.zeros((point2_obj.num_points, point2_obj.ifg_net_obj.num_images))
     else:
-        logger.debug("Apply APS filtering to second-order points.")
-        if config.filtering.interpolation_method == "kriging":
+        logger.info("Apply APS filtering to second-order points.")
+
+        if filtering_method == "kriging":
             aps2_phase = applySpatialFilteringToP2(coord_utm1=aps1_obj.coord_utm,
                                                    residuals=aps_params_obj.phase,
                                                    coord_utm2=point2_obj.coord_utm,
                                                    model_name=aps_params_obj.model_name,
                                                    model_params=aps_params_obj.model_params,
                                                    logger=logger)
-        else:
+        elif filtering_method == "simple":
             aps2_phase = applySimpleInterpolationToP2(residuals=aps_params_obj.phase,
                                                       coord_utm1=aps1_obj.coord_utm,
                                                       coord_utm2=point2_obj.coord_utm,
                                                       logger=logger,
-                                                      interp_method=config.filtering.interpolation_method)
+                                                      interp_method=aps_params_obj.params_obj.model_name)
 
     p2_aps_file = join(output_path, f"coh{coh_value}_aps.h5")
     logger.info(f"Write APS for second-order points to file {p2_aps_file}.")

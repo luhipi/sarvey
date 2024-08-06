@@ -70,7 +70,7 @@ def applySpatialFilteringToP2(*, coord_utm1, residuals, coord_utm2, model_name, 
     logger.debug(f"Start applying {num_time} time APS to {num_points2} second-order points using Kriging"
                  f" interpolation.")
 
-    if model_name == 'Stable':
+    if model_name == 'stable':
         logger.debug(f"Recreate {model_name} gs model using {model_params.shape[0]} parameters.")
         model = gs.Stable(dim=2)
         if model_params.shape[0] != 4:
