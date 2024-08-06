@@ -30,22 +30,13 @@ Note: The above command only generates a configuration file. Although step 0 is 
 The configuration file has various sections, as detailed below:
 
 
-* data_directories
-
-
- This section specifies the paths to the input and output data. The paths can be either absolute or relative.
-
-
-* logging
-
-
- This section defines the logging level displayed in the command line and the directory path where log files will be stored.
-
-
-* processing
+* General
 
 
  This section includes top-level parameters such as the number of cores and the unwrapping method.
+ It specifies the paths to the input and output data. The paths can be either absolute or relative.
+ Further, it defines the logging level displayed in the command line and the directory path where log files will be stored.
+
 
 
 * phase_linking
@@ -169,7 +160,7 @@ Step 1: Consistency Check
 Step 2: Unwrapping
 ^^^^^^^^^^^^^^^^^^
 
-Two unwrapping options (**processing:apply_temporal_unwrapping**, also applies to step 4) are implemented and should be chosen based on the characteristics of the displacement (spatial extend, magnitude, temporal behaviour).
+Two unwrapping options (**general:apply_temporal_unwrapping**, also applies to step 4) are implemented and should be chosen based on the characteristics of the displacement (spatial extend, magnitude, temporal behaviour).
 
 - Output of this step
     - p1_ifg_unw.h5
@@ -186,7 +177,7 @@ Option 1) Unwrapping in time and space
     After integrating the parameters, the phase contributions are removed from the wrapped interferometric phase of the first-order points.
 
 - Spatial unwrapping of the residuals:
-    The residuals in each interferogram are unwrapped in space using a sparse point network unwrapping method (**processing:spatial_unwrapping_method**) (Bioucas-Dias and Valadao 2007, Boykov and Kolmogorov 2004).
+    The residuals in each interferogram are unwrapped in space using a sparse point network unwrapping method (**general:spatial_unwrapping_method**) (Bioucas-Dias and Valadao 2007, Boykov and Kolmogorov 2004).
     The spatial neighbourhood for unwrapping is defined by the arcs of the spatial network.
     There are two options (**unwrapping:use_arcs_from_temporal_unwrapping**).
     Either the spatial network from consistency check (step 2) can be used for unwrapping, i.e. the spatial network after removing arcs with a low temporal coherence from temporal unwrapping.
@@ -205,7 +196,7 @@ Option 2) Unwrapping in space
 """""""""""""""""""""""""""""
 
 - Spatial unwrapping:
-    The interferograms are unwrapped independently in space with a sparse point network unwrapping method (**processing:spatial_unwrapping_method**) (Bioucas-Dias and Valadao 2007, Boykov and Kolmogorov 2004).
+    The interferograms are unwrapped independently in space with a sparse point network unwrapping method (**general:spatial_unwrapping_method**) (Bioucas-Dias and Valadao 2007, Boykov and Kolmogorov 2004).
     The spatial neighbourhood for unwrapping is defined by the arcs of the spatial network.
     There are two options (**unwrapping:use_arcs_from_temporal_unwrapping**).
     Either the spatial network from consistency check (step 2) can be used for unwrapping, i.e. the spatial network after removing arcs with a low temporal coherence from temporal unwrapping.
@@ -261,7 +252,7 @@ For example, a threshold of 0.8 would result in coh80_aps.h5 and coh80_ifg_wr.h5
 Step 4: Densification
 ^^^^^^^^^^^^^^^^^^^^^
 
-Two unwrapping options (**processing:apply_temporal_unwrapping**, also applies to step 2) are implemented and should be chosen based on the characteristics of the displacement (spatial extend, magnitude, temporal behaviour).
+Two unwrapping options (**general:apply_temporal_unwrapping**, also applies to step 2) are implemented and should be chosen based on the characteristics of the displacement (spatial extend, magnitude, temporal behaviour).
 
 - Output of this step
     - cohXX_ifg_unw.h5
@@ -290,7 +281,7 @@ Option 1: Unwrapping in time and space
     After estimating the parameters of the second-order points, the phase contributions are removed from the wrapped interferometric phase of the first-order points.
 
 - Spatial unwrapping of the residuals:
-    The residuals in each interferogram are unwrapped in space using a sparse point network unwrapping method (**processing:spatial_unwrapping_method**) (Bioucas-Dias and Valadao 2007, Boykov and Kolmogorov 2004).
+    The residuals in each interferogram are unwrapped in space using a sparse point network unwrapping method (**general:spatial_unwrapping_method**) (Bioucas-Dias and Valadao 2007, Boykov and Kolmogorov 2004).
     The spatial neighbourhood for unwrapping is defined by spatial network including both first- and second-order points.
     It is created with a delaunay network.
 
@@ -316,8 +307,8 @@ Handling big datasets
 ---------------------
 The processing of large datasets can be computationally expensive and time-consuming.
 Especially the estimation of the temporal phase coherence in step 0 is a bottleneck, also in terms of memory consumption.
-Therefore, it is recommended to set **processing:num_cores** for parallel processing.
-By setting **processing:num_patches** the data is split into spatial patches and processed subsequently to fit into memory.
+Therefore, it is recommended to set **general:num_cores** for parallel processing.
+By setting **general:num_patches** the data is split into spatial patches and processed subsequently to fit into memory.
 
 
 Processing steps for one-step unwrapping workflow
