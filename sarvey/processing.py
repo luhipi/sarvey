@@ -198,7 +198,7 @@ class Processing:
         if not exists(coordinates_utm_file):
             self.logger.debug(f"Prepare UTM coordinates and store to file {coordinates_utm_file}.")
             coord_utm_obj = CoordinatesUTM(file_path=coordinates_utm_file, logger=self.logger)
-            coord_utm_obj.prepare(input_path=join(self.general.input_path, "geometryRadar.h5"))
+            coord_utm_obj.prepare(input_path=join(self.config.general.input_path, "geometryRadar.h5"))
             del coord_utm_obj
         else:
             self.logger.info(f"Skip creating UTM coordinates file. The file {coordinates_utm_file} already exists.")
