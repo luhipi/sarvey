@@ -32,6 +32,8 @@
 import os
 import unittest
 from datetime import datetime
+import sys
+import logging
 
 import numpy as np
 
@@ -52,6 +54,11 @@ class TestUtils(unittest.TestCase):
         if os.path.basename(os.getcwd()) == "tests":
             cls.root_path = "../"
 
+        cls.logger = logging.getLogger(__name__)
+        console_handler = logging.StreamHandler(sys.stdout)
+        cls.logger.addHandler(console_handler)
+        cls.logger.setLevel(logging.getLevelName('DEBUG'))
+
     @classmethod
     def tearDown(cls) -> None:
         """Define the Class method tearDown."""
@@ -64,19 +71,19 @@ class TestUtils(unittest.TestCase):
         dates = [datetime(2023, 8, 17), datetime(2023, 8, 17), datetime(2023, 8, 17), datetime(2023, 8, 17)]
 
         tbase = np.array([0, 6, 12, 18])
-        ifg_net_obj = SmallBaselineNetwork()
+        ifg_net_obj = SmallBaselineNetwork(logger=self.logger)
         ifg_net_obj.configure(pbase=pbase, tbase=tbase, num_link=2, max_tbase=12, dates=dates)
         ifg_list = np.array([(0, 1), (0, 2), (1, 2), (1, 3), (2, 3)])
         assert (ifg_net_obj.ifg_list == ifg_list).all()
 
         tbase = np.array([0, 12, 18, 312])
-        ifg_net_obj = SmallBaselineNetwork()
+        ifg_net_obj = SmallBaselineNetwork(logger=self.logger)
         ifg_net_obj.configure(pbase=pbase, tbase=tbase, num_link=3, max_tbase=5, dates=dates)
         ifg_list = np.array([(0, 1), (1, 2), (2, 3)])
         assert (ifg_net_obj.ifg_list == ifg_list).all()
 
         tbase = np.array([0, 12, 18, 312])
-        ifg_net_obj = SmallBaselineNetwork()
+        ifg_net_obj = SmallBaselineNetwork(logger=self.logger)
         ifg_net_obj.configure(pbase=pbase, tbase=tbase, num_link=3, max_tbase=20, dates=dates)
         ifg_list = np.array([(0, 1), (0, 2), (1, 2), (2, 3)])
         assert (ifg_net_obj.ifg_list == ifg_list).all()
