@@ -150,8 +150,8 @@ class TestProcessing(unittest.TestCase):
             'Processing failed (p1_ts_filt.h5 not created).'
         assert glob(os.path.join(config.data_directories.path_outputs, "p1_aps.h5")), \
             'Processing failed (p1_aps.h5 not created).'
-        assert glob(os.path.join(config.data_directories.path_outputs, f"aps_parameters.h5")), \
-            f'Processing failed (aps_parameters.h5 not created).'
+        assert glob(os.path.join(config.data_directories.path_outputs, "aps_parameters.h5")), \
+            'Processing failed (aps_parameters.h5 not created).'
 
         # densification
         args.start = 4
@@ -224,8 +224,8 @@ class TestProcessing(unittest.TestCase):
             'Processing failed (p1_ts_filt.h5 not created).'
         assert glob(os.path.join(config.data_directories.path_outputs, "p1_aps.h5")), \
             'Processing failed (p1_aps.h5 not created).'
-        assert glob(os.path.join(config.data_directories.path_outputs, f"aps_parameters.h5")), \
-            f'Processing failed (aps_parameters.h5 not created).'
+        assert glob(os.path.join(config.data_directories.path_outputs, "aps_parameters.h5")), \
+            'Processing failed (aps_parameters.h5 not created).'
 
         # densification
         args.start = 4
@@ -300,8 +300,8 @@ class TestProcessing(unittest.TestCase):
             'Processing failed (p1_ts_filt.h5 not created).'
         assert glob(os.path.join(config.data_directories.path_outputs, "p1_aps.h5")), \
             'Processing failed (p1_aps.h5 not created).'
-        assert glob(os.path.join(config.data_directories.path_outputs, f"aps_parameters.h5")), \
-            f'Processing failed (aps_parameters.h5 not created).'
+        assert glob(os.path.join(config.data_directories.path_outputs, "aps_parameters.h5")), \
+            'Processing failed (aps_parameters.h5 not created).'
 
         # densification
         args.start = 4
@@ -376,8 +376,8 @@ class TestProcessing(unittest.TestCase):
             'Processing failed (p1_ts_filt.h5 not created).'
         assert glob(os.path.join(config.data_directories.path_outputs, "p1_aps.h5")), \
             'Processing failed (p1_aps.h5 not created).'
-        assert glob(os.path.join(config.data_directories.path_outputs, f"aps_parameters.h5")), \
-            f'Processing failed (aps_parameters.h5 not created).'
+        assert glob(os.path.join(config.data_directories.path_outputs, "aps_parameters.h5")), \
+            'Processing failed (aps_parameters.h5 not created).'
 
         # densification
         args.start = 4
