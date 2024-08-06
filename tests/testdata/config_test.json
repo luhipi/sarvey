@@ -11,7 +11,7 @@
     },
     "phase_linking": {
         "use_phase_linking_results": false,
-        "inverted_path": "tests/testdata/inverted", // Path to the inverted files
+        "inverted_path": "tests/testdata/inverted",
         "num_siblings": 20,
         "mask_phase_linking_file": null,
         "use_ps": false,
@@ -20,7 +20,7 @@
     "preparation": {
         "start_date": null,
         "end_date": null,
-        "ifg_network_type": "star", // can also be "sb"
+        "ifg_network_type": "star",
         "num_ifgs": 3,
         "max_tbase": 100,
         "filter_window_size": 9
