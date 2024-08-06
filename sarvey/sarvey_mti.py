@@ -30,11 +30,11 @@
 """MTI module for SARvey."""
 
 import argparse
-import json
 import os
 import shutil
-from json import JSONDecodeError
 from os.path import join
+
+import json5
 import matplotlib
 import sys
 import logging
@@ -44,7 +44,7 @@ from pydantic.schema import schema
 
 from sarvey.console import printStep, printCurrentConfig, showLogoSARvey
 from sarvey.processing import Processing
-from sarvey.config import Config
+from sarvey.config import Config, loadConfiguration
 from sarvey.utils import checkIfRequiredFilesExist
 
 try:
@@ -87,10 +87,10 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
 
     config_default_dict = generateTemplateFromConfigModel()
 
-    proc_obj = Processing(path=config.data_directories.output_path, config=config, logger=logger)
+    proc_obj = Processing(path=config.general.output_path, config=config, logger=logger)
 
-    printCurrentConfig(config_section=config.processing.dict(),
-                       config_section_default=config_default_dict["processing"],
+    printCurrentConfig(config_section=config.general.dict(),
+                       config_section_default=config_default_dict["general"],
                        logger=logger)
 
     if config.phase_linking.use_phase_linking_results:
@@ -112,7 +112,7 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
 
     if 1 in steps:
         checkIfRequiredFilesExist(
-            path_to_files=config.data_directories.output_path,
+            path_to_files=config.general.output_path,
             required_files=required_files,
             logger=logger
         )
@@ -125,7 +125,7 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
 
     if 2 in steps:
         checkIfRequiredFilesExist(
-            path_to_files=config.data_directories.output_path,
+            path_to_files=config.general.output_path,
             required_files=required_files,
             logger=logger
         )
@@ -133,7 +133,7 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
         printCurrentConfig(config_section=config.unwrapping.dict(),
                            config_section_default=config_default_dict["unwrapping"],
                            logger=logger)
-        if proc_obj.config.processing.apply_temporal_unwrapping:
+        if proc_obj.config.general.apply_temporal_unwrapping:
             proc_obj.runUnwrappingTimeAndSpace()
         else:
             proc_obj.runUnwrappingSpace()
@@ -141,7 +141,7 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
 
     if 3 in steps:
         checkIfRequiredFilesExist(
-            path_to_files=config.data_directories.output_path,
+            path_to_files=config.general.output_path,
             required_files=required_files,
             logger=logger
         )
@@ -155,7 +155,7 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
 
     if 4 in steps:
         checkIfRequiredFilesExist(
-            path_to_files=config.data_directories.output_path,
+            path_to_files=config.general.output_path,
             required_files=required_files,
             logger=logger
         )
@@ -163,7 +163,7 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
         printCurrentConfig(config_section=config.densification.dict(),
                            config_section_default=config_default_dict["densification"],
                            logger=logger)
-        if proc_obj.config.processing.apply_temporal_unwrapping:
+        if proc_obj.config.general.apply_temporal_unwrapping:
             proc_obj.runDensificationTimeAndSpace()
         else:
             proc_obj.runDensificationSpace()
@@ -259,12 +259,12 @@ def main(iargs=None):
         logger.info(msg=f"Write default config to file: {args.filepath}.")
         default_config_dict = generateTemplateFromConfigModel()
         with open(args.filepath, "w") as f:
-            f.write(json.dumps(default_config_dict, indent=4))
+            f.write(json5.dumps(default_config_dict, indent=4))
         return 0
 
     if args.print_config_explanation:
         top_level_schema = schema([Config])
-        print(json.dumps(top_level_schema, indent=2))
+        print(json5.dumps(top_level_schema, indent=2))
         return 0
 
     if args.stop < args.start:
@@ -278,26 +278,21 @@ def main(iargs=None):
 
     config_file_path = os.path.abspath(join(args.workdir, args.filepath))
 
-    try:
-        with open(config_file_path) as config_fp:
-            config_dict = json.load(config_fp)
-            config = Config(**config_dict)
-    except JSONDecodeError as err:
-        raise IOError(f'Failed to load the configuration json file => {err}')
+    config = loadConfiguration(path=config_file_path)
 
     current_datetime = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
     log_filename = f"sarvey_log_{current_datetime}.log"
-    logpath = config.logging.logfile_path
+    logpath = config.general.logfile_path
     if not os.path.exists(logpath):
         os.mkdir(logpath)
     file_handler = logging.FileHandler(filename=join(logpath, log_filename))
     file_handler.setFormatter(log_format)
     logger.addHandler(file_handler)
 
-    logging_level = logging.getLevelName(config.logging.logging_level)
+    logging_level = logging.getLevelName(config.general.logging_level)
     logger.setLevel(logging_level)
 
-    config.data_directories.output_path = os.path.abspath(join(args.workdir, config.data_directories.output_path))
+    config.general.output_path = os.path.abspath(join(args.workdir, config.general.output_path))
     if config.consistency_check.mask_p1_file is not None:
         config.consistency_check.mask_p1_file = os.path.abspath(
             join(args.workdir, config.consistency_check.mask_p1_file))
@@ -306,13 +301,13 @@ def main(iargs=None):
             join(args.workdir, config.filtering.mask_p2_file))
 
     # create all necessary directories
-    if not os.path.exists(config.data_directories.output_path):
-        os.mkdir(config.data_directories.output_path)
-    if not os.path.exists(join(config.data_directories.output_path, "pic")):
-        os.mkdir(join(config.data_directories.output_path, "pic"))
+    if not os.path.exists(config.general.output_path):
+        os.mkdir(config.general.output_path)
+    if not os.path.exists(join(config.general.output_path, "pic")):
+        os.mkdir(join(config.general.output_path, "pic"))
 
     # copy config file to output directory to ensure that there is always a backup config file with latest parameters
-    shutil.copy2(src=config_file_path, dst=join(config.data_directories.output_path, "config.json"))
+    shutil.copy2(src=config_file_path, dst=join(config.general.output_path, "config.json"))
 
     run(config=config, args=args, logger=logger)
 

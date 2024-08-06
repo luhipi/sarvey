@@ -29,9 +29,7 @@
 
 """Console script for exporting data from SARvey format to GIS formats."""
 import argparse
-import json
 import logging
-from json import JSONDecodeError
 from logging import Logger
 import sys
 import time
@@ -47,7 +45,7 @@ from pyproj.database import query_utm_crs_info
 from shapely import Point
 from shapely.errors import ShapelyDeprecationWarning
 
-from sarvey.config import Config
+from sarvey.config import loadConfiguration
 from sarvey.console import showLogoSARvey
 from sarvey.objects import Points
 import sarvey.utils as ut
@@ -247,12 +245,7 @@ def main(iargs=None):
             logger.warning(msg=f"Automatically selected configuration file: {files[potential_configs][0]}!")
             config_file_path = files[potential_configs][0]
 
-    try:
-        with open(config_file_path) as config_fp:
-            config_dict = json.load(config_fp)
-            config = Config(**config_dict)
-    except JSONDecodeError as err:
-        raise IOError(f'Failed to load the configuration json file => {err}')
+    config = loadConfiguration(path=config_file_path)
 
     # create output directory
     if args.output_path == "":
@@ -289,7 +282,7 @@ def main(iargs=None):
         os.mkdir(output_dir)
 
     exportDataToGisFormat(file_path=args.file_path, output_path=args.output_path,
-                          input_path=config.data_directories.input_path,
+                          input_path=config.general.input_path,
                           correct_geolocation=args.correct_geolocation, no_timeseries=args.no_timeseries,
                           logger=logger)
 

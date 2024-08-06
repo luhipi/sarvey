@@ -1,17 +1,13 @@
 {
-    "data_directories": {
+    "general": {
         "input_path": "tests/testdata/inputs",
-        "output_path": "tests/testdata/output/"
-    },
-    "logging": {
-        "logging_level": "INFO",
-        "logfile_path": "tests/testdata/logfiles/"
-    },
-    "processing": {
+        "output_path": "tests/testdata/output/",
         "num_cores": 50,
         "num_patches": 1,
         "apply_temporal_unwrapping": true,
-        "spatial_unwrapping_method": "puma"
+        "spatial_unwrapping_method": "puma",
+        "logging_level": "INFO",
+        "logfile_path": "tests/testdata/logfiles/"
     },
     "phase_linking": {
         "use_phase_linking_results": false,

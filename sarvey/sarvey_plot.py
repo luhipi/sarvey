@@ -29,11 +29,9 @@
 
 """Plot module for SARvey."""
 import argparse
-import json
 import time
 import os
 from os.path import join, basename, dirname
-from json import JSONDecodeError
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib import colormaps
@@ -50,7 +48,7 @@ from sarvey.ifg_network import IfgNetwork
 from sarvey.objects import Points, AmplitudeImage, BaseStack
 from sarvey import console
 from sarvey import viewer
-from sarvey.config import Config
+from sarvey.config import loadConfiguration
 import sarvey.utils as ut
 
 try:
@@ -441,12 +439,7 @@ def main(iargs=None):
             logger.warning(msg=f"Automatically selected configuration file: {files[potential_configs][0]}!")
             config_file_path = files[potential_configs][0]
 
-    try:
-        with open(config_file_path) as config_fp:
-            config_dict = json.load(config_fp)
-            config = Config(**config_dict)
-    except JSONDecodeError as err:
-        raise IOError(f'Failed to load the configuration json file => {err}')
+    config = loadConfiguration(path=config_file_path)
 
     folder_name = "p1" if "p1" in basename(args.input_file) else basename(args.input_file)[:5]
     folder_name = "ifgs" if "ifg_stack" in basename(args.input_file) else folder_name
@@ -459,22 +452,22 @@ def main(iargs=None):
     selected = False
     if args.plotTS:
         # todo: read input_path from config file in same directory as file to be able to load height from geometryRadar
-        plotTS(obj_name=args.input_file, input_path=config.data_directories.input_path, logger=logger)
+        plotTS(obj_name=args.input_file, input_path=config.general.input_path, logger=logger)
         selected = True
 
     if args.plotPhase:
         plotPhase(obj_name=args.input_file, save_path=save_path, image_range=args.image_range,
-                  interactive=args.interactive, input_path=config.data_directories.input_path, logger=logger)
+                  interactive=args.interactive, input_path=config.general.input_path, logger=logger)
         selected = True
 
     if args.plot_res_phase:
         plotResidualPhase(obj_name=args.input_file, save_path=save_path, image_range=args.image_range,
-                          interactive=args.interactive, input_path=config.data_directories.input_path, logger=logger)
+                          interactive=args.interactive, input_path=config.general.input_path, logger=logger)
         selected = True
 
     if args.plotMap:
         plotMap(obj_name=args.input_file, save_path=save_path, interactive=args.interactive,
-                input_path=config.data_directories.input_path, logger=logger)
+                input_path=config.general.input_path, logger=logger)
         selected = True
 
     if args.plotAllIfgs:

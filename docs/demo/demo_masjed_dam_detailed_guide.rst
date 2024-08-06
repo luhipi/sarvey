@@ -81,7 +81,7 @@ Step 1.4: Modify the config.json File
 .. code-block:: json
 
     {
-        "data_directories": {
+        "general": {
             "input_path": "inputs/",
             "output_path": "outputs/"
         }
@@ -108,7 +108,7 @@ It is a good practice to specify a number lower than the number of available cor
 
     {
     // other parameters
-        "processing": {
+        "general": {
         "num_cores": 5,
         // other parameters
         },

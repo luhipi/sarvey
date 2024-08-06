@@ -29,14 +29,14 @@
 
 """Configuration module for SARvey."""
 import os
-import json
+import json5
 from datetime import date
 from json import JSONDecodeError
 from typing import Optional
 from pydantic import BaseModel, Field, validator, Extra
 
 
-class DataDirectories(BaseModel, extra=Extra.forbid):
+class General(BaseModel, extra=Extra.forbid):
     """Template for settings in config file."""
 
     input_path: str = Field(
@@ -50,23 +50,6 @@ class DataDirectories(BaseModel, extra=Extra.forbid):
         description="Set the path of the processing output data directory.",
         default="outputs/"
     )
-
-    @validator('input_path')
-    def checkPathInputs(cls, v):
-        """Check if the input path exists."""
-        if v == "":
-            raise ValueError("Empty string is not allowed.")
-        if not os.path.exists(os.path.abspath(v)):
-            raise ValueError(f"input_path is invalid: {os.path.abspath(v)}")
-        if not os.path.exists(os.path.join(os.path.abspath(v), "slcStack.h5")):
-            raise ValueError(f"'slcStack.h5' does not exist: {v}")
-        if not os.path.exists(os.path.join(os.path.abspath(v), "geometryRadar.h5")):
-            raise ValueError(f"'geometryRadar.h5' does not exist: {v}")
-        return v
-
-
-class Processing(BaseModel, extra=Extra.forbid):
-    """Template for settings in config file."""
 
     num_cores: int = Field(
         title="Number of cores",
@@ -92,6 +75,31 @@ class Processing(BaseModel, extra=Extra.forbid):
         default='puma'
     )
 
+    logging_level: str = Field(
+        title="Logging level.",
+        description="Set loggig level.",
+        default="INFO"
+    )
+
+    logfile_path: str = Field(
+        title="Logfile Path.",
+        description="Path to directory where the logfiles should be saved.",
+        default="logfiles/"
+    )
+
+    @validator('input_path')
+    def checkPathInputs(cls, v):
+        """Check if the input path exists."""
+        if v == "":
+            raise ValueError("Empty string is not allowed.")
+        if not os.path.exists(os.path.abspath(v)):
+            raise ValueError(f"input_path is invalid: {os.path.abspath(v)}")
+        if not os.path.exists(os.path.join(os.path.abspath(v), "slcStack.h5")):
+            raise ValueError(f"'slcStack.h5' does not exist: {v}")
+        if not os.path.exists(os.path.join(os.path.abspath(v), "geometryRadar.h5")):
+            raise ValueError(f"'geometryRadar.h5' does not exist: {v}")
+        return v
+
     @validator('num_cores')
     def checkNumCores(cls, v):
         """Check if the number of cores is valid."""
@@ -111,6 +119,17 @@ class Processing(BaseModel, extra=Extra.forbid):
         """Check if unwrapping_method is valid."""
         if (v != "ilp") & (v != "puma"):
             raise ValueError("Unwrapping method must be either 'ilp' or 'puma'.")
+        return v
+
+    @validator('logging_level')
+    def checkLoggingLevel(cls, v):
+        """Check if the logging level is valid."""
+        if v == "":
+            raise ValueError("Empty string is not allowed.")
+        v = v.upper()
+        if v not in ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]:
+            raise ValueError("Logging level must be one of ('CRITICAL', 'ERROR', "
+                             "'WARNING', 'INFO', 'DEBUG', 'NOTSET').")
         return v
 
 
@@ -617,47 +636,12 @@ class Densification(BaseModel, extra=Extra.forbid):
         return v
 
 
-class Logging(BaseModel):
-    """Template for logger settings."""
-
-    logging_level: str = Field(
-        title="Logging level.",
-        description="Set loggig level.",
-        default="INFO"
-    )
-
-    logfile_path: str = Field(
-        title="Logfile Path.",
-        description="Path to directory where the logfiles should be saved.",
-        default="logfiles/"
-    )
-
-    @validator('logging_level')
-    def checkLoggingLevel(cls, v):
-        """Check if the logging level is valid."""
-        if v == "":
-            raise ValueError("Empty string is not allowed.")
-        v = v.upper()
-        if v not in ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]:
-            raise ValueError("Logging level must be one of ('CRITICAL', 'ERROR', "
-                             "'WARNING', 'INFO', 'DEBUG', 'NOTSET').")
-        return v
-
-
 class Config(BaseModel):
     """Configuration for sarvey."""
 
     # title has to be the name of the class. Needed for creating default file
-    data_directories: DataDirectories = Field(
-        title="DataDirectories", description=""
-    )
-
-    logging: Logging = Field(
-        title="Logging", description=""
-    )
-
-    processing: Processing = Field(
-        title="Processing", description=""
+    general: General = Field(
+        title="General", description=""
     )
 
     phase_linking: PhaseLinking = Field(
@@ -695,8 +679,8 @@ def loadConfiguration(*, path: str) -> dict:
 
     Returns
     -------
-    : dict
-        A dictionary containing configurations.
+    : Config
+        An object of class Config
 
     Raises
     ------
@@ -711,8 +695,8 @@ def loadConfiguration(*, path: str) -> dict:
     """
     try:
         with open(path) as config_fp:
-            config = json.load(config_fp)
-            config = Config(**config).dict(by_alias=True)
+            config = json5.load(config_fp)
+            config = Config(**config)
     except JSONDecodeError as e:
         raise IOError(f'Failed to load the configuration json file => {e}')
     return config
