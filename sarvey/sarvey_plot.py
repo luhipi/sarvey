@@ -29,11 +29,9 @@
 
 """Plot module for SARvey."""
 import argparse
-import json
 import time
 import os
 from os.path import join, basename, dirname
-from json import JSONDecodeError
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib import colormaps
@@ -50,7 +48,7 @@ from sarvey.ifg_network import IfgNetwork
 from sarvey.objects import Points, AmplitudeImage, BaseStack
 from sarvey import console
 from sarvey import viewer
-from sarvey.config import Config
+from sarvey.config import loadConfiguration
 import sarvey.utils as ut
 
 try:
@@ -441,12 +439,7 @@ def main(iargs=None):
             logger.warning(msg=f"Automatically selected configuration file: {files[potential_configs][0]}!")
             config_file_path = files[potential_configs][0]
 
-    try:
-        with open(config_file_path) as config_fp:
-            config_dict = json.load(config_fp)
-            config = Config(**config_dict)
-    except JSONDecodeError as err:
-        raise IOError(f'Failed to load the configuration json file => {err}')
+    config = loadConfiguration(path=config_file_path)
 
     folder_name = "p1" if "p1" in basename(args.input_file) else basename(args.input_file)[:5]
     folder_name = "ifgs" if "ifg_stack" in basename(args.input_file) else folder_name

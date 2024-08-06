@@ -30,11 +30,11 @@
 """MTI module for SARvey."""
 
 import argparse
-import json
 import os
 import shutil
-from json import JSONDecodeError
 from os.path import join
+
+import json5
 import matplotlib
 import sys
 import logging
@@ -44,7 +44,7 @@ from pydantic.schema import schema
 
 from sarvey.console import printStep, printCurrentConfig, showLogoSARvey
 from sarvey.processing import Processing
-from sarvey.config import Config
+from sarvey.config import Config, loadConfiguration
 from sarvey.utils import checkIfRequiredFilesExist
 
 try:
@@ -256,12 +256,12 @@ def main(iargs=None):
         logger.info(msg=f"Write default config to file: {args.filepath}.")
         default_config_dict = generateTemplateFromConfigModel()
         with open(args.filepath, "w") as f:
-            f.write(json.dumps(default_config_dict, indent=4))
+            f.write(json5.dumps(default_config_dict, indent=4))
         return 0
 
     if args.print_config_explanation:
         top_level_schema = schema([Config])
-        print(json.dumps(top_level_schema, indent=2))
+        print(json5.dumps(top_level_schema, indent=2))
         return 0
 
     if args.stop < args.start:
@@ -275,12 +275,7 @@ def main(iargs=None):
 
     config_file_path = os.path.abspath(join(args.workdir, args.filepath))
 
-    try:
-        with open(config_file_path) as config_fp:
-            config_dict = json.load(config_fp)
-            config = Config(**config_dict)
-    except JSONDecodeError as err:
-        raise IOError(f'Failed to load the configuration json file => {err}')
+    config = loadConfiguration(path=config_file_path)
 
     current_datetime = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
     log_filename = f"sarvey_log_{current_datetime}.log"

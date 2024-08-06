@@ -695,8 +695,8 @@ def loadConfiguration(*, path: str) -> dict:
 
     Returns
     -------
-    : dict
-        A dictionary containing configurations.
+    : Config
+        An object of class Config
 
     Raises
     ------

@@ -28,7 +28,6 @@
 # with this program. If not, see <https://www.gnu.org/licenses/>.
 
 """Tests for `SARvey` package."""
-import json
 import logging
 import os
 import shutil
@@ -36,11 +35,10 @@ import sys
 import unittest
 from copy import deepcopy
 from glob import glob
-from json import JSONDecodeError
 from os.path import join
 
 from sarvey.sarvey_mti import createParser, run
-from sarvey.config import Config
+from sarvey.config import loadConfiguration
 
 
 class TestProcessing(unittest.TestCase):
@@ -60,12 +58,7 @@ class TestProcessing(unittest.TestCase):
             self.root_path = "../"
 
         self.config_file = os.path.abspath(f"{self.root_path}/tests/testdata/config_test.json")
-        try:
-            with open(self.config_file) as config_fp:
-                config_dict = json.load(config_fp)
-                self.configuration = Config(**config_dict)
-        except JSONDecodeError as err:
-            raise IOError(f'Failed to load the configuration json file => {err}')
+        self.configuration = loadConfiguration(path=self.config_file)
 
         self.logger = logging.getLogger(__name__)
         console_handler = logging.StreamHandler(sys.stdout)
