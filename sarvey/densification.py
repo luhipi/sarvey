@@ -44,6 +44,7 @@ from sarvey.objects import Points, AmplitudeImage, BaseStack, ApsParameters
 import sarvey.utils as ut
 from sarvey.preparation import selectPixels, createTimeMaskFromDates
 from sarvey.filtering import applySimpleInterpolationToP2, applySpatialFilteringToP2
+from sarvey.config import Config
 
 
 def densificationInitializer(tree_p1: KDTree, tree_p2: KDTree, point2_obj: Points, demod_phase1: np.ndarray):
@@ -329,7 +330,7 @@ def densifyNetwork(*, point1_obj: Points, vel_p1: np.ndarray, demerr_p1: np.ndar
     return demerr_p2, vel_p2, gamma_p2, mean_gamma
 
 
-def selectP2(*, output_path: str, config: dict, logger: Logger):
+def selectP2(*, output_path: str, config: Config, logger: Logger):
     """Select second order points and interpolate APS to them.
 
     Parameters
@@ -403,7 +404,7 @@ def selectP2(*, output_path: str, config: dict, logger: Logger):
             logger.debug(f"Load mask for area of interest from file {path_mask_pl_aoi}.")
             mask_pl_aoi = readfile.read(path_mask_pl_aoi, datasetName='mask')[0].astype(np.bool_)
 
-            fig = plt.figure(figsize=[15, 5])
+            fig = plt.figure(figsize=(15, 5))
             ax = fig.add_subplot()
             ax.imshow(mask_pl_aoi, cmap=plt.cm.get_cmap("gray"), alpha=0.5, zorder=10, vmin=0, vmax=1)
             bmap_obj.plot(ax=ax, logger=logger)
@@ -444,7 +445,7 @@ def selectP2(*, output_path: str, config: dict, logger: Logger):
     cand_mask2 &= mask_valid_area
     logger.info(f"Final number of selected second-order points: {cand_mask2.sum()}.")
 
-    fig = plt.figure(figsize=[15, 5])
+    fig = plt.figure(figsize=(15, 5))
     ax = fig.add_subplot()
     ax.imshow(mask_valid_area, cmap=plt.cm.get_cmap("gray"), alpha=0.5, zorder=10, vmin=0, vmax=1)
     bmap_obj.plot(ax=ax, logger=logger)
@@ -528,9 +529,7 @@ def selectP2(*, output_path: str, config: dict, logger: Logger):
 
     if config.filtering.skip_filtering:
         logger.info("Skip APS filtering")
-        # TODO: check if this is correct ####
-        # original code: aps2_phase = np.zeros_like(point2_obj.phase)
-        aps2_phase = np.zeros((point2_obj.num_points, aps_params_obj.phase.shape[1]))
+        aps2_phase = np.zeros((point2_obj.num_points, point2_obj.ifg_net_obj.num_images))
     else:
         logger.debug("Apply APS filtering to second-order points.")
         if config.filtering.interpolation_method == "kriging":
