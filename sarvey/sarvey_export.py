@@ -282,7 +282,7 @@ def main(iargs=None):
         os.mkdir(output_dir)
 
     exportDataToGisFormat(file_path=args.file_path, output_path=args.output_path,
-                          input_path=config.data_directories.input_path,
+                          input_path=config.general.input_path,
                           correct_geolocation=args.correct_geolocation, no_timeseries=args.no_timeseries,
                           logger=logger)
 

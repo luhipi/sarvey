@@ -452,22 +452,22 @@ def main(iargs=None):
     selected = False
     if args.plotTS:
         # todo: read input_path from config file in same directory as file to be able to load height from geometryRadar
-        plotTS(obj_name=args.input_file, input_path=config.data_directories.input_path, logger=logger)
+        plotTS(obj_name=args.input_file, input_path=config.general.input_path, logger=logger)
         selected = True
 
     if args.plotPhase:
         plotPhase(obj_name=args.input_file, save_path=save_path, image_range=args.image_range,
-                  interactive=args.interactive, input_path=config.data_directories.input_path, logger=logger)
+                  interactive=args.interactive, input_path=config.general.input_path, logger=logger)
         selected = True
 
     if args.plot_res_phase:
         plotResidualPhase(obj_name=args.input_file, save_path=save_path, image_range=args.image_range,
-                          interactive=args.interactive, input_path=config.data_directories.input_path, logger=logger)
+                          interactive=args.interactive, input_path=config.general.input_path, logger=logger)
         selected = True
 
     if args.plotMap:
         plotMap(obj_name=args.input_file, save_path=save_path, interactive=args.interactive,
-                input_path=config.data_directories.input_path, logger=logger)
+                input_path=config.general.input_path, logger=logger)
         selected = True
 
     if args.plotAllIfgs:

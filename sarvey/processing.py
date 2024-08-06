@@ -72,7 +72,7 @@ class Processing:
         log.info(msg=msg)
 
         # load slc data
-        slc_stack_obj = slcStack(join(self.config.data_directories.input_path, "slcStack.h5"))
+        slc_stack_obj = slcStack(join(self.config.general.input_path, "slcStack.h5"))
         slc_stack_obj.open()
 
         if "ORBIT_DIRECTION" in slc_stack_obj.metadata:
@@ -154,7 +154,7 @@ class Processing:
         msg += "#" * 10
         log.info(msg=msg)
 
-        box_list, num_patches = ut.preparePatches(num_patches=self.config.processing.num_patches,
+        box_list, num_patches = ut.preparePatches(num_patches=self.config.general.num_patches,
                                                   width=slc_stack_obj.width,
                                                   length=slc_stack_obj.length,
                                                   logger=log)
@@ -174,20 +174,20 @@ class Processing:
         mean_amp_img = computeIfgsAndTemporalCoherence(
             path_temp_coh=join(self.path, "temporal_coherence.h5"),
             path_ifgs=join(self.path, "ifg_stack.h5"),
-            path_slc=join(self.config.data_directories.input_path, "slcStack.h5"),
+            path_slc=join(self.config.general.input_path, "slcStack.h5"),
             ifg_array=np.array(ifg_net_obj.ifg_list),
             time_mask=time_mask,
             wdw_size=self.config.preparation.filter_window_size,
             num_boxes=num_patches,
             box_list=box_list,
-            num_cores=self.config.processing.num_cores,
+            num_cores=self.config.general.num_cores,
             logger=log
         )
 
         # store auxilliary datasets for faster access during processing
         if not exists(join(self.path, "coordinates_utm.h5")):
             coord_utm_obj = CoordinatesUTM(file_path=join(self.path, "coordinates_utm.h5"), logger=self.logger)
-            coord_utm_obj.prepare(input_path=join(self.config.data_directories.input_path, "geometryRadar.h5"))
+            coord_utm_obj.prepare(input_path=join(self.config.general.input_path, "geometryRadar.h5"))
             del coord_utm_obj
 
         if not exists(join(self.path, "background_map.h5")):
@@ -270,11 +270,11 @@ class Processing:
         point_obj.prepare(
             point_id=point_id1,
             coord_xy=coord_xy,
-            input_path=self.config.data_directories.input_path
+            input_path=self.config.general.input_path
         )
 
         point_obj.phase = ut.readPhasePatchwise(stack_obj=ifg_stack_obj, dataset_name="ifgs",
-                                                num_patches=self.config.processing.num_patches, cand_mask=cand_mask1,
+                                                num_patches=self.config.general.num_patches, cand_mask=cand_mask1,
                                                 point_id_img=point_id_img, logger=self.logger)
 
         point_obj.writeToFile()
@@ -291,7 +291,7 @@ class Processing:
             arcs=arcs
         )
         net_obj.writeToFile()
-        net_obj.open(input_path=self.config.data_directories.input_path)  # to retrieve external data
+        net_obj.open(input_path=self.config.general.input_path)  # to retrieve external data
 
         demerr, vel, gamma = temporalUnwrapping(ifg_net_obj=point_obj.ifg_net_obj,
                                                 net_obj=net_obj,
@@ -299,7 +299,7 @@ class Processing:
                                                 velocity_bound=self.config.consistency_check.velocity_bound,
                                                 demerr_bound=self.config.consistency_check.dem_error_bound,
                                                 num_samples=self.config.consistency_check.num_optimization_samples,
-                                                num_cores=self.config.processing.num_cores,
+                                                num_cores=self.config.general.num_cores,
                                                 logger=self.logger)
 
         net_par_obj = NetworkParameter(file_path=join(self.path, "point_network_parameter.h5"),
@@ -366,19 +366,19 @@ class Processing:
         )
 
         net_par_obj.writeToFile()  # arcs were removed. obj still needed in next step.
-        point_obj.removePoints(keep_id=point_id, input_path=self.config.data_directories.input_path)
+        point_obj.removePoints(keep_id=point_id, input_path=self.config.general.input_path)
         point_obj.writeToFile()
 
     def runUnwrappingTimeAndSpace(self):
         """RunTemporalAndSpatialUnwrapping."""
         net_par_obj = NetworkParameter(file_path=join(self.path, "point_network_parameter.h5"),
                                        logger=self.logger)
-        net_par_obj.open(input_path=self.config.data_directories.input_path)
+        net_par_obj.open(input_path=self.config.general.input_path)
 
         point_obj = Points(file_path=join(self.path, "p1_ifg_unw.h5"), logger=self.logger)
         point_obj.open(
             other_file_path=join(self.path, "p1_ifg_wr.h5"),
-            input_path=self.config.data_directories.input_path
+            input_path=self.config.general.input_path
         )
 
         # reference point can be set arbitrarily, because outliers are removed.
@@ -446,9 +446,9 @@ class Processing:
         unw_res_phase = spatialUnwrapping(num_ifgs=point_obj.ifg_net_obj.num_ifgs,
                                           num_points=point_obj.num_points,
                                           phase=wr_res_phase,
-                                          method=self.config.processing.spatial_unwrapping_method,
+                                          method=self.config.general.spatial_unwrapping_method,
                                           edges=arcs,
-                                          num_cores=self.config.processing.num_cores, logger=self.logger)
+                                          num_cores=self.config.general.num_cores, logger=self.logger)
 
         # use same reference point for spatial integration and Puma unwrapping before recombining phases
         unw_res_phase = unw_res_phase - unw_res_phase[spatial_ref_idx, :]
@@ -469,14 +469,14 @@ class Processing:
             phase=unw_phase,
             num_points=point_obj.num_points,
             ifg_net_obj=point_obj.ifg_net_obj,
-            num_cores=1,  # self.config.processing.num_cores,
+            num_cores=1,  # self.config.general.num_cores,
             ref_idx=0,
             logger=self.logger
         )
         point_obj = Points(file_path=join(self.path, "p1_ts.h5"), logger=self.logger)
         point_obj.open(
             other_file_path=join(self.path, "p1_ifg_unw.h5"),
-            input_path=self.config.data_directories.input_path
+            input_path=self.config.general.input_path
         )
         point_obj.phase = phase_ts
         point_obj.writeToFile()
@@ -486,13 +486,13 @@ class Processing:
         point_obj = Points(file_path=join(self.path, "p1_ifg_unw.h5"), logger=self.logger)
         point_obj.open(
             other_file_path=join(self.path, "p1_ifg_wr.h5"),
-            input_path=self.config.data_directories.input_path
+            input_path=self.config.general.input_path
         )
 
         if self.config.unwrapping.use_arcs_from_temporal_unwrapping:
             net_par_obj = NetworkParameter(file_path=join(self.path, "point_network_parameter.h5"),
                                            logger=self.logger)
-            net_par_obj.open(input_path=self.config.data_directories.input_path)
+            net_par_obj.open(input_path=self.config.general.input_path)
             arcs = net_par_obj.arcs  # use this to avoid unreliable connections. Takes a bit longer.
         else:
             # re-triangulate with delaunay to make PUMA faster
@@ -519,9 +519,9 @@ class Processing:
         unw_phase = spatialUnwrapping(num_ifgs=point_obj.ifg_net_obj.num_ifgs,
                                       num_points=point_obj.num_points,
                                       phase=point_obj.phase,
-                                      method=self.config.processing.spatial_unwrapping_method,
+                                      method=self.config.general.spatial_unwrapping_method,
                                       edges=arcs,
-                                      num_cores=self.config.processing.num_cores, logger=self.logger)
+                                      num_cores=self.config.general.num_cores, logger=self.logger)
 
         # adjust reference to peak of histogram
         point_obj.phase = unw_phase
@@ -534,13 +534,13 @@ class Processing:
         point_obj = Points(file_path=join(self.path, "p1_ts.h5"), logger=self.logger)
         point_obj.open(
             other_file_path=join(self.path, "p1_ifg_wr.h5"),
-            input_path=self.config.data_directories.input_path
+            input_path=self.config.general.input_path
         )
 
         # for sbas the ifg network needs to be inverted to get the phase time series
         phase_ts = ut.invertIfgNetwork(phase=unw_phase, num_points=point_obj.num_points,
                                        ifg_net_obj=point_obj.ifg_net_obj,
-                                       num_cores=1,  # self.config.processing.num_cores,
+                                       num_cores=1,  # self.config.general.num_cores,
                                        ref_idx=0,
                                        logger=self.logger)
 
@@ -555,7 +555,7 @@ class Processing:
         point1_obj = Points(file_path=join(self.path, "p1_ts_filt.h5"), logger=self.logger)
         point1_obj.open(
             other_file_path=join(self.path, "p1_ts.h5"),
-            input_path=self.config.data_directories.input_path
+            input_path=self.config.general.input_path
         )
         p1_mask = point1_obj.createMask()  # used later for selecting psCand2 when a spatial mask AOI is given.
 
@@ -610,7 +610,7 @@ class Processing:
         point_id_img = np.arange(0, point1_obj.length * point1_obj.width).reshape(
             (point1_obj.length, point1_obj.width))
         keep_id = point_id_img[np.where(cand_mask_sparse)]
-        point1_obj.removePoints(keep_id=keep_id, input_path=self.config.data_directories.input_path)
+        point1_obj.removePoints(keep_id=keep_id, input_path=self.config.general.input_path)
         point1_obj.writeToFile()  # to be able to load aps1 from this file having the same set of points
 
         # store plot for quality control during processing
@@ -632,7 +632,7 @@ class Processing:
         aps1_obj = Points(file_path=join(self.path, "p1_aps.h5"), logger=self.logger)
         aps1_obj.open(
             other_file_path=join(self.path, "p1_ts_filt.h5"),
-            input_path=self.config.data_directories.input_path
+            input_path=self.config.general.input_path
         )
 
         # select second-order points
@@ -724,13 +724,13 @@ class Processing:
         point2_obj.prepare(
             point_id=point_id2,
             coord_xy=coord_xy,
-            input_path=self.config.data_directories.input_path
+            input_path=self.config.general.input_path
         )
 
         ifg_stack_obj = BaseStack(file=join(self.path, "ifg_stack.h5"), logger=self.logger)
 
         point2_obj.phase = ut.readPhasePatchwise(stack_obj=ifg_stack_obj, dataset_name="ifgs",
-                                                 num_patches=self.config.processing.num_patches, cand_mask=cand_mask2,
+                                                 num_patches=self.config.general.num_patches, cand_mask=cand_mask2,
                                                  point_id_img=point_id_img, logger=self.logger)
 
         if self.config.phase_linking.use_phase_linking_results:
@@ -742,13 +742,13 @@ class Processing:
 
             pl_phase = ut.readPhasePatchwise(
                 stack_obj=phase_linking_obj, dataset_name="phase",
-                num_patches=self.config.processing.num_patches,
+                num_patches=self.config.general.num_patches,
                 cand_mask=cand_mask2,
                 point_id_img=point_id_img, logger=self.logger
             )
 
             # subset to time span
-            slc_stack_obj = slcStack(join(self.config.data_directories.input_path, "slcStack.h5"))
+            slc_stack_obj = slcStack(join(self.config.general.input_path, "slcStack.h5"))
             slc_stack_obj.open()
             time_mask = createTimeMaskFromDates(
                 start_date=self.config.preparation.start_date,
@@ -775,7 +775,7 @@ class Processing:
         aps2_obj = Points(file_path=join(self.path, "coh{}_aps.h5".format(coh_value)), logger=self.logger)
         aps2_obj.open(
             other_file_path=join(self.path, "coh{}_ifg_wr.h5".format(coh_value)),
-            input_path=self.config.data_directories.input_path
+            input_path=self.config.general.input_path
         )
 
         if self.config.filtering.apply_aps_filtering:
@@ -795,7 +795,7 @@ class Processing:
                     residuals=phase_for_aps_filtering,
                     coord_utm1=point1_obj.coord_utm,
                     coord_utm2=aps2_obj.coord_utm,
-                    num_cores=self.config.processing.num_cores,
+                    num_cores=self.config.general.num_cores,
                     bool_plot=False,
                     logger=self.logger
                 )
@@ -822,23 +822,23 @@ class Processing:
         point2_obj = Points(file_path=join(self.path, "coh{}_ifg_unw.h5".format(coh_value)), logger=self.logger)
         point2_obj.open(
             other_file_path=join(self.path, "coh{}_ifg_wr.h5".format(coh_value)),
-            input_path=self.config.data_directories.input_path
+            input_path=self.config.general.input_path
         )  # wrapped phase
 
         # estimate parameters from unwrapped phase
         point1_obj = Points(file_path=join(self.path, "p1_ifg_unw.h5"), logger=self.logger)
-        point1_obj.open(input_path=self.config.data_directories.input_path)
+        point1_obj.open(input_path=self.config.general.input_path)
         vel_p1, demerr_p1 = ut.estimateParameters(obj=point1_obj, ifg_space=True)[:2]
 
         # load wrapped phase to remove known components for unwrapping p2 points
         point1_obj = Points(file_path=join(self.path, "p1_ifg_wr.h5"), logger=self.logger)  # wrapped phase!
-        point1_obj.open(input_path=self.config.data_directories.input_path)
+        point1_obj.open(input_path=self.config.general.input_path)
 
         aps1_obj = Points(file_path=join(self.path, "p1_aps.h5"), logger=self.logger)
-        aps1_obj.open(input_path=self.config.data_directories.input_path)
+        aps1_obj.open(input_path=self.config.general.input_path)
 
         aps2_obj = Points(file_path=join(self.path, "coh{}_aps.h5".format(coh_value)), logger=self.logger)
-        aps2_obj.open(input_path=self.config.data_directories.input_path)
+        aps2_obj.open(input_path=self.config.general.input_path)
 
         if self.config.filtering.mask_p2_file is None:
             """
@@ -868,15 +868,15 @@ class Processing:
                 new_coord_xy=aps2_obj.coord_xy[mask_unstable_p1_in_p2, :],
                 new_phase=aps2_obj.phase[mask_unstable_p1_in_p2, :],
                 new_num_points=mask_unstable_p1_in_p2[mask_unstable_p1_in_p2].shape[0],
-                input_path=self.config.data_directories.input_path
+                input_path=self.config.general.input_path
             )
 
             # remove unstable p1 from p2 and aps2. thereby remove inconsistent p2 from aps2.
             p2_mask = point2_obj.createMask()
             mask_only_p2 = p2_mask & (~p1_mask)
             keep_id = point_id_img[np.where(mask_only_p2)]
-            point2_obj.removePoints(keep_id=keep_id, input_path=self.config.data_directories.input_path)
-            aps2_obj.removePoints(keep_id=keep_id, input_path=self.config.data_directories.input_path)
+            point2_obj.removePoints(keep_id=keep_id, input_path=self.config.general.input_path)
+            aps2_obj.removePoints(keep_id=keep_id, input_path=self.config.general.input_path)
 
         else:
             """
@@ -902,7 +902,7 @@ class Processing:
                 # remove unstable p1 from p1
                 point1_obj.removePoints(
                     keep_id=aps1_obj.point_id,
-                    input_path=self.config.data_directories.input_path
+                    input_path=self.config.general.input_path
                 )
 
                 # remove p2 which are coincidentally equal to p1
@@ -912,8 +912,8 @@ class Processing:
                 p2_mask = point2_obj.createMask()
                 mask_p2 = ~(p1_mask & p2_mask) & p2_mask
                 p2_id = point_id_img[np.where(mask_p2)]
-                point2_obj.removePoints(keep_id=p2_id, input_path=self.config.data_directories.input_path)
-                aps2_obj.removePoints(keep_id=p2_id, input_path=self.config.data_directories.input_path)
+                point2_obj.removePoints(keep_id=p2_id, input_path=self.config.general.input_path)
+                aps2_obj.removePoints(keep_id=p2_id, input_path=self.config.general.input_path)
 
         # return to ifg-space
         a_ifg = point2_obj.ifg_net_obj.getDesignMatrix()
@@ -934,7 +934,7 @@ class Processing:
             velocity_bound=self.config.densification.velocity_bound,
             demerr_bound=self.config.densification.dem_error_bound,
             num_samples=self.config.densification.num_optimization_samples,
-            num_cores=self.config.processing.num_cores,
+            num_cores=self.config.general.num_cores,
             logger=self.logger
         )  # returns parameters of both first- and second-order points
 
@@ -944,7 +944,7 @@ class Processing:
             new_coord_xy=point1_obj.coord_xy,
             new_phase=point1_obj.phase,
             new_num_points=point1_obj.num_points,
-            input_path=self.config.data_directories.input_path
+            input_path=self.config.general.input_path
         )
 
         bmap_obj = AmplitudeImage(file_path=join(self.path, "background_map.h5"))
@@ -958,7 +958,7 @@ class Processing:
         self.logger.info(msg=f"Reduce the dense point set by {mask_gamma[~mask_gamma].shape[0]} points,")
         self.logger.info(msg=f"due to coherence from temporal unwrapping < "
                              f"{self.config.densification.arc_unwrapping_coherence}")
-        point2_obj.removePoints(mask=mask_gamma, keep_id=[], input_path=self.config.data_directories.input_path)
+        point2_obj.removePoints(mask=mask_gamma, keep_id=[], input_path=self.config.general.input_path)
 
         fig = plt.figure(figsize=(15, 5))
         axs = fig.subplots(1, 2)
@@ -1012,9 +1012,9 @@ class Processing:
         unw_res_phase = spatialUnwrapping(num_ifgs=point2_obj.ifg_net_obj.num_ifgs,
                                           num_points=point2_obj.num_points,
                                           phase=wr_res_phase,
-                                          method=self.config.processing.spatial_unwrapping_method,
+                                          method=self.config.general.spatial_unwrapping_method,
                                           edges=arcs,
-                                          num_cores=self.config.processing.num_cores, logger=self.logger)
+                                          num_cores=self.config.general.num_cores, logger=self.logger)
 
         self.logger.info(msg="Add phase contributions from mean velocity "
                              "and DEM correction back to spatially unwrapped residual phase.")
@@ -1030,14 +1030,14 @@ class Processing:
             phase=unw_phase,
             num_points=point2_obj.num_points,
             ifg_net_obj=point2_obj.ifg_net_obj,
-            num_cores=1,  # self.config.processing.num_cores,
+            num_cores=1,  # self.config.general.num_cores,
             ref_idx=0,
             logger=self.logger)
 
         point_obj = Points(file_path=join(self.path, "coh{}_ts.h5".format(coh_value)), logger=self.logger)
         point_obj.open(
             other_file_path=join(self.path, "coh{}_ifg_unw.h5".format(coh_value)),
-            input_path=self.config.data_directories.input_path
+            input_path=self.config.general.input_path
         )
         point_obj.phase = phase_ts
 
@@ -1050,11 +1050,11 @@ class Processing:
         point_obj = Points(file_path=join(self.path, "coh{}_ifg_unw.h5".format(coh_value)), logger=self.logger)
         point_obj.open(
             other_file_path=join(self.path, "coh{}_ifg_wr.h5".format(coh_value)),
-            input_path=self.config.data_directories.input_path
+            input_path=self.config.general.input_path
         )  # open wr phase
 
         aps2_obj = Points(file_path=join(self.path, "coh{}_aps.h5".format(coh_value)), logger=self.logger)
-        aps2_obj.open(input_path=self.config.data_directories.input_path)
+        aps2_obj.open(input_path=self.config.general.input_path)
 
         # return to ifg-space
         a_ifg = point_obj.ifg_net_obj.getDesignMatrix()
@@ -1070,9 +1070,9 @@ class Processing:
         unw_phase = spatialUnwrapping(num_ifgs=point_obj.ifg_net_obj.num_ifgs,
                                       num_points=point_obj.num_points,
                                       phase=point_obj.phase,
-                                      method=self.config.processing.spatial_unwrapping_method,
+                                      method=self.config.general.spatial_unwrapping_method,
                                       edges=arcs,
-                                      num_cores=self.config.processing.num_cores, logger=self.logger)
+                                      num_cores=self.config.general.num_cores, logger=self.logger)
 
         # adjust reference to peak of histogram
         point_obj.phase = unw_phase
@@ -1085,12 +1085,12 @@ class Processing:
         point_obj = Points(file_path=join(self.path, "coh{}_ts.h5".format(coh_value)), logger=self.logger)
         point_obj.open(
             other_file_path=join(self.path, "coh{}_ifg_wr.h5".format(coh_value)),
-            input_path=self.config.data_directories.input_path
+            input_path=self.config.general.input_path
         )
 
         phase_ts = ut.invertIfgNetwork(phase=unw_phase, num_points=point_obj.num_points,
                                        ifg_net_obj=point_obj.ifg_net_obj,
-                                       num_cores=1,  # self.config.processing.num_cores,
+                                       num_cores=1,  # self.config.general.num_cores,
                                        ref_idx=0,
                                        logger=self.logger)
 
