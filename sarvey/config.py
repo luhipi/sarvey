@@ -474,12 +474,6 @@ class Filtering(BaseModel, extra=Extra.forbid):
         default="kriging"
     )
 
-    coherence_p2: float = Field(
-        title="Temporal coherence threshold",
-        description="Set the temporal coherence threshold for the filtering step.",
-        default=0.8
-    )
-
     grid_size: int = Field(
         title="Grid size [m].",
         description="Set the grid size for spatial filtering.",
@@ -503,15 +497,6 @@ class Filtering(BaseModel, extra=Extra.forbid):
         description="Set temporal autocorrelation threshold for the selection of stable/linearly moving points.",
         default=0.3
     )
-
-    @validator('coherence_p2')
-    def checkTempCohThrsh2(cls, v):
-        """Check if the temporal coherence threshold is valid."""
-        if v < 0:
-            raise ValueError("Temporal coherence threshold cannot be negative.")
-        if v > 1:
-            raise ValueError("Temporal coherence threshold cannot be greater than 1.")
-        return v
 
     @validator('interpolation_method')
     def checkInterpolationMethod(cls, v):
@@ -549,6 +534,12 @@ class Filtering(BaseModel, extra=Extra.forbid):
 
 class Densification(BaseModel, extra=Extra.forbid):
     """Template for densification settings in config file."""
+
+    coherence_p2: float = Field(
+        title="Temporal coherence threshold",
+        description="Set the temporal coherence threshold for the densification step.",
+        default=0.8
+    )
 
     coherence_threshold: float = Field(
         title="Coherence threshold for densification",
@@ -600,6 +591,15 @@ class Densification(BaseModel, extra=Extra.forbid):
         description="Set number of nearest neighbours for creating arcs.",
         default=1
     )
+
+    @validator('coherence_p2')
+    def checkTempCohThrsh2(cls, v):
+        """Check if the temporal coherence threshold is valid."""
+        if v < 0:
+            raise ValueError("Temporal coherence threshold cannot be negative.")
+        if v > 1:
+            raise ValueError("Temporal coherence threshold cannot be greater than 1.")
+        return v
 
     @validator('coherence_threshold')
     def checkCoherenceThresh(cls, v):
