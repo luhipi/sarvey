@@ -29,44 +29,27 @@
 
 """Configuration module for SARvey."""
 import os
-import json
+import json5
 from datetime import date
 from json import JSONDecodeError
 from typing import Optional
 from pydantic import BaseModel, Field, validator, Extra
 
 
-class DataDirectories(BaseModel, extra=Extra.forbid):
+class General(BaseModel, extra=Extra.forbid):
     """Template for settings in config file."""
 
-    path_inputs: str = Field(
+    input_path: str = Field(
         title="The path to the input data directory.",
         description="Set the path of the input data directory.",
         default="inputs/"
     )
 
-    path_outputs: str = Field(
+    output_path: str = Field(
         title="The path to the processing output data directory.",
         description="Set the path of the processing output data directory.",
         default="outputs/"
     )
-
-    @validator('path_inputs')
-    def checkPathInputs(cls, v):
-        """Check if the input path exists."""
-        if v == "":
-            raise ValueError("Empty string is not allowed.")
-        if not os.path.exists(os.path.abspath(v)):
-            raise ValueError(f"path_inputs is invalid: {os.path.abspath(v)}")
-        if not os.path.exists(os.path.join(os.path.abspath(v), "slcStack.h5")):
-            raise ValueError(f"'slcStack.h5' does not exist: {v}")
-        if not os.path.exists(os.path.join(os.path.abspath(v), "geometryRadar.h5")):
-            raise ValueError(f"'geometryRadar.h5' does not exist: {v}")
-        return v
-
-
-class Processing(BaseModel, extra=Extra.forbid):
-    """Template for settings in config file."""
 
     num_cores: int = Field(
         title="Number of cores",
@@ -80,17 +63,42 @@ class Processing(BaseModel, extra=Extra.forbid):
         default=1
     )
 
-    temporal_unwrapping: bool = Field(
+    apply_temporal_unwrapping: bool = Field(
         title="Apply temporal unwrapping",
         description="Apply temporal unwrapping additionally to spatial unwrapping.",
         default=True
     )
 
-    unwrapping_method: str = Field(
+    spatial_unwrapping_method: str = Field(
         title="Spatial unwrapping method",
         description="Select spatial unwrapping method from 'ilp' and 'puma'.",
         default='puma'
     )
+
+    logging_level: str = Field(
+        title="Logging level.",
+        description="Set loggig level.",
+        default="INFO"
+    )
+
+    logfile_path: str = Field(
+        title="Logfile Path.",
+        description="Path to directory where the logfiles should be saved.",
+        default="logfiles/"
+    )
+
+    @validator('input_path')
+    def checkPathInputs(cls, v):
+        """Check if the input path exists."""
+        if v == "":
+            raise ValueError("Empty string is not allowed.")
+        if not os.path.exists(os.path.abspath(v)):
+            raise ValueError(f"input_path is invalid: {os.path.abspath(v)}")
+        if not os.path.exists(os.path.join(os.path.abspath(v), "slcStack.h5")):
+            raise ValueError(f"'slcStack.h5' does not exist: {v}")
+        if not os.path.exists(os.path.join(os.path.abspath(v), "geometryRadar.h5")):
+            raise ValueError(f"'geometryRadar.h5' does not exist: {v}")
+        return v
 
     @validator('num_cores')
     def checkNumCores(cls, v):
@@ -106,24 +114,35 @@ class Processing(BaseModel, extra=Extra.forbid):
             raise ValueError("Number of patches must be greater than zero.")
         return v
 
-    @validator('unwrapping_method')
+    @validator('spatial_unwrapping_method')
     def checkUnwMethod(cls, v):
         """Check if unwrapping_method is valid."""
         if (v != "ilp") & (v != "puma"):
             raise ValueError("Unwrapping method must be either 'ilp' or 'puma'.")
         return v
 
+    @validator('logging_level')
+    def checkLoggingLevel(cls, v):
+        """Check if the logging level is valid."""
+        if v == "":
+            raise ValueError("Empty string is not allowed.")
+        v = v.upper()
+        if v not in ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]:
+            raise ValueError("Logging level must be one of ('CRITICAL', 'ERROR', "
+                             "'WARNING', 'INFO', 'DEBUG', 'NOTSET').")
+        return v
+
 
 class PhaseLinking(BaseModel, extra=Extra.forbid):
     """Template for settings in config file."""
 
-    phase_linking: bool = Field(
+    use_phase_linking_results: bool = Field(
         title="Use phase linking results.",
         description="Use pixels selected in phase linking.",
         default=False
     )
 
-    path_inverted: str = Field(
+    inverted_path: str = Field(
         title="The path to the phase linking inverted data directory.",
         description="Set the path of the inverted data directory.",
         default="inverted/"
@@ -136,7 +155,7 @@ class PhaseLinking(BaseModel, extra=Extra.forbid):
         default=20
     )
 
-    spatial_mask_file_pl: Optional[str] = Field(
+    mask_phase_linking_file: Optional[str] = Field(
         title="Path to spatial mask file for phase linking results.",
         description="Path to the mask file, e.g. created by sarvey_mask.",
         default=""
@@ -145,24 +164,24 @@ class PhaseLinking(BaseModel, extra=Extra.forbid):
     use_ps: bool = Field(
         title="Use point-like scatterers.",
         description="Use point-like scatterers (pixels with a low number of siblings) selected in phase linking."
-                    "Is applied, only if 'phase_linking' is true.",
+                    "Is applied, only if 'use_phase_linking_results' is true.",
         default=False
     )
 
-    path_mask_file_ps: str = Field(
+    mask_ps_file: str = Field(
         title="The path to the mask file for ps pixels from phase linking.",
         description="Set the path of the 'maskPS.h5' file (optional).",
         default="maskPS.h5"
     )
 
-    @validator('path_inverted')
+    @validator('inverted_path')
     def checkPathInverted(cls, v, values):
         """Check if the inverted path exists."""
-        if values["phase_linking"]:
+        if values["use_phase_linking_results"]:
             if v == "":
                 raise ValueError("Empty string is not allowed.")
             if not os.path.exists(os.path.abspath(v)):
-                raise ValueError(f"path_inverted is invalid: {os.path.abspath(v)}")
+                raise ValueError(f"inverted_path is invalid: {os.path.abspath(v)}")
             if not os.path.exists(os.path.join(os.path.abspath(v), "phase_series.h5")):
                 raise ValueError(f"'phase_series.h5' does not exist: {v}")
         return v
@@ -170,37 +189,37 @@ class PhaseLinking(BaseModel, extra=Extra.forbid):
     @validator('num_siblings')
     def checkNumSiblings(cls, v, values):
         """Check is no_siblings is valid."""
-        if not values["phase_linking"]:
+        if not values["use_phase_linking_results"]:
             if v < 1:
                 raise ValueError("'num_siblings' has to be greater than 0.")
         return v
 
-    @validator('spatial_mask_file_pl')
+    @validator('mask_phase_linking_file')
     def checkSpatialMaskPath(cls, v, values):
         """Check if the path is correct."""
-        if values["phase_linking"]:
+        if values["use_phase_linking_results"]:
             if v == "" or v is None:
                 return None
             else:
                 if not os.path.exists(os.path.abspath(v)):
-                    raise ValueError(f"spatial_mask_file_pl path is invalid: {v}")
+                    raise ValueError(f"mask_phase_linking_file path is invalid: {v}")
         return v
 
     @validator('use_ps')
     def checkUsePS(cls, v, values):
         """Check if use_ps will be applied."""
-        if (not values["phase_linking"]) and v:
+        if (not values["use_phase_linking_results"]) and v:
             raise ValueError("'use_ps' will not be applied, because 'phase_linking' is set to False.")
         return v
 
-    @validator('path_mask_file_ps')
+    @validator('mask_ps_file')
     def checkPathMaskFilePS(cls, v, values):
         """Check if the mask file exists."""
-        if values["phase_linking"] and values["use_ps"]:
+        if values["use_phase_linking_results"] and values["use_ps"]:
             if v == "":
                 raise ValueError("Empty string is not allowed.")
             if not os.path.exists(os.path.abspath(v)):
-                raise ValueError(f"path_mask_file_ps is invalid: {os.path.abspath(v)}")
+                raise ValueError(f"mask_ps_file is invalid: {os.path.abspath(v)}")
         return v
 
 
@@ -213,13 +232,13 @@ class Preparation(BaseModel, extra=Extra.forbid):
         default=None
     )
 
-    stop_date: Optional[str] = Field(
-        title="Stop date",
+    end_date: Optional[str] = Field(
+        title="End date",
         description="Format: YYYY-MM-DD.",
         default=None
     )
 
-    network_type: str = Field(
+    ifg_network_type: str = Field(
         title="Interferogram network type.",
         description="Set the intererogram network type: 'sb' (small baseline), 'stb' (small temporal baseline), "
                     "'stb_year' (small temporal baseline and yearly ifgs), 'delaunay' (delaunay network), "
@@ -239,13 +258,13 @@ class Preparation(BaseModel, extra=Extra.forbid):
         default=100
     )
 
-    filter_wdw_size: int = Field(
+    filter_window_size: int = Field(
         title="Size of filtering window [pixel]",
         description="Set the size of window for lowpass filtering.",
         default=9
     )
 
-    @validator('start_date', 'stop_date')
+    @validator('start_date', 'end_date')
     def checkDates(cls, v):
         """Check if date format is valid."""
         if v == "":
@@ -258,7 +277,7 @@ class Preparation(BaseModel, extra=Extra.forbid):
                 raise ValueError(f"Date needs to be in format: YYYY-MM-DD. {e}")
         return v
 
-    @validator('network_type')
+    @validator('ifg_network_type')
     def checkNetworkType(cls, v):
         """Check if the ifg network type is valid."""
         if (v != "sb") and (v != "star") and (v != "delaunay") and (v != "stb") and (v != "stb_year"):
@@ -281,7 +300,7 @@ class Preparation(BaseModel, extra=Extra.forbid):
                 raise ValueError("Maximum baseline must be greater than zero.")
         return v
 
-    @validator('filter_wdw_size')
+    @validator('filter_window_size')
     def checkFilterWdwSize(cls, v):
         """Check if the filter window size is valid."""
         if v <= 0:
@@ -304,13 +323,13 @@ class ConsistencyCheck(BaseModel, extra=Extra.forbid):
         default=200
     )
 
-    spatial_mask_file_p1: Optional[str] = Field(
-        title="Path to mask file",
+    mask_p1_file: Optional[str] = Field(
+        title="Path to mask file for first-order points",
         description="Set the path to the mask file in .h5 format.",
         default=""
     )
 
-    knn: int = Field(
+    num_nearest_neighbours: int = Field(
         title="Number of nearest neighbours",
         description="Set number of nearest neighbours for creating arcs.",
         default=30
@@ -334,15 +353,15 @@ class ConsistencyCheck(BaseModel, extra=Extra.forbid):
         default=100.0
     )
 
-    num_samples: int = Field(
+    num_optimization_samples: int = Field(
         title="Number of samples in the search space for temporal unwrapping",
         description="Set the number of samples evaluated along the search space for temporal unwrapping.",
         default=100
     )
 
-    arc_coherence: float = Field(
-        title="Arc coherence threshold",
-        description="Set the arc coherence threshold for the consistency check.",
+    arc_unwrapping_coherence: float = Field(
+        title="Arc unwrapping coherence threshold",
+        description="Set the arc unwrapping coherence threshold for the consistency check.",
         default=0.6
     )
 
@@ -370,21 +389,21 @@ class ConsistencyCheck(BaseModel, extra=Extra.forbid):
             v = None
         return v
 
-    @validator('spatial_mask_file_p1')
+    @validator('mask_p1_file')
     def checkSpatialMaskPath(cls, v):
         """Check if the path is correct."""
         if v == "" or v is None:
             return None
         else:
             if not os.path.exists(os.path.abspath(v)):
-                raise ValueError(f"spatial_mask_file_p1 path is invalid: {v}")
+                raise ValueError(f"mask_p1_file path is invalid: {v}")
             return v
 
-    @validator('knn')
+    @validator('num_nearest_neighbours')
     def checkKNN(cls, v):
         """Check if the k-nearest neighbours is valid."""
         if v <= 0:
-            raise ValueError('K-nearest neighbours cannot be negative or zero.')
+            raise ValueError('Number of nearest neighbours cannot be negative or zero.')
         return v
 
     @validator('max_arc_length')
@@ -410,20 +429,20 @@ class ConsistencyCheck(BaseModel, extra=Extra.forbid):
             raise ValueError('DEM error bound cannot be negative or zero.')
         return v
 
-    @validator('num_samples')
+    @validator('num_optimization_samples')
     def checkNumSamples(cls, v):
         """Check if the number of samples for the search space is valid."""
         if v <= 0:
-            raise ValueError('Number of samples cannot be negative or zero.')
+            raise ValueError('Number of optimization samples cannot be negative or zero.')
         return v
 
-    @validator('arc_coherence')
+    @validator('arc_unwrapping_coherence')
     def checkArcCoherence(cls, v):
         """Check if the arc coherence threshold is valid."""
         if v < 0:
-            raise ValueError('Arc coherence threshold cannot be negativ.')
+            raise ValueError('Arc unwrapping coherence threshold cannot be negativ.')
         if v > 1:
-            raise ValueError('Arc coherence threshold cannot be greater than 1.')
+            raise ValueError('Arc unwrapping coherence threshold cannot be greater than 1.')
         return v
 
     @validator('min_num_arc')
@@ -437,35 +456,27 @@ class ConsistencyCheck(BaseModel, extra=Extra.forbid):
 class Unwrapping(BaseModel, extra=Extra.forbid):
     """Template for settings in config file."""
 
-    knn: int = Field(
-        title="Number of nearest neighbours",
-        description="Set number of nearest neighbours for spatial unwrapping with PUMA. Not used, if"
-                    "'use_temporal_unwrapping_arcs' is 'true'.",
-        default=1
-    )
-
-    use_temporal_unwrapping_arcs: bool = Field(
+    use_arcs_from_temporal_unwrapping: bool = Field(
         title="Use arcs from temporal unwrapping",
-        description="If true, use same arcs from temporal unwrapping. If false, apply new delaunay and knn"
-                    "triangulation.",
+        description="If true, use same arcs from temporal unwrapping, where bad arcs were already removed."
+                    "If false, apply new delaunay triangulation.",
         default=True
     )
-
-    @validator('knn')
-    def checkKNN(cls, v):
-        """Check if the k-nearest neighbours is valid."""
-        if v <= 0:
-            raise ValueError('K-nearest neighbours cannot be negative or zero.')
-        return v
 
 
 class Filtering(BaseModel, extra=Extra.forbid):
     """Template for filtering settings in config file."""
 
-    skip_filtering: bool = Field(
-        title="Skip filtering step.",
-        description="Set whether to skip filtering step.",
-        default=False
+    coherence_p2: float = Field(
+        title="Temporal coherence threshold",
+        description="Set the temporal coherence threshold for the filtering step.",
+        default=0.8
+    )
+
+    apply_aps_filtering: bool = Field(
+        title="Apply atmosphere filtering",
+        description="Set whether to filter atmosphere or to skip it.",
+        default=True
     )
 
     interpolation_method: str = Field(
@@ -474,20 +485,14 @@ class Filtering(BaseModel, extra=Extra.forbid):
         default="kriging"
     )
 
-    coherence_p2: float = Field(
-        title="Temporal coherence threshold",
-        description="Set the temporal coherence threshold for the filtering step.",
-        default=0.8
-    )
-
     grid_size: int = Field(
         title="Grid size [m].",
         description="Set the grid size for spatial filtering.",
         default=1000
     )
 
-    spatial_mask_file_p2: Optional[str] = Field(
-        title="Path to spatial mask file.",
+    mask_p2_file: Optional[str] = Field(
+        title="Path to spatial mask file for second-order points.",
         description="Path to the mask file, e.g. created by sarvey_mask.",
         default=""
     )
@@ -498,8 +503,8 @@ class Filtering(BaseModel, extra=Extra.forbid):
         default=True
     )
 
-    max_auto_corr: float = Field(
-        title="Max auto correlation.",
+    max_temporal_autocorrelation: float = Field(
+        title="Max temporal auto correlation.",
         description="Set temporal autocorrelation threshold for the selection of stable/linearly moving points.",
         default=0.3
     )
@@ -529,48 +534,35 @@ class Filtering(BaseModel, extra=Extra.forbid):
         else:
             return v
 
-    @validator('spatial_mask_file_p2')
+    @validator('mask_p2_file')
     def checkSpatialMaskPath(cls, v):
         """Check if the path is correct."""
         if v == "" or v is None:
             return None
         else:
             if not os.path.exists(os.path.abspath(v)):
-                raise ValueError(f"spatial_mask_file_p2 path is invalid: {v}")
+                raise ValueError(f"mask_p2_file path is invalid: {v}")
         return v
 
-    @validator('max_auto_corr')
+    @validator('max_temporal_autocorrelation')
     def checkMaxAutoCorr(cls, v):
         """Check if the value is correct."""
         if v < 0 or v > 1:
-            raise ValueError(f"max_auto_corr is not between 0 and 1: {v}")
+            raise ValueError(f"max_temporal_autocorrelation has to be between 0 and 1: {v}")
         return v
 
 
 class Densification(BaseModel, extra=Extra.forbid):
     """Template for densification settings in config file."""
 
-    coherence_threshold: float = Field(
-        title="Coherence threshold for densification",
-        description="Set coherence threshold for densification.",
-        default=0.5
-    )
-
-    num_connections_p1: int = Field(
+    num_connections_to_p1: int = Field(
         title="Number of connections in temporal unwrapping.",
         description="Set number of connections between second-order point and closest first-order points for temporal "
                     "unwrapping.",
         default=5
     )
 
-    num_connections_p2: int = Field(
-        title="Number of connections in consistency check with neighbouring points.",
-        description="Set number of connections between unwrapped second-order point and closest second-order points for"
-                    " temporal checking consistency.",
-        default=10
-    )
-
-    max_distance_p1: int = Field(
+    max_distance_to_p1: int = Field(
         title="Maximum distance to nearest first-order point [m]",
         description="Set threshold on the distance between first-order points and to be temporally unwrapped"
                     "second-order point.",
@@ -589,40 +581,26 @@ class Densification(BaseModel, extra=Extra.forbid):
         default=100.0
     )
 
-    num_samples: int = Field(
+    num_optimization_samples: int = Field(
         title="Number of samples in the search space for temporal unwrapping",
         description="Set the number of samples evaluated along the search space for temporal unwrapping.",
         default=100
     )
 
-    knn: int = Field(
-        title="Number of nearest neighbours",
-        description="Set number of nearest neighbours for creating arcs.",
-        default=1
+    arc_unwrapping_coherence: float = Field(
+        title="Arc unwrapping coherence threshold for densification",
+        description="Set arc unwrapping coherence threshold for densification.",
+        default=0.5
     )
 
-    @validator('coherence_threshold')
-    def checkCoherenceThresh(cls, v):
-        """Check if coherence_threshold is valid."""
-        if v < 0 or v > 1:
-            raise ValueError(f"coherence_threshold is not between 0 and 1: {v}")
-        return v
-
-    @validator('num_connections_p1')
+    @validator('num_connections_to_p1')
     def checkNumConn1(cls, v):
         """Check if num_connections_p1 are valid."""
         if v <= 0:
             raise ValueError(f"num_connections_p1 must be greater than 0: {v}")
         return v
 
-    @validator('num_connections_p1')
-    def checkNumConn2(cls, v):
-        """Check if num_connections_p2 are valid."""
-        if v < 0:
-            raise ValueError(f"num_connections_p2 cannot be negative: {v}")
-        return v
-
-    @validator('max_distance_p1')
+    @validator('max_distance_to_p1')
     def checkMaxDistanceP1(cls, v):
         """Check if the maximum distance to nearest first-order points is valid."""
         if v < 0:
@@ -643,62 +621,27 @@ class Densification(BaseModel, extra=Extra.forbid):
             raise ValueError('DEM error bound cannot be negative or zero.')
         return v
 
-    @validator('num_samples')
+    @validator('num_optimization_samples')
     def checkNumSamples(cls, v):
         """Check if the number of samples for the search space is valid."""
         if v <= 0:
-            raise ValueError('Number of samples cannot be negative or zero.')
+            raise ValueError('Number of optimization samples cannot be negative or zero.')
         return v
 
-    @validator('knn')
-    def checkKNN(cls, v):
-        """Check if the k-nearest neighbours is valid."""
-        if v <= 0:
-            raise ValueError('K-nearest neighbours cannot be negative or zero.')
-        return v
-
-
-class Logging(BaseModel):
-    """Template for logger settings."""
-
-    logging_level: str = Field(
-        title="Logging level.",
-        description="Set loggig level.",
-        default="INFO"
-    )
-
-    logfile_path: str = Field(
-        title="Logfile Path.",
-        description="Path to directory where the logfiles should be saved.",
-        default="logfiles/"
-    )
-
-    @validator('logging_level')
-    def checkLoggingLevel(cls, v):
-        """Check if the logging level is valid."""
-        if v == "":
-            raise ValueError("Empty string is not allowed.")
-        v = v.upper()
-        if v not in ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]:
-            raise ValueError("Logging level must be one of ('CRITICAL', 'ERROR', "
-                             "'WARNING', 'INFO', 'DEBUG', 'NOTSET').")
+    @validator('arc_unwrapping_coherence')
+    def checkCoherenceThresh(cls, v):
+        """Check if arc_unwrapping_coherence is valid."""
+        if v < 0 or v > 1:
+            raise ValueError(f"coherence_threshold is not between 0 and 1: {v}")
         return v
 
 
 class Config(BaseModel):
-    """Configuration for SAR4Infra sarvey."""
+    """Configuration for sarvey."""
 
     # title has to be the name of the class. Needed for creating default file
-    data_directories: DataDirectories = Field(
-        title="DataDirectories", description=""
-    )
-
-    logging: Logging = Field(
-        title="Logging", description=""
-    )
-
-    processing: Processing = Field(
-        title="Processing", description=""
+    general: General = Field(
+        title="General", description=""
     )
 
     phase_linking: PhaseLinking = Field(
@@ -736,8 +679,8 @@ def loadConfiguration(*, path: str) -> dict:
 
     Returns
     -------
-    : dict
-        A dictionary containing configurations.
+    : Config
+        An object of class Config
 
     Raises
     ------
@@ -752,8 +695,8 @@ def loadConfiguration(*, path: str) -> dict:
     """
     try:
         with open(path) as config_fp:
-            config = json.load(config_fp)
-            config = Config(**config).dict(by_alias=True)
+            config = json5.load(config_fp)
+            config = Config(**config)
     except JSONDecodeError as e:
         raise IOError(f'Failed to load the configuration json file => {e}')
     return config

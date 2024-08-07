@@ -23,6 +23,7 @@ dependencies:
   - geopandas
   - gstools
   - pydantic=1.10.*
+  - json5
   # setup requirements
   - tox
   # test requirements

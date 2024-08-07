@@ -41,7 +41,7 @@ from sarvey.objects import Points
 import sarvey.utils as ut
 
 
-def densificationInitializer(tree_p1: KDTree, tree_p2: KDTree, point2_obj: Points, demod_phase1: np.ndarray):
+def densificationInitializer(tree_p1: KDTree, point2_obj: Points, demod_phase1: np.ndarray):
     """DensificationInitializer.
 
     Sets values to global variables for parallel processing.
@@ -50,20 +50,16 @@ def densificationInitializer(tree_p1: KDTree, tree_p2: KDTree, point2_obj: Point
     ----------
     tree_p1 : KDTree
         KDTree of the first-order network
-    tree_p2 : KDTree
-        KDTree of the second-order network
     point2_obj : Points
         Points object with second-order points
     demod_phase1 : np.ndarray
         demodulated phase of the first-order network
     """
     global global_tree_p1
-    global global_tree_p2
     global global_point2_obj
     global global_demod_phase1
 
     global_tree_p1 = tree_p1
-    global_tree_p2 = tree_p2
     global_point2_obj = point2_obj
     global_demod_phase1 = demod_phase1
 
@@ -84,8 +80,6 @@ def launchDensifyNetworkConsistencyCheck(args: tuple):
             Number of second-order points
         num_conn_p1 : int
             Number of nearest points in the first-order network
-        num_conn_p2 : int
-            Number of nearest points in the second-order network
         max_dist_p1 : float
             Maximum allowed distance to the nearest points in the first-order network
         velocity_bound : float
@@ -105,10 +99,8 @@ def launchDensifyNetworkConsistencyCheck(args: tuple):
         Velocity array of the second-order points
     gamma_p2 : np.ndarray
         Estimated temporal coherence array of the second-order points resulting from temporal unwrapping
-    mean_gamma : np.ndarray
-        Mean temporal coherence array of the second-order points resulting from consistency check with neighbourhood
     """
-    (idx_range, num_points, num_conn_p1, num_conn_p2, max_dist_p1, velocity_bound, demerr_bound, num_samples) = args
+    (idx_range, num_points, num_conn_p1, max_dist_p1, velocity_bound, demerr_bound, num_samples) = args
 
     counter = 0
     prog_bar = ptime.progressBar(maxValue=num_points)
@@ -117,7 +109,6 @@ def launchDensifyNetworkConsistencyCheck(args: tuple):
     demerr_p2 = np.zeros((num_points,), dtype=np.float32)
     vel_p2 = np.zeros((num_points,), dtype=np.float32)
     gamma_p2 = np.zeros((num_points,), dtype=np.float32)
-    mean_gamma = np.zeros((num_points,), dtype=np.float32)
 
     design_mat = np.zeros((global_point2_obj.ifg_net_obj.num_ifgs, 2), dtype=np.float32)
 
@@ -150,45 +141,15 @@ def launchDensifyNetworkConsistencyCheck(args: tuple):
             design_mat=design_mat
         )
 
-        if num_conn_p2 > 0:
-            # nearest points in p2 (for consistency check with neighbourhood)
-            dist, nearest_p2 = global_tree_p2.query([global_point2_obj.coord_utm[p2, 0],
-                                                     global_point2_obj.coord_utm[p2, 1]], k=num_conn_p2)
-            mask = (dist != 0)  # remove the point itself
-            nearest_p2 = nearest_p2[mask]
-            num_n2 = mask[mask].shape[0]
-
-            pred_phase_p2 = ut.predictPhaseSingle(
-                vel=vel_p2[idx], demerr=demerr_p2[idx],
-                slant_range=global_point2_obj.slant_range[p2], loc_inc=global_point2_obj.loc_inc[p2],
-                ifg_net_obj=global_point2_obj.ifg_net_obj, wavelength=global_point2_obj.wavelength,
-                only_vel=False, ifg_space=True
-            )
-            demod_phase2 = np.angle(np.exp(1j * global_point2_obj.phase[p2]) * np.conjugate(np.exp(1j * pred_phase_p2)))
-
-            gamma_n2 = np.zeros((num_n2,), dtype=np.float32)
-            for n_idx, n2 in enumerate(nearest_p2):
-                arc_phase_p2 = np.angle(np.exp(1j * demod_phase2) *
-                                        np.conjugate(np.exp(1j * global_point2_obj.phase[n2, :])))
-
-                gamma_n2[n_idx] = oneDimSearchTemporalCoherence(
-                    demerr_range=demerr_range,
-                    vel_range=vel_range,
-                    obs_phase=arc_phase_p2,
-                    design_mat=design_mat
-                )[-1]
-
-            mean_gamma[idx] = np.average(gamma_n2, weights=1/(dist[mask] ** 2))
-
         prog_bar.update(counter + 1, every=np.int16(200),
                         suffix='{}/{} points'.format(counter + 1, num_points))
         counter += 1
 
-    return idx_range, demerr_p2, vel_p2, gamma_p2, mean_gamma
+    return idx_range, demerr_p2, vel_p2, gamma_p2
 
 
 def densifyNetwork(*, point1_obj: Points, vel_p1: np.ndarray, demerr_p1: np.ndarray, point2_obj: Points,
-                   num_conn_p1: int, num_conn_p2: int, max_dist_p1: float, velocity_bound: float, demerr_bound: float,
+                   num_conn_p1: int, max_dist_p1: float, velocity_bound: float, demerr_bound: float,
                    num_samples: int, num_cores: int = 1, logger: Logger):
     """DensifyNetwork.
 
@@ -207,8 +168,6 @@ def densifyNetwork(*, point1_obj: Points, vel_p1: np.ndarray, demerr_p1: np.ndar
         Points object with second-order points
     num_conn_p1 : int
         Number of nearest points in the first-order network
-    num_conn_p2 : int
-        Number of nearest points in the second-order network
     max_dist_p1 : float
         Maximum allowed distance to the nearest points in the first-order network
     velocity_bound : float
@@ -230,9 +189,6 @@ def densifyNetwork(*, point1_obj: Points, vel_p1: np.ndarray, demerr_p1: np.ndar
         Velocity array of the second-order points
     gamma_p2 : np.ndarray
         Estimated temporal coherence array of the second-order points resulting from temporal unwrapping
-    mean_gamma : np.ndarray
-        Mean temporal coherence array of the second-order points resulting from consistency check with neighbourhood
-
     """
     msg = "#" * 10
     msg += " DENSIFICATION WITH SECOND-ORDER POINTS "
@@ -242,7 +198,6 @@ def densifyNetwork(*, point1_obj: Points, vel_p1: np.ndarray, demerr_p1: np.ndar
 
     # find the closest points from first-order network
     tree_p1 = KDTree(data=point1_obj.coord_utm)
-    tree_p2 = KDTree(data=point2_obj.coord_utm)
 
     # remove parameters from wrapped phase
     pred_phase_demerr, pred_phase_vel = ut.predictPhase(
@@ -261,13 +216,13 @@ def densifyNetwork(*, point1_obj: Points, vel_p1: np.ndarray, demerr_p1: np.ndar
     demod_phase1 = point1_obj.phase - pred_phase  # not re-wrapping
 
     # initialize output
-    init_args = (tree_p1, tree_p2, point2_obj, demod_phase1)
+    init_args = (tree_p1, point2_obj, demod_phase1)
 
     if num_cores == 1:
-        densificationInitializer(tree_p1=tree_p1, tree_p2=tree_p2, point2_obj=point2_obj, demod_phase1=demod_phase1)
-        args = (np.arange(point2_obj.num_points), point2_obj.num_points, num_conn_p1, num_conn_p2, max_dist_p1,
+        densificationInitializer(tree_p1=tree_p1, point2_obj=point2_obj, demod_phase1=demod_phase1)
+        args = (np.arange(point2_obj.num_points), point2_obj.num_points, num_conn_p1, max_dist_p1,
                 velocity_bound, demerr_bound, num_samples)
-        idx_range, demerr_p2, vel_p2, gamma_p2, mean_gamma = launchDensifyNetworkConsistencyCheck(args)
+        idx_range, demerr_p2, vel_p2, gamma_p2 = launchDensifyNetworkConsistencyCheck(args)
     else:
         with multiprocessing.Pool(num_cores, initializer=densificationInitializer, initargs=init_args) as pool:
             logger.info(msg="start parallel processing with {} cores.".format(num_cores))
@@ -278,7 +233,6 @@ def densifyNetwork(*, point1_obj: Points, vel_p1: np.ndarray, demerr_p1: np.ndar
                 idx_range,
                 idx_range.shape[0],
                 num_conn_p1,
-                num_conn_p2,
                 max_dist_p1,
                 velocity_bound,
                 demerr_bound,
@@ -298,14 +252,12 @@ def densifyNetwork(*, point1_obj: Points, vel_p1: np.ndarray, demerr_p1: np.ndar
         demerr_p2 = np.zeros((point2_obj.num_points,), dtype=np.float32)
         vel_p2 = np.zeros((point2_obj.num_points,), dtype=np.float32)
         gamma_p2 = np.zeros((point2_obj.num_points,), dtype=np.float32)
-        mean_gamma = np.zeros((point2_obj.num_points,), dtype=np.float32)
 
         # retrieve results
-        for i, demerr_i, vel_i, gamma_i, mean_gamma_i in results:
+        for i, demerr_i, vel_i, gamma_i in results:
             demerr_p2[i] = demerr_i
             vel_p2[i] = vel_i
             gamma_p2[i] = gamma_i
-            mean_gamma[i] = mean_gamma_i
 
     m, s = divmod(time.time() - start_time, 60)
     logger.debug(msg='time used: {:02.0f} mins {:02.1f} secs.\n'.format(m, s))
@@ -315,10 +267,8 @@ def densifyNetwork(*, point1_obj: Points, vel_p1: np.ndarray, demerr_p1: np.ndar
     demerr_p2 = np.append(demerr_p1, demerr_p2)  # add gamma=1 for p1 pixels
     vel_p2 = np.append(vel_p1, vel_p2)
     gamma_p2 = np.append(np.ones_like(point1_obj.point_id), gamma_p2)  # add gamma=1 for p1 pixels
-    mean_gamma = np.append(np.ones_like(point1_obj.point_id), mean_gamma)  # add mean_gamma=1 for p1 pixels
 
     demerr_p2 = demerr_p2[sort_idx]
     vel_p2 = vel_p2[sort_idx]
     gamma_p2 = gamma_p2[sort_idx]
-    mean_gamma = mean_gamma[sort_idx]
-    return demerr_p2, vel_p2, gamma_p2, mean_gamma
+    return demerr_p2, vel_p2, gamma_p2
