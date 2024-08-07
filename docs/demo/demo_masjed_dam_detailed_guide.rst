@@ -76,14 +76,14 @@ Note: The above command only generates a configuration file. Although step 0 is 
 Step 1.4: Modify the config.json File
 """""""""""""""""""""""""""""""""""""
 
-1.4.1. Open the config.json file and check the parameters. The first parameters to specify in the config file are **path_inputs** and **path_outputs**. For this example dataset, the `slcStack.h5` and `geometryRadar.h5` files are in the `inputs/` directory, which is the default value in the config file. Therefore, you do not need to change it. The **path_outputs** should be `outputs/` for this example.
+1.4.1. Open the config.json file and check the parameters. The first parameters to specify in the config file are **input_path** and **output_path**. For this example dataset, the `slcStack.h5` and `geometryRadar.h5` files are in the `inputs/` directory, which is the default value in the config file. Therefore, you do not need to change it. The **output_path** should be `outputs/` for this example.
 
 .. code-block:: json
 
     {
-        "data_directories": {
-            "path_inputs": "inputs/",
-            "path_outputs": "outputs/"
+        "general": {
+            "input_path": "inputs/",
+            "output_path": "outputs/"
         }
         // other parameters
     }
@@ -108,7 +108,7 @@ It is a good practice to specify a number lower than the number of available cor
 
     {
     // other parameters
-        "processing": {
+        "general": {
         "num_cores": 5,
         // other parameters
         },
@@ -150,8 +150,8 @@ In the command line, you will see a list of parameters used by SARvey to run ste
     2024-06-19 11:04:28,137 - INFO - _________ _____ _______
     2024-06-19 11:04:28,138 - INFO - num_cores 5 <--- 50
     2024-06-19 11:04:28,138 - INFO - num_patches 1 1
-    2024-06-19 11:04:28,138 - INFO - temporal_unwrapping True True
-    2024-06-19 11:04:28,138 - INFO - unwrapping_method puma puma
+    2024-06-19 11:04:28,138 - INFO - apply_temporal_unwrapping True True
+    2024-06-19 11:04:28,138 - INFO - spatial_unwrapping_method puma puma
     2024-06-19 11:04:28,138 - INFO -
     2024-06-19 11:04:28,138 - INFO - ---------------------------------------------------------------------------------
     2024-06-19 11:04:28,138 - INFO - STEP 0: PREPARATION
@@ -159,11 +159,11 @@ In the command line, you will see a list of parameters used by SARvey to run ste
     2024-06-19 11:04:28,138 - INFO - Parameter value default
     2024-06-19 11:04:28,139 - INFO - _________ _____ _______
     2024-06-19 11:04:28,139 - INFO - start_date None None
-    2024-06-19 11:04:28,139 - INFO - stop_date None None
-    2024-06-19 11:04:28,139 - INFO - network_type sb <--- delaunay
+    2024-06-19 11:04:28,139 - INFO - end_date None None
+    2024-06-19 11:04:28,139 - INFO - ifg_network_type sb <--- delaunay
     2024-06-19 11:04:28,139 - INFO - num_ifgs 3 3
     2024-06-19 11:04:28,139 - INFO - max_tbase 100 100
-    2024-06-19 11:04:28,139 - INFO - filter_wdw_size 9 9
+    2024-06-19 11:04:28,139 - INFO - filter_window_size 9 9
     ...
 
 After running this step, a `sbas` directory is created. Inside this directory, you can find the following files:

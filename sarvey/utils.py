@@ -30,6 +30,8 @@
 """Utils module for SARvey."""
 import multiprocessing
 import time
+from os.path import exists, join
+
 import numpy as np
 from scipy.sparse.linalg import lsqr
 from typing import Union
@@ -830,3 +832,28 @@ def setReferenceToPeakOfHistogram(*, phase: np.ndarray, vel: np.ndarray, num_bin
     phase -= ref_phase
 
     return phase
+
+
+def checkIfRequiredFilesExist(*, path_to_files: str, required_files: list, logger: Logger):
+    """
+    Check if all required files exist from previous processing steps.
+
+    Parameters
+    ----------
+    path_to_files: str
+        path to the files
+    required_files: list
+        list of required files which are all checked
+    logger: Logger
+        logging handler
+
+    Raises
+    ------
+    FileNotFoundError
+        if a required file is missing
+    """
+    # loop over all required files and check if they exist, if not: raise error
+    for file in required_files:
+        if not exists(join(path_to_files, file)):
+            logger.error(f"File from previous step(s) is missing: {file}.")
+            raise FileNotFoundError

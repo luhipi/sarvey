@@ -30,11 +30,11 @@
 """MTI module for SARvey."""
 
 import argparse
-import json
 import os
 import shutil
-from json import JSONDecodeError
 from os.path import join
+
+import json5
 import matplotlib
 import sys
 import logging
@@ -44,7 +44,8 @@ from pydantic.schema import schema
 
 from sarvey.console import printStep, printCurrentConfig, showLogoSARvey
 from sarvey.processing import Processing
-from sarvey.config import Config
+from sarvey.config import Config, loadConfiguration
+from sarvey.utils import checkIfRequiredFilesExist
 
 try:
     matplotlib.use('QtAgg')
@@ -86,13 +87,13 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
 
     config_default_dict = generateTemplateFromConfigModel()
 
-    proc_obj = Processing(path=config.data_directories.path_outputs, config=config, logger=logger)
+    proc_obj = Processing(path=config.general.output_path, config=config, logger=logger)
 
-    printCurrentConfig(config_section=config.processing.dict(),
-                       config_section_default=config_default_dict["processing"],
+    printCurrentConfig(config_section=config.general.dict(),
+                       config_section_default=config_default_dict["general"],
                        logger=logger)
 
-    if config.phase_linking.phase_linking:
+    if config.phase_linking.use_phase_linking_results:
         printCurrentConfig(config_section=config.phase_linking.dict(),
                            config_section_default=config_default_dict["phase_linking"],
                            logger=logger)
@@ -103,37 +104,63 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
                            config_section_default=config_default_dict["preparation"],
                            logger=logger)
         proc_obj.runPreparation()
+    required_files = ["background_map.h5", "coordinates_utm.h5", "ifg_network.h5", "ifg_stack.h5",
+                      "temporal_coherence.h5"]
 
     if 1 in steps:
+        checkIfRequiredFilesExist(
+            path_to_files=config.general.output_path,
+            required_files=required_files,
+            logger=logger
+        )
         printStep(step=1, step_dict=STEP_DICT, logger=logger)
         printCurrentConfig(config_section=config.consistency_check.dict(),
                            config_section_default=config_default_dict["consistency_check"],
                            logger=logger)
         proc_obj.runConsistencyCheck()
+    required_files.extend(["point_network.h5", "point_network_parameter.h5", "p1_ifg_wr.h5"])
 
     if 2 in steps:
+        checkIfRequiredFilesExist(
+            path_to_files=config.general.output_path,
+            required_files=required_files,
+            logger=logger
+        )
         printStep(step=2, step_dict=STEP_DICT, logger=logger)
         printCurrentConfig(config_section=config.unwrapping.dict(),
                            config_section_default=config_default_dict["unwrapping"],
                            logger=logger)
-        if proc_obj.config.processing.temporal_unwrapping:
+        if proc_obj.config.general.apply_temporal_unwrapping:
             proc_obj.runUnwrappingTimeAndSpace()
         else:
             proc_obj.runUnwrappingSpace()
+    required_files.extend(["p1_ifg_unw.h5", "p1_ts.h5"])
 
     if 3 in steps:
+        checkIfRequiredFilesExist(
+            path_to_files=config.general.output_path,
+            required_files=required_files,
+            logger=logger
+        )
         printStep(step=3, step_dict=STEP_DICT, logger=logger)
         printCurrentConfig(config_section=config.filtering.dict(),
                            config_section_default=config_default_dict["filtering"],
                            logger=logger)
         proc_obj.runFiltering()
+    coh_value = int(config.filtering.coherence_p2 * 100)
+    required_files.extend(["p1_aps.h5", f"coh{coh_value}_ifg_wr.h5", f"coh{coh_value}_aps.h5"])
 
     if 4 in steps:
+        checkIfRequiredFilesExist(
+            path_to_files=config.general.output_path,
+            required_files=required_files,
+            logger=logger
+        )
         printStep(step=4, step_dict=STEP_DICT, logger=logger)
         printCurrentConfig(config_section=config.densification.dict(),
                            config_section_default=config_default_dict["densification"],
                            logger=logger)
-        if proc_obj.config.processing.temporal_unwrapping:
+        if proc_obj.config.general.apply_temporal_unwrapping:
             proc_obj.runDensificationTimeAndSpace()
         else:
             proc_obj.runDensificationSpace()
@@ -229,12 +256,12 @@ def main(iargs=None):
         logger.info(msg=f"Write default config to file: {args.filepath}.")
         default_config_dict = generateTemplateFromConfigModel()
         with open(args.filepath, "w") as f:
-            f.write(json.dumps(default_config_dict, indent=4))
+            f.write(json5.dumps(default_config_dict, indent=4))
         return 0
 
     if args.print_config_explanation:
         top_level_schema = schema([Config])
-        print(json.dumps(top_level_schema, indent=2))
+        print(json5.dumps(top_level_schema, indent=2))
         return 0
 
     if args.stop < args.start:
@@ -248,41 +275,36 @@ def main(iargs=None):
 
     config_file_path = os.path.abspath(join(args.workdir, args.filepath))
 
-    try:
-        with open(config_file_path) as config_fp:
-            config_dict = json.load(config_fp)
-            config = Config(**config_dict)
-    except JSONDecodeError as err:
-        raise IOError(f'Failed to load the configuration json file => {err}')
+    config = loadConfiguration(path=config_file_path)
 
     current_datetime = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
     log_filename = f"sarvey_log_{current_datetime}.log"
-    logpath = config.logging.logfile_path
+    logpath = config.general.logfile_path
     if not os.path.exists(logpath):
         os.mkdir(logpath)
     file_handler = logging.FileHandler(filename=join(logpath, log_filename))
     file_handler.setFormatter(log_format)
     logger.addHandler(file_handler)
 
-    logging_level = logging.getLevelName(config.logging.logging_level)
+    logging_level = logging.getLevelName(config.general.logging_level)
     logger.setLevel(logging_level)
 
-    config.data_directories.path_outputs = os.path.abspath(join(args.workdir, config.data_directories.path_outputs))
-    if config.consistency_check.spatial_mask_file_p1 is not None:
-        config.consistency_check.spatial_mask_file_p1 = os.path.abspath(
-            join(args.workdir, config.consistency_check.spatial_mask_file_p1))
-    if config.filtering.spatial_mask_file_p2 is not None:
-        config.filtering.spatial_mask_file_p2 = os.path.abspath(
-            join(args.workdir, config.filtering.spatial_mask_file_p2))
+    config.general.output_path = os.path.abspath(join(args.workdir, config.general.output_path))
+    if config.consistency_check.mask_p1_file is not None:
+        config.consistency_check.mask_p1_file = os.path.abspath(
+            join(args.workdir, config.consistency_check.mask_p1_file))
+    if config.filtering.mask_p2_file is not None:
+        config.filtering.mask_p2_file = os.path.abspath(
+            join(args.workdir, config.filtering.mask_p2_file))
 
     # create all necessary directories
-    if not os.path.exists(config.data_directories.path_outputs):
-        os.mkdir(config.data_directories.path_outputs)
-    if not os.path.exists(join(config.data_directories.path_outputs, "pic")):
-        os.mkdir(join(config.data_directories.path_outputs, "pic"))
+    if not os.path.exists(config.general.output_path):
+        os.mkdir(config.general.output_path)
+    if not os.path.exists(join(config.general.output_path, "pic")):
+        os.mkdir(join(config.general.output_path, "pic"))
 
     # copy config file to output directory to ensure that there is always a backup config file with latest parameters
-    shutil.copy2(src=config_file_path, dst=join(config.data_directories.path_outputs, "config.json"))
+    shutil.copy2(src=config_file_path, dst=join(config.general.output_path, "config.json"))
 
     run(config=config, args=args, logger=logger)
 

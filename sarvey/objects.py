@@ -456,7 +456,7 @@ class Points:
         self.file_path = file_path
         self.logger = logger
 
-    def prepare(self, *, point_id: np.ndarray, coord_xy: np.ndarray, path_inputs: str):
+    def prepare(self, *, point_id: np.ndarray, coord_xy: np.ndarray, input_path: str):
         """Assign point_id and radar coordinates to the object.
 
         Store the point_id and radar coordinates of the scatterers in the object (not file) and read further
@@ -468,14 +468,14 @@ class Points:
             point_id of the scatterers.
         coord_xy: np.ndarray
             radar coordinates of the scatterers.
-        path_inputs: str
+        input_path: str
             path to input files (slcStack.h5, geometryRadar.h5).
         """
         self.point_id = point_id
         self.coord_xy = coord_xy
         self.num_points = self.coord_xy.shape[0]
         self.phase = None
-        self.openExternalData(path_inputs=path_inputs)
+        self.openExternalData(input_path=input_path)
 
     def writeToFile(self):
         """Write data to .h5 file (num_points, coord_xy, point_id, phase)."""
@@ -490,7 +490,7 @@ class Points:
             f.create_dataset('point_id', data=self.point_id)
             f.create_dataset('phase', data=self.phase)
 
-    def open(self, path_inputs: str, other_file_path: str = None):
+    def open(self, input_path: str, other_file_path: str = None):
         """Read data from file.
 
         Read stored information from already existing .h5 file. This can be the file of the object itself. If the
@@ -499,7 +499,7 @@ class Points:
 
         Parameters
         ----------
-        path_inputs: str
+        input_path: str
             path to input files (slcStack.h5, geometryRadar.h5).
         other_file_path: str
             path to other .h5 file (default: None).
@@ -517,15 +517,15 @@ class Points:
             self.point_id = f["point_id"][:]
             self.phase = f["phase"][:]
 
-        self.openExternalData(path_inputs=path_inputs)
+        self.openExternalData(input_path=input_path)
 
-    def openExternalData(self, *, path_inputs: str):
+    def openExternalData(self, *, input_path: str):
         """Load data which is stored in slcStack.h5, geometryRadar.h5, ifg_network.h5 and coordinates_utm.h5."""
         # 1) read IfgNetwork
         self.ifg_net_obj.open(path=join(dirname(self.file_path), "ifg_network.h5"))
 
         # 2) read metadata from slcStack
-        slc_stack_obj = slcStack(join(path_inputs, "slcStack.h5"))
+        slc_stack_obj = slcStack(join(input_path, "slcStack.h5"))
         slc_stack_obj.open(print_msg=False)
         self.wavelength = np.float64(slc_stack_obj.metadata["WAVELENGTH"])
         self.length = slc_stack_obj.length  # y-coordinate axis (azimut)
@@ -534,7 +534,7 @@ class Points:
         # 3) read from geometry file
         mask = self.createMask()
 
-        geom_path = join(path_inputs, "geometryRadar.h5")
+        geom_path = join(input_path, "geometryRadar.h5")
 
         # load geometry data
         loc_inc, meta = readfile.read(geom_path, datasetName='incidenceAngle')
@@ -568,7 +568,7 @@ class Points:
         return mask
 
     def addPointsFromObj(self, *, new_point_id: np.ndarray, new_coord_xy: np.ndarray, new_phase: np.ndarray,
-                         new_num_points: int, path_inputs: str):
+                         new_num_points: int, input_path: str):
         """Add new points and their attributes to the existing data.
 
         Parameters
@@ -581,7 +581,7 @@ class Points:
             phase of the new scatterers.
         new_num_points: int
             number of new points.
-        path_inputs: str
+        input_path: str
             path to input files (slcStack.h5, geometryRadar.h5).
         """
         self.point_id = np.append(self.point_id, new_point_id)
@@ -595,9 +595,9 @@ class Points:
         self.coord_xy = self.coord_xy[sort_idx, :]
         self.phase = self.phase[sort_idx, :]
         # refresh by reopening all external data
-        self.openExternalData(path_inputs=path_inputs)
+        self.openExternalData(input_path=input_path)
 
-    def removePoints(self, mask: np.ndarray = None, *, keep_id: [np.ndarray, list], path_inputs: str):
+    def removePoints(self, mask: np.ndarray = None, *, keep_id: [np.ndarray, list], input_path: str):
         """Remove all entries from specified points.
 
         The possible options exist for removing the points:
@@ -610,7 +610,7 @@ class Points:
             mask to select points to be kept, rest will be removed (default: None).
         keep_id: np.ndarray
             list of point_id to keep.
-        path_inputs: str
+        input_path: str
             path to input files (slcStack.h5, geometryRadar.h5).
         """
         if mask is None:
@@ -623,7 +623,7 @@ class Points:
         self.phase = self.phase[mask, :]
         self.num_points = mask[mask].shape[0]
         # refresh by reopening all external data
-        self.openExternalData(path_inputs=path_inputs)
+        self.openExternalData(input_path=input_path)
 
 
 class Network:
@@ -668,7 +668,7 @@ class Network:
             f.create_dataset('loc_inc', data=self.loc_inc)
             f.create_dataset('slant_range', data=self.slant_range)
 
-    def open(self, *, path_inputs: str):
+    def open(self, *, input_path: str):
         """Read stored information from existing .h5 file."""
         with h5py.File(self.file_path, 'r') as f:
             self.num_arcs = f.attrs["num_arcs"]
@@ -676,11 +676,11 @@ class Network:
             self.phase = f["phase"][:]
             self.loc_inc = f["loc_inc"][:]
             self.slant_range = f["slant_range"][:]
-        self.openExternalData(path_inputs=path_inputs)
+        self.openExternalData(input_path=input_path)
 
-    def openExternalData(self, *, path_inputs: str):
+    def openExternalData(self, *, input_path: str):
         """Read data from slcStack.h5 and IfgNetwork.h5 files."""
-        slc_stack_obj = slcStack(join(path_inputs, "slcStack.h5"))
+        slc_stack_obj = slcStack(join(input_path, "slcStack.h5"))
         slc_stack_obj.open(print_msg=False)
         self.wavelength = np.float64(slc_stack_obj.metadata["WAVELENGTH"])
         self.length = slc_stack_obj.length  # y-coordinate axis (azimut)
@@ -785,9 +785,9 @@ class NetworkParameter(Network):
             f.create_dataset('vel', data=self.vel)
             f.create_dataset('gamma', data=self.gamma)
 
-    def open(self, *, path_inputs: str):
+    def open(self, *, input_path: str):
         """Read data from file."""
-        super().open(path_inputs=path_inputs)
+        super().open(input_path=input_path)
 
         with h5py.File(self.file_path, 'r') as f:
             self.demerr = f["demerr"][:]

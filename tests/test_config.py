@@ -33,8 +33,7 @@
 import os
 import unittest
 
-from sarvey.config import loadConfiguration, Config
-from copy import deepcopy
+from sarvey.config import loadConfiguration
 
 
 class TestConfig(unittest.TestCase):
@@ -51,10 +50,7 @@ class TestConfig(unittest.TestCase):
             cls.root_path = "../"
 
         cls.config_file = os.path.abspath(f"{cls.root_path}tests/testdata/config_test.json")
-        cls.configuration = loadConfiguration(path=cls.config_file)
 
     def testDataDirectories(self):
         """Test configuration for the data directories settings."""
-
-        config = deepcopy(self.configuration)
-        Config(**config)
+        loadConfiguration(path=self.config_file)
