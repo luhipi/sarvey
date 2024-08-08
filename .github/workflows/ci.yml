@@ -46,8 +46,9 @@ jobs:
         run: |
           conda init bash
           source ~/.bashrc
-          source activate ci_env
-          mamba install json5
+          conda create -n ci_temp_env --clone ci_env
+          source activate ci_temp_env
+          mamba install json5 -y
           rm -rf tests/testdata
           wget -nv -c -O testdata.zip https://seafile.projekt.uni-hannover.de/f/4b3be399dffa488e98db/?dl=1
           unzip testdata.zip
