@@ -47,6 +47,8 @@ jobs:
           conda init bash
           source ~/.bashrc
           wget https://raw.githubusercontent.com/insarlab/MiaplPy/main/conda-env.yml
+          echo "$(pwd)"
+          ls -la
           conda-merge conda-env.yml environment_sarvey.yml > env.yml
           mamba env update -n ci_env -f env.yml
           source activate ci_env
