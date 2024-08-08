@@ -46,9 +46,11 @@ jobs:
         run: |
           conda init bash
           source ~/.bashrc
+          conda-merge conda-env.yml environment_sarvey.yml > env.yml
+          mamba env update -n ci_env -f env.yml
           source activate ci_env
           rm -rf tests/testdata
-          wget -c -O testdata.zip https://seafile.projekt.uni-hannover.de/f/4b3be399dffa488e98db/?dl=1
+          wget -nv -c -O testdata.zip https://seafile.projekt.uni-hannover.de/f/4b3be399dffa488e98db/?dl=1
           unzip testdata.zip
           mv testdata tests/
           make pytest
