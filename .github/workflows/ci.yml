@@ -46,10 +46,8 @@ jobs:
         run: |
           conda init bash
           source ~/.bashrc
-          wget https://raw.githubusercontent.com/insarlab/MiaplPy/main/conda-env.yml
-          conda-merge conda-env.yml tests/CI_docker/context/environment_sarvey.yml > env.yml
-          mamba env update -n ci_env -f env.yml
           source activate ci_env
+          mamba install json5
           rm -rf tests/testdata
           wget -nv -c -O testdata.zip https://seafile.projekt.uni-hannover.de/f/4b3be399dffa488e98db/?dl=1
           unzip testdata.zip
