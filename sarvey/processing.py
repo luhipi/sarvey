@@ -678,7 +678,7 @@ class Processing:
                 cbar.ax.set_visible(False)  # make size of axis consistent with all others
                 plt.tight_layout()
                 plt.title("Mask for phase linking points")
-                fig.savefig(join(self.path, "pic", "step_3_mask_coh{}_phase_linking.png".format(coh_value)), dpi=300)
+                fig.savefig(join(self.path, "pic", "step_3_mask_p2_coh{}_phase_linking.png".format(coh_value)), dpi=300)
                 plt.close(fig)
 
                 # mask points after plotting, so that available coherent points are visible in figure
@@ -715,10 +715,10 @@ class Processing:
         cbar.ax.set_visible(False)  # make size of axis consistent with all others
         plt.tight_layout()
         plt.title("Mask for dense point set")
-        fig.savefig(join(self.path, "pic", "step_3_mask_coh{}.png".format(coh_value)), dpi=300)
+        fig.savefig(join(self.path, "pic", "step_3_mask_p2_coh{}.png".format(coh_value)), dpi=300)
         plt.close(fig)
 
-        point2_obj = Points(file_path=join(self.path, "coh{}_ifg_wr.h5".format(coh_value)), logger=self.logger)
+        point2_obj = Points(file_path=join(self.path, "p2_coh{}_ifg_wr.h5".format(coh_value)), logger=self.logger)
         coord_xy = np.array(np.where(cand_mask2)).transpose()
         point_id2 = point_id_img[cand_mask2]
         point2_obj.prepare(
@@ -772,9 +772,9 @@ class Processing:
         point2_obj.writeToFile()
         del point2_obj, ifg_stack_obj
 
-        aps2_obj = Points(file_path=join(self.path, "coh{}_aps.h5".format(coh_value)), logger=self.logger)
+        aps2_obj = Points(file_path=join(self.path, "p2_coh{}_aps.h5".format(coh_value)), logger=self.logger)
         aps2_obj.open(
-            other_file_path=join(self.path, "coh{}_ifg_wr.h5".format(coh_value)),
+            other_file_path=join(self.path, "p2_coh{}_ifg_wr.h5".format(coh_value)),
             input_path=self.config.general.input_path
         )
 
@@ -819,9 +819,9 @@ class Processing:
         """RunDensificationTimeAndSpace."""
         coh_value = int(self.config.filtering.coherence_p2 * 100)
 
-        point2_obj = Points(file_path=join(self.path, "coh{}_ifg_unw.h5".format(coh_value)), logger=self.logger)
+        point2_obj = Points(file_path=join(self.path, "p2_coh{}_ifg_unw.h5".format(coh_value)), logger=self.logger)
         point2_obj.open(
-            other_file_path=join(self.path, "coh{}_ifg_wr.h5".format(coh_value)),
+            other_file_path=join(self.path, "p2_coh{}_ifg_wr.h5".format(coh_value)),
             input_path=self.config.general.input_path
         )  # wrapped phase
 
@@ -837,7 +837,7 @@ class Processing:
         aps1_obj = Points(file_path=join(self.path, "p1_aps.h5"), logger=self.logger)
         aps1_obj.open(input_path=self.config.general.input_path)
 
-        aps2_obj = Points(file_path=join(self.path, "coh{}_aps.h5".format(coh_value)), logger=self.logger)
+        aps2_obj = Points(file_path=join(self.path, "p2_coh{}_aps.h5".format(coh_value)), logger=self.logger)
         aps2_obj.open(input_path=self.config.general.input_path)
 
         if self.config.filtering.mask_p2_file is None:
@@ -951,7 +951,7 @@ class Processing:
         fig = viewer.plotScatter(value=gamma, coord=point2_obj.coord_xy, bmap_obj=bmap_obj,
                                  ttl="Coherence from temporal unwrapping\nBefore outlier removal", s=3.5, cmap="autumn",
                                  vmin=0, vmax=1, logger=self.logger)[0]
-        fig.savefig(join(self.path, "pic", "step_4_temporal_unwrapping_coh{}.png".format(coh_value)), dpi=300)
+        fig.savefig(join(self.path, "pic", "step_4_temporal_unwrapping_p2_coh{}.png".format(coh_value)), dpi=300)
         plt.close(fig)
 
         mask_gamma = gamma >= self.config.densification.arc_unwrapping_coherence
@@ -969,26 +969,26 @@ class Processing:
         axs[1].hist(-demerr[mask_gamma], bins=200)
         axs[1].set_ylabel('Absolute frequency')
         axs[1].set_xlabel('DEM error [m]')
-        fig.savefig(join(self.path, "pic", "step_4_consistency_parameters_coh{}.png".format(coh_value)),
+        fig.savefig(join(self.path, "pic", "step_4_consistency_parameters_p2_coh{}.png".format(coh_value)),
                     dpi=300)
         plt.close(fig)
 
         fig = viewer.plotScatter(value=gamma[mask_gamma], coord=point2_obj.coord_xy, bmap_obj=bmap_obj,
                                  ttl="Coherence from temporal unwrapping\nAfter outlier removal", s=3.5, cmap="autumn",
                                  vmin=0, vmax=1, logger=self.logger)[0]
-        fig.savefig(join(self.path, "pic", "step_4_temporal_unwrapping_coh{}_reduced.png".format(coh_value)),
+        fig.savefig(join(self.path, "pic", "step_4_temporal_unwrapping_p2_coh{}_reduced.png".format(coh_value)),
                     dpi=300)
         plt.close(fig)
 
         fig = viewer.plotScatter(value=-vel[mask_gamma], coord=point2_obj.coord_xy,
                                  ttl="Mean velocity in [m / year]",
                                  bmap_obj=bmap_obj, s=3.5, cmap="jet_r", symmetric=True, logger=self.logger)[0]
-        fig.savefig(join(self.path, "pic", "step_4_estimation_velocity_coh{}.png".format(coh_value)), dpi=300)
+        fig.savefig(join(self.path, "pic", "step_4_estimation_velocity_p2_coh{}.png".format(coh_value)), dpi=300)
         plt.close(fig)
 
         fig = viewer.plotScatter(value=-demerr[mask_gamma], coord=point2_obj.coord_xy, ttl="DEM error in [m]",
                                  bmap_obj=bmap_obj, s=3.5, cmap="jet_r", symmetric=True, logger=self.logger)[0]
-        fig.savefig(join(self.path, "pic", "step_4_estimation_dem_correction_coh{}.png".format(coh_value)), dpi=300)
+        fig.savefig(join(self.path, "pic", "step_4_estimation_dem_correction_p2_coh{}.png".format(coh_value)), dpi=300)
         plt.close(fig)
 
         self.logger.info(msg="Remove phase contributions from mean velocity "
@@ -1034,9 +1034,9 @@ class Processing:
             ref_idx=0,
             logger=self.logger)
 
-        point_obj = Points(file_path=join(self.path, "coh{}_ts.h5".format(coh_value)), logger=self.logger)
+        point_obj = Points(file_path=join(self.path, "p2_coh{}_ts.h5".format(coh_value)), logger=self.logger)
         point_obj.open(
-            other_file_path=join(self.path, "coh{}_ifg_unw.h5".format(coh_value)),
+            other_file_path=join(self.path, "p2_coh{}_ifg_unw.h5".format(coh_value)),
             input_path=self.config.general.input_path
         )
         point_obj.phase = phase_ts
@@ -1047,13 +1047,13 @@ class Processing:
         """RunDensification."""
         coh_value = int(self.config.filtering.coherence_p2 * 100)
 
-        point_obj = Points(file_path=join(self.path, "coh{}_ifg_unw.h5".format(coh_value)), logger=self.logger)
+        point_obj = Points(file_path=join(self.path, "p2_coh{}_ifg_unw.h5".format(coh_value)), logger=self.logger)
         point_obj.open(
-            other_file_path=join(self.path, "coh{}_ifg_wr.h5".format(coh_value)),
+            other_file_path=join(self.path, "p2_coh{}_ifg_wr.h5".format(coh_value)),
             input_path=self.config.general.input_path
         )  # open wr phase
 
-        aps2_obj = Points(file_path=join(self.path, "coh{}_aps.h5".format(coh_value)), logger=self.logger)
+        aps2_obj = Points(file_path=join(self.path, "p2_coh{}_aps.h5".format(coh_value)), logger=self.logger)
         aps2_obj.open(input_path=self.config.general.input_path)
 
         # return to ifg-space
@@ -1082,9 +1082,9 @@ class Processing:
         point_obj.writeToFile()
         del point_obj
 
-        point_obj = Points(file_path=join(self.path, "coh{}_ts.h5".format(coh_value)), logger=self.logger)
+        point_obj = Points(file_path=join(self.path, "p2_coh{}_ts.h5".format(coh_value)), logger=self.logger)
         point_obj.open(
-            other_file_path=join(self.path, "coh{}_ifg_wr.h5".format(coh_value)),
+            other_file_path=join(self.path, "p2_coh{}_ifg_wr.h5".format(coh_value)),
             input_path=self.config.general.input_path
         )
 

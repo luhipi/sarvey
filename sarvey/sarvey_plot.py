@@ -57,10 +57,10 @@ except ImportError as e:
     print(e)
 
 EXAMPLE = """Example:
-  sarvey_plot outputs/coh60_ts.h5 -t                # plot average velocity and time series
-  sarvey_plot outputs/coh80_ts.h5 -m -a             # plot velocity map and DEM correction interactively
-  sarvey_plot outputs/coh80_ts.h5 -r -n 0 5         # plot residuals for image 0 to 5
-  sarvey_plot outputs/coh80_ifg_wr.h5 -p -n 0 1 -a  # plot wrapped phase of final point selection for interferogram 0
+  sarvey_plot outputs/p2_coh60_ts.h5 -t                # plot average velocity and time series
+  sarvey_plot outputs/p2_coh80_ts.h5 -m -a             # plot velocity map and DEM correction interactively
+  sarvey_plot outputs/p2_coh80_ts.h5 -r -n 0 5         # plot residuals for image 0 to 5
+  sarvey_plot outputs/p2_coh80_ifg_wr.h5 -p -n 0 1 -a  # plot wrapped phase of final point selection for interferogram 0
   sarvey_plot outputs/p1_ifg_wr.h5 -p -n 0 1 -a     # plot wrapped phase of the first order network
   sarvey_plot -i -a outputs/ifg_stack.h5            # interactively plot interferograms
   sarvey_plot -i outputs/ifg_stack.h5               # store interferograms as png files

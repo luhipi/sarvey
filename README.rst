@@ -122,13 +122,13 @@ SARvey is a command-line-based software. The major steps for running SARvey are 
 
     .. code-block:: bash
 
-         sarvey_plot outputs/coh80_ts.h5 -t
+         sarvey_plot outputs/p2_coh80_ts.h5 -t
 
   * Export the results as Shapefiles_:
 
     .. code-block:: bash
 
-         sarvey_export outputs/coh80_ts.h5 -o outputs/shp/coh80.shp
+         sarvey_export outputs/p2_coh80_ts.h5 -o outputs/shp/p2_coh80.shp
 
 
 Feature overview
