@@ -62,8 +62,8 @@ def printCurrentConfig(*, config_section: dict, config_section_default: dict, lo
         Logging handler.
     """
     shift = "    "
-    logger.info(msg=shift + "{:>30} {:>15}      {:>10}".format("Parameter", "value", "default"))
-    logger.info(msg=shift + "{:>30} {:>15}      {:>10}".format("_________", "_____", "_______"))
+    logger.info(msg=shift + "{:>35} {:>15}      {:>10}".format("Parameter", "value", "default"))
+    logger.info(msg=shift + "{:>35} {:>15}      {:>10}".format("_________", "_____", "_______"))
 
     for key in config_section.keys():
         default = config_section_default[key]
@@ -76,9 +76,9 @@ def printCurrentConfig(*, config_section: dict, config_section_default: dict, lo
         value = "True" if value is True else value
         value = "False" if value is False else value
         if default == value:
-            logger.info(msg=shift + "{:>30} {:>15}      {:>10}".format(key, value, default))
+            logger.info(msg=shift + "{:>35} {:>15}      {:>10}".format(key, value, default))
         else:
-            logger.info(msg=shift + "{:>30} {:>15} <--- {:>10}".format(key, value, default))
+            logger.info(msg=shift + "{:>35} {:>15} <--- {:>10}".format(key, value, default))
 
     logger.info(msg="")
 
@@ -95,23 +95,22 @@ def showLogoSARvey(*, logger: Logger, step: str):
     """
     # generate_from: http://patorjk.com/software/taag/  - font: Big, style: default
     # and https://textik.com/
-    logger.info(msg=f"\nVersion: {version.__version__}, {version.__versionalias__}, {version.__versiondate__}")
-    logger.info(msg=f"Run: {step}\n")
-    new_logo = rf"""
-                                .                _____         _____
-                      +------  / \  ----------  / ____|  /\   |  __ \
-                      |       /  /             | (___   /  \  | |__) |_   _____ _   _
-                      |      /  /               \___ \ / /\ \ |  _  /\ \ / / _ \ | | |
-                      |   /\\  /  /             ____) / ____ \| | \ \ \ V /  __/ |_| |
-                      |  /  \\/  /             |_____/_/    \_\_|  \_\ \_/ \___|\__, |
-                      | /    \  /                                                __/ |
-                      | \    / /               {version.__version__:<7} - {version.__versionalias__:<20}    |___/
-                        \\  / /...             {version.__versiondate__:<20}                  |
-                       / \\/ /    :...                                               |
-                      /  /  /         :...     {step: <20}                  |
-                     /  /  /              :...                                       |
-                    /  /       _______        :...                      _____________|
-                     \/               \______     :...     ____________/             |
-                      +--------------------  \________:___/   -----------------------+
-    """  # 15 lines
+    logger.info(msg=f"SARvey version: {version.__version__} - {version.__versionalias__}, {version.__versiondate__}, "
+                    f"Run: {step}")
+    new_logo = rf"""                                .            _____         _____
+                      +------  / \  ------  / ____|  /\   |  __ \
+                      |       /  /         | (___   /  \  | |__) |_   _____ _   _
+                      |      /  /           \___ \ / /\ \ |  _  /\ \ / / _ \ | | |
+                      |   /\\  /  /         ____) / ____ \| | \ \ \ V /  __/ |_| |
+                      |  /  \\/  /         |_____/_/    \_\_|  \_\ \_/ \___|\__, |
+                      | /    \  /                                            __/ |
+                      | \    / /               v{version.__version__:<5} - {version.__versionalias__:<18}  |___/
+                        \\  / /...             {version.__versiondate__:<20}              |
+                       / \\/ /    :...                                           |
+                      /  /  /         :...     {step: <20}              |
+                     /  /  /              :...                                   |
+                    /  /       _______        :...                      _________|
+                     \/               \______     :...     ____________/         |
+                      +--------------------  \________:___/  --------------------+
+    """
     print(new_logo)

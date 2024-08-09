@@ -164,10 +164,10 @@ def createParser():
         description="Export InSAR time series results from '.h5' to GIS data formats.",
         formatter_class=argparse.RawTextHelpFormatter,
         epilog="""EXAMPLE:
-        sarvey_export outputs/coh50_ts.h5 -o outputs/shp/coh50.shp                   # export time series to shapefile
-        sarvey_export outputs/coh50_ts.h5 -o outputs/shp/coh50.gpkg                  # export time series to geopackage
-        sarvey_export outputs/coh90_ts.h5 -o outputs/shp/coh90.shp -g                # apply geolocation correction
-        sarvey_export outputs/coh90_ts.h5 -o outputs/shp/coh90.shp -g -t             # skip time series data
+        sarvey_export outputs/p2_coh50_ts.h5 -o outputs/shp/p2_coh50.shp             # export time series to shapefile
+        sarvey_export outputs/p2_coh50_ts.h5 -o outputs/shp/p2_coh50.gpkg            # export time series to geopackage
+        sarvey_export outputs/p2_coh90_ts.h5 -o outputs/shp/p2_coh90.shp -g          # apply geolocation correction
+        sarvey_export outputs/p2_coh90_ts.h5 -o outputs/shp/p2_coh90.shp -g -t       # skip time series data
         """)
 
     parser.add_argument('file_path', type=str, help='Path to input file.')
@@ -218,7 +218,7 @@ def main(iargs=None):
 
     args.log_dir = join(args.workdir, args.log_dir)
     current_datetime = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
-    log_filename = f"export_log_{current_datetime}.log"
+    log_filename = f"sarvey_export_{current_datetime}.log"
 
     if not os.path.exists(args.log_dir):
         os.mkdir(args.log_dir)

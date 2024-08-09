@@ -261,15 +261,15 @@ Outputs of this step are:
 .. code-block:: none
 
     outputs/
-    ├── coh80_ifg_wr.h5
-    ├── coh80_aps.h5
+    ├── p2_coh80_ifg_wr.h5
+    ├── p2_coh80_aps.h5
     ├── p1_aps.h5
     ├── p1_ts_filt.h5
     └── pic/
         ├── step_3_temporal_autocorrelation.png
         ├── step_3_stable_points.png
         ├── selected_pixels_temp_coh_0.8.png
-        └── step_3_mask_coh80.png
+        └── step_3_mask_p2_coh80.png
 
 
 Step 2.4: Run Step 4 of SARvey
@@ -282,7 +282,7 @@ Step 2.4: Run Step 4 of SARvey
 .. outputs directory structure to be added
 
 
-The results of step 4 of SARvey, including the time series, are stored in the `coh80_ts.h5` file. The file is named based on the `coherence_p2` parameter in the config.json file.
+The results of step 4 of SARvey, including the time series, are stored in the `p2_coh80_ts.h5` file. The file is named based on the `coherence_p2` parameter in the config.json file.
 
 
 Step 3: Plot Time Series Results
@@ -299,7 +299,7 @@ Plot the time series using the following command. Flag `-t` indicates that you w
 
 .. code-block:: bash
 
-    sarvey_plot outputs/coh80_ts.h5 -t
+    sarvey_plot outputs/p2_coh80_ts.h5 -t
 
 
 You can visualize velocity and DEM error estimation of second-order points. You can also visualize amplitude, DEM, or temporal coherence as the background. Right-click on any point to see its time series. As you will see in the plot, the density of measurement points on the dam is relatively low. In the next section, you will learn how to modify the config file to increase the density of points.
@@ -317,11 +317,11 @@ Run steps 3 and 4 using the following command:
     sarvey -f config.json 3 4
 
 
-A new file `coh70_ts.h5` is created. You can now visualize this file that has a higher point density.
+A new file `p2_coh70_ts.h5` is created. You can now visualize this file that has a higher point density.
 
 .. code-block:: bash
 
-    sarvey_plot outputs/coh70_ts.h5 -t
+    sarvey_plot outputs/p2_coh70_ts.h5 -t
 
 
 .. note::
@@ -341,7 +341,7 @@ Export the data to Shapefiles using the following command:
 
 .. code-block:: bash
 
-    sarvey_export outputs/coh70_ts.h5 -o outputs/shp/coh70_ts.shp
+    sarvey_export outputs/p2_coh70_ts.h5 -o outputs/shp/p2_coh70_ts.shp
 
 You can open the exported data in any GIS software. If you use QGIS, you can use the `PS Time Series Viewer <https://plugins.qgis.org/plugins/pstimeseries/>`_ plugin to draw the time series.
 
