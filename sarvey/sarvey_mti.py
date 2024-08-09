@@ -278,7 +278,7 @@ def main(iargs=None):
     config = loadConfiguration(path=config_file_path)
 
     current_datetime = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
-    log_filename = f"sarvey_log_{current_datetime}.log"
+    log_filename = f"sarvey_{current_datetime}.log"
     logpath = config.general.logfile_path
     if not os.path.exists(logpath):
         os.mkdir(logpath)

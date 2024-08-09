@@ -323,7 +323,8 @@ class Processing:
                                                       arcs=net_par_obj.arcs[arc_mask, :],
                                                       val=net_par_obj.gamma[arc_mask],
                                                       ax=ax, linewidth=1, cmap_name="autumn", clim=(0, 1))
-            ax.set_title(r"Coherence from temporal unwrapping\n(only arcs with $\gamma \leq$ {} "
+            ax.set_title("Coherence from temporal unwrapping\n"
+                         r"(only arcs with $\gamma \leq$ {} "
                          "shown)\nBefore outlier removal".format(thrsh_visualisation))
             fig = ax.get_figure()
             plt.tight_layout()
@@ -347,7 +348,8 @@ class Processing:
                                                       arcs=net_par_obj.arcs[arc_mask, :],
                                                       val=net_par_obj.gamma[arc_mask],
                                                       ax=ax, linewidth=1, cmap_name="autumn", clim=(0, 1))
-            ax.set_title(r"Coherence from temporal unwrapping\n(only arcs with $\gamma \leq$ {} "
+            ax.set_title("Coherence from temporal unwrapping\n"
+                         r"(only arcs with $\gamma \leq$ {} "
                          "shown)\nAfter outlier removal".format(thrsh_visualisation))
             fig = ax.get_figure()
             plt.tight_layout()
@@ -779,16 +781,6 @@ class Processing:
         )
 
         if self.config.filtering.apply_aps_filtering:
-            msg = "#" * 10
-            msg += " SKIP ATMOSPHERIC FILTERING! "
-            msg += "#" * 10
-            self.logger.info(msg=msg)
-            num_points1 = phase_for_aps_filtering.shape[0]
-            num_points2 = aps2_obj.coord_utm.shape[0]
-            num_time = phase_for_aps_filtering.shape[1]
-            aps1_phase = np.zeros((num_points1, num_time), dtype=np.float32)
-            aps2_phase = np.zeros((num_points2, num_time), dtype=np.float32)
-        else:
             # spatial filtering of points with linear motion only (no non-linear motion)
             if self.config.filtering.interpolation_method == "kriging":
                 aps1_phase, aps2_phase = estimateAtmosphericPhaseScreen(
@@ -806,6 +798,16 @@ class Processing:
                     coord_utm2=aps2_obj.coord_utm,
                     interp_method=self.config.filtering.interpolation_method
                 )
+        else:
+            msg = "#" * 10
+            msg += " SKIP ATMOSPHERIC FILTERING! "
+            msg += "#" * 10
+            self.logger.info(msg=msg)
+            num_points1 = phase_for_aps_filtering.shape[0]
+            num_points2 = aps2_obj.coord_utm.shape[0]
+            num_time = phase_for_aps_filtering.shape[1]
+            aps1_phase = np.zeros((num_points1, num_time), dtype=np.float32)
+            aps2_phase = np.zeros((num_points2, num_time), dtype=np.float32)
 
         point1_obj.phase -= aps1_phase
         point1_obj.writeToFile()

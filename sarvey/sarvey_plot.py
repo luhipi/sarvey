@@ -408,7 +408,7 @@ def main(iargs=None):
     logger = logging.getLogger(__name__)
 
     current_datetime = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
-    log_filename = f"sarvey_plot_log_{current_datetime}.txt"
+    log_filename = f"sarvey_plot_{current_datetime}.log"
     if not os.path.exists(os.path.join(os.getcwd(), "logfiles")):
         os.mkdir(os.path.join(os.getcwd(), "logfiles"))
     file_handler = logging.FileHandler(filename=os.path.join(os.getcwd(), "logfiles", log_filename))

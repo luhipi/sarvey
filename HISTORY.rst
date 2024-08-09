@@ -2,10 +2,14 @@
 History
 =======
 
-1.1.0 (coming soon)
--------------------
-
-1.0.0 (2024-06-26) Strawberry Pie
+1.0.0 (2024-08-12) Strawberry Pie
 ---------------------------------
 
 * First release version on github.
+* Change name of files for second-order points from coh* to p2_coh*.
+* Check existence of intermediate results before continuing processing.
+* Improve parameter names in config.
+* Combine all general settings into one section in config.
+* Allow adding user comments in config.json file.
+* Improve documentation.
+* Adapt CI from gitlab to github.
