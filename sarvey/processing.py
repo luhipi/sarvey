@@ -314,11 +314,15 @@ class Processing:
         del ifg_stack_obj, cand_mask1
 
         # 1) create spatial network
+        log.info("Create spatial network of 1st order points.")
         arcs = createArcsBetweenPoints(point_obj=point_obj,
                                        knn=self.config.consistency_check.num_nearest_neighbours,
                                        max_arc_length=self.config.consistency_check.max_arc_length,
-                                       logger=self.logger)
-        net_obj = Network(file_path=join(self.path, "point_network.h5"), logger=self.logger)
+                                       logger=log)
+
+        point_network_file = join(self.path, "point_network.h5")
+        log.debug(f"Prepare point network and store to file {point_network_file}.")
+        net_obj = Network(file_path=point_network_file, logger=log)
         net_obj.computeArcObservations(
             point_obj=point_obj,
             arcs=arcs
@@ -428,7 +432,7 @@ class Processing:
                                              arcs=net_par_obj.arcs,
                                              coord_xy=point_obj.coord_xy,
                                              weights=net_par_obj.gamma,
-                                             spatial_ref_idx=spatial_ref_idx, logger=self.logger)
+                                             spatial_ref_idx=spatial_ref_idx, logger=log)
 
         # demerr = spatialParameterIntegrationIterative(val_arcs=net_par_obj.demerr, all_arcs=net_par_obj.arcs,
         #                                               coord_xy=point_obj.coord_xy, all_weights=net_par_obj.gamma,
