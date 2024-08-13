@@ -81,7 +81,7 @@ class AmplitudeImage:
 
         self.background_map = img
 
-        logger.info(msg="write data to {}...".format(self.file_path))
+        logger.info("write data to {}...".format(self.file_path))
 
         if exists(self.file_path):
             os.remove(self.file_path)
@@ -121,10 +121,10 @@ class AmplitudeImage:
             try:
                 self.open()
             except OSError as e:
-                logger.error(msg="Could not open file: {}".format(e))
+                logger.error("Could not open file: {}".format(e))
                 fig = plt.figure(figsize=(15, 5))
                 ax = fig.add_subplot()
-                logger.error(msg="Orbit direction not available.")
+                logger.error("Orbit direction not available.")
                 return ax
 
         if ax is None:
@@ -169,7 +169,7 @@ class CoordinatesUTM:
         lat = readfile.read(input_path, datasetName='latitude')[0]
         lon = readfile.read(input_path, datasetName='longitude')[0]
 
-        log.info(msg="Transform coordinates from latitude and longitude (WGS84) to North and East (UTM).")
+        log.info("Transform coordinates from latitude and longitude (WGS84) to North and East (UTM).")
         # noinspection PyTypeChecker
         utm_crs_list = query_utm_crs_info(
             datum_name="WGS 84",
@@ -183,7 +183,7 @@ class CoordinatesUTM:
         lola2utm = Proj(utm_crs)
         self.coord_utm = np.array(lola2utm(lon, lat))
 
-        log.info(msg="write data to {}...".format(self.file_path))
+        log.info("write data to {}...".format(self.file_path))
 
         if exists(self.file_path):
             os.remove(self.file_path)
@@ -223,9 +223,9 @@ class BaseStack:
         try:
             self.f.close()
             if print_msg:
-                self.logger.info(msg='close file: {}'.format(basename(self.file)))
+                self.logger.info('close file: {}'.format(basename(self.file)))
         except Exception as e:
-            self.logger.exception(msg=e)
+            self.logger.exception(e)
             pass
         return None
 
@@ -254,7 +254,7 @@ class BaseStack:
             2D or 3D dataset
         """
         if print_msg:
-            self.logger.info(msg='reading box {} from file: {} ...'.format(box, self.file))
+            self.logger.info('reading box {} from file: {} ...'.format(box, self.file))
 
         with h5py.File(self.file, 'r') as f:
             self.metadata = dict(f.attrs)
@@ -306,7 +306,7 @@ class BaseStack:
             chunk size ('True'/'False' or tuple specifying the dimension of the chunks)
         """
         with h5py.File(self.file, mode) as f:
-            self.logger.info(msg="Prepare dataset: {d:<25} of {t:<25} in size of {s}".format(
+            self.logger.info("Prepare dataset: {d:<25} of {t:<25} in size of {s}".format(
                 d=dataset_name,
                 t=str(dtype),
                 s=dshape))
@@ -365,7 +365,7 @@ class BaseStack:
         with h5py.File(self.file, mode) as f:
 
             if print_msg:
-                self.logger.info(msg="writing dataset /{:<25} block: {}".format(dataset_name, block))
+                self.logger.info("writing dataset /{:<25} block: {}".format(dataset_name, block))
             if len(block) == 6:
                 f[dataset_name][block[0]:block[1],
                                 block[2]:block[3],
@@ -398,17 +398,17 @@ class BaseStack:
             chunk size ('True'/'False' or tuple specifying the dimension of the chunks)
         """
         # 3D dataset
-        self.logger.info(msg='create HDF5 file: {} with w mode'.format(self.file))
+        self.logger.info('create HDF5 file: {} with w mode'.format(self.file))
         self.f = h5py.File(self.file, mode)
         if dataset_name not in self.f:
-            self.logger.info(msg='create dataset /{n} of {t:<10} in size of {s}.'.format(n=dataset_name,
+            self.logger.info('create dataset /{n} of {t:<10} in size of {s}.'.format(n=dataset_name,
                                                                                          t=str(data.dtype),
                                                                                          s=data.shape))
             self.f.create_dataset(dataset_name, data=data, chunks=chunks)
         else:
-            self.logger.info(msg='overwrite dataset /{n} of {t:<10} in size of {s}.'.format(n=dataset_name,
-                                                                                            t=str(data.dtype),
-                                                                                            s=data.shape))
+            self.logger.info('overwrite dataset /{n} of {t:<10} in size of {s}.'.format(n=dataset_name,
+                                                                                        t=str(data.dtype),
+                                                                                        s=data.shape))
             self.f[dataset_name] = data
 
         # Attributes
@@ -418,7 +418,7 @@ class BaseStack:
                 self.f.attrs[key] = str(value)
 
         self.f.close()
-        self.logger.info(msg='finished writing to {}'.format(self.file))
+        self.logger.info('finished writing to {}'.format(self.file))
         return
 
 
@@ -480,7 +480,7 @@ class Points:
 
     def writeToFile(self):
         """Write data to .h5 file (num_points, coord_xy, point_id, phase)."""
-        self.logger.info(msg="write data to {}...".format(self.file_path))
+        self.logger.info("write data to {}...".format(self.file_path))
 
         if exists(self.file_path):
             os.remove(self.file_path)
@@ -510,7 +510,7 @@ class Points:
             path = other_file_path
         else:
             path = self.file_path
-        self.logger.info(msg="read from {}".format(path))
+        self.logger.info("read from {}".format(path))
 
         with h5py.File(path, 'r') as f:
             self.num_points = f.attrs["num_points"]
@@ -657,7 +657,7 @@ class Network:
 
     def writeToFile(self):
         """Write all existing data to psNetwork.h5 file."""
-        self.logger.info(msg="write data to {}...".format(self.file_path))
+        self.logger.info("write data to {}...".format(self.file_path))
 
         if exists(self.file_path):
             os.remove(self.file_path)
