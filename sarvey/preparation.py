@@ -200,6 +200,7 @@ def selectPixels(*, path: str, selection_method: str, thrsh: float,
     cmap = None
     # compute candidates
     if selection_method == "temp_coh":
+        logger.debug(f"Read temporal coherence from temporal_coherence.h5 and select pixels using threshold {thrsh}.")
         temp_coh_obj = BaseStack(file=join(path, "temporal_coherence.h5"), logger=logger)
         quality = temp_coh_obj.read(dataset_name="temp_coh")
         cand_mask = quality >= thrsh
@@ -208,7 +209,9 @@ def selectPixels(*, path: str, selection_method: str, thrsh: float,
         cmap = "autumn"
 
     if selection_method == "miaplpy":
-        raise NotImplementedError("This part is not developed yet. MiaplPy data is read in another way.")
+        error_msg = "This part is not developed yet. MiaplPy data is read in another way."
+        logger.error(error_msg)
+        raise NotImplementedError(error_msg)
         # pl_coherence = readCoherenceFromMiaplpy(path=join(path, 'inverted', 'phase_series.h5'), box=None,
         # logger=logger)
         # cand_mask = pl_coherence >= thrsh
@@ -217,8 +220,12 @@ def selectPixels(*, path: str, selection_method: str, thrsh: float,
         # unit = "Phase-Linking\nCoherence [ ]"
         # cmap = "autumn"
 
+    logger.debug(f"Number of selected pixels: {np.sum(cand_mask)}.")
     if grid_size is not None:  # -> sparse pixel selection
-        coord_utm_obj = CoordinatesUTM(file_path=join(path, "coordinates_utm.h5"), logger=logger)
+        logger.debug(f"Select sparse pixels using grid size {grid_size} m.")
+        coord_utm_file = join(path, "coordinates_utm.h5")
+        logger.debug(f"Read coordinates from {coord_utm_file}.")
+        coord_utm_obj = CoordinatesUTM(file_path=coord_utm_file, logger=logger)
         coord_utm_obj.open()
         box_list = ut.createSpatialGrid(coord_utm_img=coord_utm_obj.coord_utm,
                                         length=coord_utm_obj.coord_utm.shape[1],
@@ -226,8 +233,10 @@ def selectPixels(*, path: str, selection_method: str, thrsh: float,
                                         grid_size=grid_size)[0]
         cand_mask_sparse = ut.selectBestPointsInGrid(box_list=box_list, quality=quality, sel_min=grid_min_val)
         cand_mask &= cand_mask_sparse
+        logger.debug(f"Number of selected sparse pixels: {np.sum(cand_mask)}.")
 
     if bool_plot:
+        logger.debug("Plot selected pixels.")
         coord_xy = np.array(np.where(cand_mask)).transpose()
         bmap_obj = AmplitudeImage(file_path=join(path, "background_map.h5"))
         viewer.plotScatter(value=quality[cand_mask], coord=coord_xy, bmap_obj=bmap_obj, ttl="Selected pixels",
