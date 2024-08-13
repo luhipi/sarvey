@@ -271,7 +271,7 @@ def main(iargs=None):
     logger.setLevel(logging_level)
 
     if args.generate_config:
-        logger.info(msg=f"Write default config to file: {args.filepath}.")
+        logger.info(f"Write default config to file: {args.filepath}.")
         default_config_dict = generateTemplateFromConfigModel()
         with open(args.filepath, "w") as f:
             f.write(json5.dumps(default_config_dict, indent=4))
@@ -283,13 +283,13 @@ def main(iargs=None):
         return 0
 
     if args.stop < args.start:
-        logger.error(msg="Choose Start <= Stop!")
+        logger.error("Choose Start <= Stop!")
         raise ValueError
 
     if args.workdir is None:
         args.workdir = os.path.abspath(os.path.curdir)
     else:
-        logger.info(msg="Working directory: {}".format(args.workdir))
+        logger.info("Working directory: {}".format(args.workdir))
 
     config_file_path = os.path.abspath(join(args.workdir, args.filepath))
 

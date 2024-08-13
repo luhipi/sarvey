@@ -154,7 +154,7 @@ def exportDataToGisFormat(*, file_path: str, output_path: str, input_path: str,
 
     gdf_points = gpd.GeoDataFrame(df_points, geometry='coord')
     gdf_points = gdf_points.set_crs(CRS.from_epsg(utm_epsg))
-    logger.info(msg="write to file.")
+    logger.info("write to file.")
     gdf_points.to_file(output_path)
 
 
@@ -214,7 +214,7 @@ def main(iargs=None):
     if args.workdir is None:
         args.workdir = os.path.abspath(os.path.curdir)
     else:
-        logger.info(msg="Working directory: {}".format(args.workdir))
+        logger.info("Working directory: {}".format(args.workdir))
 
     args.log_dir = join(args.workdir, args.log_dir)
     current_datetime = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
@@ -240,9 +240,9 @@ def main(iargs=None):
         if potential_configs[potential_configs].shape[0] == 0:
             raise FileNotFoundError(f"Backup configuration file not found: {config_file_path}!")
         else:
-            logger.warning(msg=f"Backup configuration file not found: {config_file_path}!")
-            logger.warning(msg=f"Other configuration files automatically detected: {files[potential_configs]}!")
-            logger.warning(msg=f"Automatically selected configuration file: {files[potential_configs][0]}!")
+            logger.warning(f"Backup configuration file not found: {config_file_path}!")
+            logger.warning(f"Other configuration files automatically detected: {files[potential_configs]}!")
+            logger.warning(f"Automatically selected configuration file: {files[potential_configs][0]}!")
             config_file_path = files[potential_configs][0]
 
     config = loadConfiguration(path=config_file_path)
@@ -262,21 +262,21 @@ def main(iargs=None):
         elif len(name_splitted) == 2:
             output_format = name_splitted[-1]  # use specified format
             if (output_format != "shp") and (output_format != "gpkg"):
-                logger.error(msg=f"Output format not supported: {output_format}!")
+                logger.error(f"Output format not supported: {output_format}!")
                 raise ValueError
-            logger.info(msg=f"Detected output format: {output_format}.")
+            logger.info(f"Detected output format: {output_format}.")
             args.output_path = join(output_dir, output_fname)
         else:
-            logger.error(msg=f"Output format was not recognized! {output_fname}")
+            logger.error(f"Output format was not recognized! {output_fname}")
             raise ValueError
 
-    logger.info(msg=f"Output file: {args.output_path}")
+    logger.info(f"Output file: {args.output_path}")
 
     # specify geolocation status
-    logger.info(msg=f"Correct geolocation: {args.correct_geolocation}")
+    logger.info(f"Correct geolocation: {args.correct_geolocation}")
 
     # specify time series flag
-    logger.info(msg=f"Export time series data: {not args.no_timeseries}")
+    logger.info(f"Export time series data: {not args.no_timeseries}")
 
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)

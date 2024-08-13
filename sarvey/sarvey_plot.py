@@ -191,7 +191,7 @@ def plotTS(*, obj_name: str, input_path: str, logger: Logger):
     point_obj = Points(file_path=obj_name, logger=logger)
     point_obj.open(input_path=input_path)
     if point_obj.phase.shape[1] == point_obj.ifg_net_obj.num_ifgs:
-        logger.warning(msg="File contains ifg phase and not phase time series. Cannot display.")
+        logger.warning("File contains ifg phase and not phase time series. Cannot display.")
     else:
         viewer.TimeSeriesViewer(point_obj=point_obj, logger=logger, input_path=input_path)
         plt.show()
@@ -298,7 +298,7 @@ def plotAllIfgs(*, obj_name: str, save_path: str, interactive: bool = False, log
     console.showLogoSARvey(logger=logger, step="Plot interferograms")
 
     if obj_name.split("/")[-1] != "ifg_stack.h5":
-        logger.warning(msg="Cannot plot ifgs from {}".format(obj_name))
+        logger.warning("Cannot plot ifgs from {}".format(obj_name))
         return
 
     ifg_stack_obj = BaseStack(file=obj_name, logger=logger)
@@ -309,7 +309,7 @@ def plotAllIfgs(*, obj_name: str, save_path: str, interactive: bool = False, log
         ifg_net_obj = IfgNetwork()
         ifg_net_obj.open(path=path_ifg_net)
     else:
-        logger.warning(msg="'ifg_network.h5' is not available in the same directory as 'ifg_stack.h5'. "
+        logger.warning("'ifg_network.h5' is not available in the same directory as 'ifg_stack.h5'. "
                            "No baseline information available.")
         ifg_net_obj = None
 
@@ -317,7 +317,7 @@ def plotAllIfgs(*, obj_name: str, save_path: str, interactive: bool = False, log
 
     prog_bar = ptime.progressBar(maxValue=num_ifgs)
     start_time = time.time()
-    logger.info(msg="plot and save figures of ifgs.")
+    logger.info("plot and save figures of ifgs.")
     for i in range(num_ifgs):
         fig = plt.figure(figsize=[15, 5])
         ax = fig.add_subplot()
@@ -353,7 +353,7 @@ def plotAllIfgs(*, obj_name: str, save_path: str, interactive: bool = False, log
         prog_bar.update(value=i + 1, every=1, suffix='{}/{} ifgs'.format(i + 1, num_ifgs))
     prog_bar.close()
     m, s = divmod(time.time() - start_time, 60)
-    logger.debug(msg='time used: {:02.0f} mins {:02.1f} secs.'.format(m, s))
+    logger.debug('time used: {:02.0f} mins {:02.1f} secs.'.format(m, s))
 
 
 def createParser():
@@ -434,9 +434,9 @@ def main(iargs=None):
         if potential_configs[potential_configs].shape[0] == 0:
             raise FileNotFoundError(f"Backup configuration file not found: {config_file_path}!")
         else:
-            logger.warning(msg=f"Backup configuration file not found: {config_file_path}!")
-            logger.warning(msg=f"Other configuration files automatically detected: {files[potential_configs]}!")
-            logger.warning(msg=f"Automatically selected configuration file: {files[potential_configs][0]}!")
+            logger.warning(f"Backup configuration file not found: {config_file_path}!")
+            logger.warning(f"Other configuration files automatically detected: {files[potential_configs]}!")
+            logger.warning(f"Automatically selected configuration file: {files[potential_configs][0]}!")
             config_file_path = files[potential_configs][0]
 
     config = loadConfiguration(path=config_file_path)
@@ -475,7 +475,7 @@ def main(iargs=None):
         selected = True
 
     if not selected:
-        logger.info(msg="No action chosen.")
+        logger.info("No action chosen.")
 
     # close log-file to avoid problems with deleting the files
     if logger.hasHandlers():

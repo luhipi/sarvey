@@ -105,7 +105,7 @@ def downloadOSM(*, railway: bool, highway: bool, bridge: bool,
     geom_file: str
         path to geometryRadar.h5 file.
     """
-    logger.info(msg="Start creating mask file based on openstreetmap data.")
+    logger.info("Start creating mask file based on openstreetmap data.")
 
     # get bounding box
     ll_bbox, ur_bbox, img_ext, coord, atr = getSpatialExtend(geom_file=geom_file, logger=logger)
@@ -128,7 +128,7 @@ def downloadOSM(*, railway: bool, highway: bool, bridge: bool,
     gdf.to_file(join(work_dir, "bounding_box.gpkg"))
 
     if (not railway) & (not highway) & (not bridge):
-        logger.error(msg="No infrastructure type was specified.")
+        logger.error("No infrastructure type was specified.")
         return
 
     if bridge:
@@ -168,7 +168,7 @@ def downloadOSM(*, railway: bool, highway: bool, bridge: bool,
 
     # todo: check ending of output file name
     gdf.to_file(join(work_dir, out_file_name))
-    logger.info(msg="OSM download finished.")
+    logger.info("OSM download finished.")
 
 
 def main(iargs=None):
@@ -201,9 +201,9 @@ def main(iargs=None):
     else:
         work_dir = inps.work_dir
         if not os.path.exists(path=work_dir):
-            logger.info(msg='create output folder: ' + work_dir)
+            logger.info('create output folder: ' + work_dir)
             os.mkdir(path=work_dir)
-    logger.info(msg='working directory: {}'.format(work_dir))
+    logger.info('working directory: {}'.format(work_dir))
 
     downloadOSM(
         railway=inps.railway,

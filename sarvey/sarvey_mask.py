@@ -114,7 +114,7 @@ class CoordinateSearch:
             Logging handler.
         """
         self.coord = coord
-        logger.info(msg='create kd-tree for efficient search...')
+        logger.info('create kd-tree for efficient search...')
 
         if self.coord.lut_y is None or self.coord.lut_x is None:
             self.coord.open()
@@ -132,9 +132,9 @@ class CoordinateSearch:
         start_time = time.time()
         self.search_tree = spatial.KDTree(data=np.array([self.lon, self.lat]).transpose())
 
-        logger.info(msg='... done.')
+        logger.info('... done.')
         m, s = divmod(time.time() - start_time, 60)
-        logger.debug(msg='time used: {:02.0f} mins {:02.1f} secs.'.format(m, s))
+        logger.debug('time used: {:02.0f} mins {:02.1f} secs.'.format(m, s))
 
     def getMeanDistanceBetweenPixels(self):
         """Compute mean distance between adjacent pixels."""
@@ -243,7 +243,7 @@ def convertToRadarCoordPolygon(*, gdf_infra: gpd.geodataframe, csearch: Coordina
         Mask image.
     """
     # create a new image
-    logger.info(msg='create mask image...')
+    logger.info('create mask image...')
     img_pil = Image.new(mode="1",
                         size=(int(csearch.coord.src_metadata['LENGTH']), int(csearch.coord.src_metadata['WIDTH'])))
     img_pil_draw = ImageDraw.Draw(im=img_pil)
@@ -399,7 +399,7 @@ def convertToRadarCoord(*, gdf_infra: gpd.geodataframe, csearch: CoordinateSearc
         Mask image.
     """
     # create a new image
-    logger.info(msg='create mask image...')
+    logger.info('create mask image...')
     img_pil = Image.new(mode="1",
                         size=(int(csearch.coord.src_metadata['LENGTH']), int(csearch.coord.src_metadata['WIDTH'])))
     img_pil_draw = ImageDraw.Draw(im=img_pil)
@@ -554,7 +554,7 @@ def createMask(*, input_file: str, width: int, work_dir: str, out_file_name: str
     logger: logging.Logger
         Logging handler.
     """
-    logger.info(msg="Start creating mask file based on openstreetmap data.")
+    logger.info("Start creating mask file based on openstreetmap data.")
 
     # get bounding box
     _, _, _, coord, atr = getSpatialExtend(geom_file=geom_file, logger=logger)
@@ -572,7 +572,7 @@ def createMask(*, input_file: str, width: int, work_dir: str, out_file_name: str
     elif gdf_infra.geometry[0].geom_type == "Polygon":
         mask_img = convertToRadarCoordPolygon(gdf_infra=gdf_infra, csearch=csearch, width=width, logger=logger)
     else:
-        logger.error(msg=f"Geometry type is {gdf_infra.geometry[0].geom_type}."
+        logger.error(f"Geometry type is {gdf_infra.geometry[0].geom_type}."
                          f"Only 'LineString' and 'Polygon' supported!")
         raise TypeError
 
@@ -580,7 +580,7 @@ def createMask(*, input_file: str, width: int, work_dir: str, out_file_name: str
         out_file_name += ".h5"
     saveMask(work_dir=work_dir, mask=mask_img, atr=atr, out_file_name=out_file_name)
 
-    logger.info(msg="Masking finished.")
+    logger.info("Masking finished.")
 
 
 def main(iargs=None):
@@ -613,9 +613,9 @@ def main(iargs=None):
     else:
         work_dir = inps.work_dir
         if not os.path.exists(path=work_dir):
-            logger.info(msg='create output folder: ' + work_dir)
+            logger.info('create output folder: ' + work_dir)
             os.mkdir(path=work_dir)
-    logger.info(msg='working directory: {}'.format(work_dir))
+    logger.info('working directory: {}'.format(work_dir))
 
     input_file = join(work_dir, inps.input_file)
     out_file_name = join(work_dir, inps.out_file_name)
