@@ -779,6 +779,13 @@ def readPhasePatchwise(*, stack_obj: BaseStack, dataset_name: str, num_patches: 
         idx = np.argsort(np.hstack(point_id_order))
         phase_points = phase_points[idx, :]
 
+    num_valid_points = np.sum(np.logical_and(phase_points <= np.pi, phase_points >= -np.pi))
+    if num_valid_points == phase_points.size:
+        logger.debug(f"All total {phase_points.size} values in the phase array are valid.")
+    else:
+        logger.warning(f"Number of invalid values in the phase array: "
+                       f"{phase_points.size-num_valid_points}/{phase_points.size}")
+
     return phase_points
 
 
