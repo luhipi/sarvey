@@ -275,6 +275,7 @@ def createArcsBetweenPoints(*, point_obj: Points, knn: int = None, max_arc_lengt
     arcs: np.ndarray
         Arcs of the triangulation containing the indices of the points for each arc.
     """
+    logger.debug(f"Triangulate {point_obj.coord_xy.shape[0]} points.")
     triang_obj = PointNetworkTriangulation(coord_xy=point_obj.coord_xy, coord_utmxy=point_obj.coord_utm, logger=logger)
 
     if knn is not None:
@@ -282,12 +283,26 @@ def createArcsBetweenPoints(*, point_obj: Points, knn: int = None, max_arc_lengt
 
     triang_obj.triangulateGlobal()
 
-    logger.info(msg="remove arcs with length > {}.".format(max_arc_length))
+    logger.info("remove arcs with length > {}.".format(max_arc_length))
+
+    # logger.info(f"remove arcs with length > {max_arc_length} m.")
+    ut_mask = np.triu(triang_obj.dist_mat, k=1) != 0
+    logger.debug(f"Triangulation arc lengths - Min: {np.min(triang_obj.dist_mat[ut_mask]):.0f} m, "
+                 f"Max: {np.max(triang_obj.dist_mat[ut_mask]):.0f} m, "
+                 f"Mean: {np.mean(triang_obj.dist_mat[ut_mask]):.0f} m.")
     triang_obj.removeLongArcs(max_dist=max_arc_length)
 
     if not triang_obj.isConnected():
+        logger.degub("Network is not connected. Triangulate again with global delaunay.")
         triang_obj.triangulateGlobal()
 
     logger.info("retrieve arcs from adjacency matrix.")
     arcs = triang_obj.getArcsFromAdjMat()
+    logger.debug(f"Number of arcs: {arcs.shape[0]}.")
+
+    ut_mask = np.triu(triang_obj.dist_mat, k=1) != 0
+    logger.debug(f"Triangulation arc lengths - Min: {np.min(triang_obj.dist_mat[ut_mask]):.0f} m, "
+                 f"Max: {np.max(triang_obj.dist_mat[ut_mask]):.0f} m, "
+                 f"Mean: {np.mean(triang_obj.dist_mat[ut_mask]):.0f} m.")
+
     return arcs
