@@ -703,7 +703,7 @@ def readPhasePatchwise(*, stack_obj: BaseStack, dataset_name: str, num_patches: 
     stack_obj: BaseStack
         instance of class BaseStack
     dataset_name: str
-        name of the dataset to read (e.g. 'ifgs' or 'phase')
+        name of the dataset to read (e.g. 'ifgs' to read interferogram phase or 'phase' to read SLC phase)
     num_patches: int
         number of patches to split the image into
     cand_mask: np.ndarray
@@ -718,13 +718,18 @@ def readPhasePatchwise(*, stack_obj: BaseStack, dataset_name: str, num_patches: 
     phase_points: np.ndarray
         phase time series of the selected pixels
     """
+    logger.debug(f"Start reading phase patchwise with {num_patches} patch(es).")
     if dataset_name == "ifgs":
+        logger.debug("Read from interferogram stack.")
         length, width, num_images = stack_obj.getShape(dataset_name=dataset_name)
     elif dataset_name == "phase":  # result from miaplpy
+        logger.debug("Read from SLC stack.")
         num_images, length, width = stack_obj.getShape(dataset_name=dataset_name)
     else:
         logger.error(f"Reading '{dataset_name}' is not supported.")
         raise NotImplementedError
+
+    logger.debug(f"Shape of stack: {length} lines x {width} columen x {num_images} ifgs")
 
     if num_patches == 1:
         phase_img = stack_obj.read(dataset_name=dataset_name)
@@ -744,6 +749,8 @@ def readPhasePatchwise(*, stack_obj: BaseStack, dataset_name: str, num_patches: 
         point_id_order = list()
         for idx in range(num_patches):
             bbox = box_list[idx]
+            logger.debug(f"Read patch {idx + 1}/{num_patches} with bbox: {bbox}")
+
             if dataset_name == "phase":  # result from miaplpy
                 # slcStack has different order: starts with num_images. Adjust bbox (x0, y0, z0, x1, y1, z1)
                 # read whole slcStack and subset to time span outside this function.
