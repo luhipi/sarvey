@@ -101,6 +101,7 @@ class PointNetworkTriangulation:
             distance threshold on arc length in [m]
         """
         mask = self.dist_mat > max_dist
+        self.logger.debug(f"Remove {np.sum(mask)} arcs with distance longer that {max_dist}.")
         self.adj_mat[mask] = False
 
     def isConnected(self):
