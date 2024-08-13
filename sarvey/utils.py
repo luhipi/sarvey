@@ -862,7 +862,9 @@ def checkIfRequiredFilesExist(*, path_to_files: str, required_files: list, logge
         if a required file is missing
     """
     # loop over all required files and check if they exist, if not: raise error
+    logger.debug(f"Required files: {', '.join(required_files)}")
     for file in required_files:
         if not exists(join(path_to_files, file)):
             logger.error(f"File from previous step(s) is missing: {file}.")
             raise FileNotFoundError
+    logger.debug(f"All required files exist.")
