@@ -44,9 +44,9 @@ def printStep(*, step: int, step_dict: dict, logger: Logger):
     logger: Logger
         Logging handler
     """
-    logger.info(msg="    ---------------------------------------------------------------------------------")
-    logger.info(msg=f"                         STEP {step}:     {step_dict[step]}")
-    logger.info(msg="    ---------------------------------------------------------------------------------")
+    logger.info("    ---------------------------------------------------------------------------------")
+    logger.info(f"                         STEP {step}:     {step_dict[step]}")
+    logger.info("    ---------------------------------------------------------------------------------")
 
 
 def printCurrentConfig(*, config_section: dict, config_section_default: dict, logger: Logger):
@@ -62,8 +62,8 @@ def printCurrentConfig(*, config_section: dict, config_section_default: dict, lo
         Logging handler.
     """
     shift = "    "
-    logger.info(msg=shift + "{:>35} {:>15}      {:>10}".format("Parameter", "value", "default"))
-    logger.info(msg=shift + "{:>35} {:>15}      {:>10}".format("_________", "_____", "_______"))
+    logger.info(shift + "{:>35} {:>15}      {:>10}".format("Parameter", "value", "default"))
+    logger.info(shift + "{:>35} {:>15}      {:>10}".format("_________", "_____", "_______"))
 
     for key in config_section.keys():
         default = config_section_default[key]
@@ -76,11 +76,11 @@ def printCurrentConfig(*, config_section: dict, config_section_default: dict, lo
         value = "True" if value is True else value
         value = "False" if value is False else value
         if default == value:
-            logger.info(msg=shift + "{:>35} {:>15}      {:>10}".format(key, value, default))
+            logger.info(shift + "{:>35} {:>15}      {:>10}".format(key, value, default))
         else:
-            logger.info(msg=shift + "{:>35} {:>15} <--- {:>10}".format(key, value, default))
+            logger.info(shift + "{:>35} {:>15} <--- {:>10}".format(key, value, default))
 
-    logger.info(msg="")
+    logger.info("")
 
 
 def showLogoSARvey(*, logger: Logger, step: str):
@@ -95,7 +95,7 @@ def showLogoSARvey(*, logger: Logger, step: str):
     """
     # generate_from: http://patorjk.com/software/taag/  - font: Big, style: default
     # and https://textik.com/
-    logger.info(msg=f"SARvey version: {version.__version__} - {version.__versionalias__}, {version.__versiondate__}, "
+    logger.info(f"SARvey version: {version.__version__} - {version.__versionalias__}, {version.__versiondate__}, "
                     f"Run: {step}")
     new_logo = rf"""                                .            _____         _____
                       +------  / \  ------  / ____|  /\   |  __ \

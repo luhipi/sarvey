@@ -57,7 +57,7 @@ def getSpatialExtend(*, geom_file: str, logger: Logger):
     atr: dict
         metadata dictionary from geometryRadar.h5.
     """
-    logger.info(msg='read spatial extend from geometryRadar.h5')
+    logger.info('read spatial extend from geometryRadar.h5')
     _, atr = readfile.read(geom_file)
     coord = ut.coordinate(atr, lookup_file=geom_file)
     lat, atr = readfile.read(geom_file, datasetName='latitude')
@@ -101,12 +101,12 @@ def runOsmQuery(*, ll_corner_wgs: np.ndarray, ur_corner_wgs: np.ndarray, type_li
     api = overpy.Overpass()
 
     # Request data from API
-    logger.info(msg='querying OSM database for infra types...')
+    logger.info('querying OSM database for infra types...')
     # query_cmd = "way({},{},{},{}) [""highway=motorway_link""]; (._;>;); out body;"
 
     query_cmd = "[bbox: {},{},{},{}];("
     for infra_type in type_list:
-        logger.info(msg='\t - {}'.format(infra_type))
+        logger.info('\t - {}'.format(infra_type))
         if infra_type == 'rail':
             query_cmd += "way[railway={}];".format(infra_type)
         else:
@@ -116,14 +116,14 @@ def runOsmQuery(*, ll_corner_wgs: np.ndarray, ur_corner_wgs: np.ndarray, type_li
 
     cmd = query_cmd.format(ll_corner_wgs[0], ll_corner_wgs[1],
                            ur_corner_wgs[0], ur_corner_wgs[1])
-    logger.info(msg="\n" + cmd + "\n")
+    logger.info("\n" + cmd + "\n")
     result = api.query(cmd)
 
     if len(result.ways) == 0:
-        logger.error(msg='Empty OSM query results. No roads or railway tracks found.')
+        logger.error('Empty OSM query results. No roads or railway tracks found.')
         raise ValueError
 
-    logger.info(msg='...done.')
+    logger.info('...done.')
     return result
 
 
@@ -153,33 +153,33 @@ def runOsmQueryBridge(*, ll_corner_wgs: np.ndarray, ur_corner_wgs: np.ndarray, b
     api = overpy.Overpass()
 
     # Request data from API
-    logger.info(msg='querying OSM database for infra types...')
+    logger.info('querying OSM database for infra types...')
     # query_cmd = "way({},{},{},{}) [""highway=motorway_link""]; (._;>;); out body;"
 
     query_cmd = "[bbox: {},{},{},{}];("
 
     if bridge_highway:
-        logger.info(msg='\t - bridge_highway')
+        logger.info('\t - bridge_highway')
         query_cmd += 'way[highway~"^(motorway|motorway_link|trunk|trunk_link)$"][bridge];'
 
     if bridge_railway:
-        logger.info(msg='\t - bridge_railway')
+        logger.info('\t - bridge_railway')
         query_cmd += 'way[railway=rail][bridge];'
 
     if (bridge_highway is False) & (bridge_railway is False):
-        logger.info(msg='\t - all bridges')
+        logger.info('\t - all bridges')
         query_cmd += 'way[bridge];'
 
     query_cmd += ");(._; >;); out body;"  # skel
 
     cmd = query_cmd.format(ll_corner_wgs[0], ll_corner_wgs[1],
                            ur_corner_wgs[0], ur_corner_wgs[1])
-    logger.info(msg="\n" + cmd + "\n")
+    logger.info("\n" + cmd + "\n")
     result = api.query(cmd)
 
     if len(result.ways) == 0:
-        logger.error(msg='Empty OSM query results. No bridges found.')
+        logger.error('Empty OSM query results. No bridges found.')
         raise ValueError
 
-    logger.info(msg='...done.')
+    logger.info('...done.')
     return result

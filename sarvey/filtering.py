@@ -101,7 +101,7 @@ def launchSpatialFiltering(parameters: tuple):
         try:
             model.fit_variogram(x_data=bin_center, y_data=vario, nugget=True, max_eval=1500)
         except RuntimeError as err:
-            logger.error(msg="\nIMAGE {}: Not able to fit variogram! {}".format(idx_range[i], err))
+            logger.error("\nIMAGE {}: Not able to fit variogram! {}".format(idx_range[i], err))
             if bool_plot:
                 fig, ax = plt.subplots(2, figsize=[10, 5])
                 sca1 = ax[0].scatter(x, y, c=field)
@@ -198,7 +198,7 @@ def estimateAtmosphericPhaseScreen(*, residuals: np.ndarray, coord_utm1: np.ndar
     msg = "#" * 10
     msg += " ESTIMATE ATMOSPHERIC PHASE SCREEN (KRIGING) "
     msg += "#" * 10
-    logger.info(msg=msg)
+    logger.info(msg)
 
     start_time = time.time()
 
@@ -213,7 +213,7 @@ def estimateAtmosphericPhaseScreen(*, residuals: np.ndarray, coord_utm1: np.ndar
         args = (np.arange(0, num_time), num_time, residuals, coord_utm1, coord_utm2, bins, bool_plot, logger)
         _, aps1, aps2 = launchSpatialFiltering(parameters=args)
     else:
-        logger.info(msg="start parallel processing with {} cores.".format(num_cores))
+        logger.info("start parallel processing with {} cores.".format(num_cores))
         pool = multiprocessing.Pool(processes=num_cores)
 
         aps1 = np.zeros((num_points1, num_time), dtype=np.float32)
@@ -240,7 +240,7 @@ def estimateAtmosphericPhaseScreen(*, residuals: np.ndarray, coord_utm1: np.ndar
             aps2[:, i] = aps2_i
 
     m, s = divmod(time.time() - start_time, 60)
-    logger.debug(msg='time used: {:02.0f} mins {:02.1f} secs.\n'.format(m, s))
+    logger.debug('time used: {:02.0f} mins {:02.1f} secs.\n'.format(m, s))
 
     return aps1, aps2
 

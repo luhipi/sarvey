@@ -193,7 +193,7 @@ def densifyNetwork(*, point1_obj: Points, vel_p1: np.ndarray, demerr_p1: np.ndar
     msg = "#" * 10
     msg += " DENSIFICATION WITH SECOND-ORDER POINTS "
     msg += "#" * 10
-    logger.info(msg=msg)
+    logger.info(msg)
     start_time = time.time()
 
     # find the closest points from first-order network
@@ -225,7 +225,7 @@ def densifyNetwork(*, point1_obj: Points, vel_p1: np.ndarray, demerr_p1: np.ndar
         idx_range, demerr_p2, vel_p2, gamma_p2 = launchDensifyNetworkConsistencyCheck(args)
     else:
         with multiprocessing.Pool(num_cores, initializer=densificationInitializer, initargs=init_args) as pool:
-            logger.info(msg="start parallel processing with {} cores.".format(num_cores))
+            logger.info("start parallel processing with {} cores.".format(num_cores))
             num_cores = point2_obj.num_points if num_cores > point2_obj.num_points else num_cores
             # avoids having less samples than cores
             idx = ut.splitDatasetForParallelProcessing(num_samples=point2_obj.num_points, num_cores=num_cores)
@@ -260,7 +260,7 @@ def densifyNetwork(*, point1_obj: Points, vel_p1: np.ndarray, demerr_p1: np.ndar
             gamma_p2[i] = gamma_i
 
     m, s = divmod(time.time() - start_time, 60)
-    logger.debug(msg='time used: {:02.0f} mins {:02.1f} secs.\n'.format(m, s))
+    logger.debug('time used: {:02.0f} mins {:02.1f} secs.\n'.format(m, s))
 
     # combine p1 and p2 parameters and bring them in correct order using point_id
     sort_idx = np.argsort(np.append(point1_obj.point_id, point2_obj.point_id))

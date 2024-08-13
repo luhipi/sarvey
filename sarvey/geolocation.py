@@ -63,7 +63,7 @@ def getHeading(input_path: str, logger: logging.Logger):
         lower_case_meta_dict = {k.lower(): v for k, v in meta_dict.items()}
 
         heading_angle = float(lower_case_meta_dict["heading"])
-        logger.info(msg=f"Heading_angle of satellite: {heading_angle} deg")
+        logger.info(f"Heading_angle of satellite: {heading_angle} deg")
         heading_angle = np.deg2rad(heading_angle)
     except Exception as exc:
         logger.error(f'Failed to retrieve heading angle from {slc_stack_file}: {exc}')
