@@ -69,7 +69,7 @@ class Processing:
         msg = "#" * 10
         msg += " PREPARE PROCESSING: LOAD INPUT "
         msg += "#" * 10
-        log.info(msg=msg)
+        log.info(msg)
 
         # load slc data
         slc_stack_obj = slcStack(join(self.config.general.input_path, "slcStack.h5"))
@@ -79,9 +79,9 @@ class Processing:
             log.debug(f"SLC stack {key}: {val}")
 
         if "ORBIT_DIRECTION" in slc_stack_obj.metadata:
-            log.info(msg="Orbit direction: {}".format(slc_stack_obj.metadata["ORBIT_DIRECTION"]))
+            log.info("Orbit direction: {}".format(slc_stack_obj.metadata["ORBIT_DIRECTION"]))
         else:
-            log.warning(msg="No orbit direction found in metadata. Add 'ORBIT_DIRECTION' to metadata of 'slcStack.h5'"
+            log.warning("No orbit direction found in metadata. Add 'ORBIT_DIRECTION' to metadata of 'slcStack.h5'"
                             "and run again!")
             raise AttributeError("No orbit direction found in metadata.")
 
@@ -91,19 +91,19 @@ class Processing:
             date_list=slc_stack_obj.dateList,
             logger=log
         )
-        log.info(msg=f"Start date: {date_list[0]}")
-        log.info(msg=f"End date: {date_list[-1]}")
-        log.info(msg=f"Number of SLC: {num_slc}")
+        log.info(f"Start date: {date_list[0]}")
+        log.info(f"End date: {date_list[-1]}")
+        log.info(f"Number of SLC: {num_slc}")
 
         msg = "#" * 10
         msg += " DESIGN IFG NETWORK "
         msg += "#" * 10
-        log.info(msg=msg)
+        log.info(msg)
 
         log.debug("Prepare interferogram network")
         ifg_net_obj = None
         if self.config.preparation.ifg_network_type == "star":
-            log.info(msg="Star ifg network")
+            log.info("Star ifg network")
             ifg_net_obj = StarNetwork(logger=self.logger)
             ifg_net_obj.configure(
                 pbase=slc_stack_obj.pbase[time_mask],
@@ -112,7 +112,7 @@ class Processing:
                 dates=date_list
             )
         elif self.config.preparation.ifg_network_type == "sb":
-            log.info(msg="Small baseline network")
+            log.info("Small baseline network")
             ifg_net_obj = SmallBaselineNetwork(logger=self.logger)
             ifg_net_obj.configure(pbase=slc_stack_obj.pbase[time_mask],
                                   tbase=slc_stack_obj.tbase[time_mask],
@@ -120,7 +120,7 @@ class Processing:
                                   max_tbase=self.config.preparation.max_tbase,
                                   dates=date_list)
         elif self.config.preparation.ifg_network_type == "stb":
-            log.info(msg="Small temporal baseline network")
+            log.info("Small temporal baseline network")
             ifg_net_obj = SmallTemporalBaselinesNetwork(logger=self.logger)
             ifg_net_obj.configure(
                 pbase=slc_stack_obj.pbase[time_mask],
@@ -129,7 +129,7 @@ class Processing:
                 dates=date_list
             )
         elif self.config.preparation.ifg_network_type == "stb_year":
-            log.info(msg="Small temporal baseline and yearly ifg network")
+            log.info("Small temporal baseline and yearly ifg network")
             ifg_net_obj = SmallBaselineYearlyNetwork(logger=self.logger)
             ifg_net_obj.configure(
                 pbase=slc_stack_obj.pbase[time_mask],
@@ -138,7 +138,7 @@ class Processing:
                 dates=date_list
             )
         elif self.config.preparation.ifg_network_type == "delaunay":
-            log.info(msg="Delaunay ifg network")
+            log.info("Delaunay ifg network")
             ifg_net_obj = DelaunayNetwork(logger=self.logger)
             ifg_net_obj.configure(
                 pbase=slc_stack_obj.pbase[time_mask],
@@ -157,7 +157,7 @@ class Processing:
         msg = "#" * 10
         msg += f" GENERATE STACK OF {ifg_net_obj.num_ifgs} INTERFEROGRAMS & ESTIMATE TEMPORAL COHERENCE "
         msg += "#" * 10
-        log.info(msg=msg)
+        log.info(msg)
 
         box_list, num_patches = ut.preparePatches(num_patches=self.config.general.num_patches,
                                                   width=slc_stack_obj.width,
@@ -625,9 +625,9 @@ class Processing:
 
         num_p1_points_for_filtering = cand_mask_sparse[cand_mask_sparse].shape[0]
         if num_p1_points_for_filtering < 10:
-            self.logger.warning(msg=f"Only {num_p1_points_for_filtering} points for APS filtering selected. Filtering "
-                                    f"results are probably not reliable. You can e.g. increase 'max_auto_corr' or try "
-                                    f"to increase the number of first-order points during step 1 and 2.")
+            self.logger.warning(f"Only {num_p1_points_for_filtering} points for APS filtering selected. Filtering "
+                                f"results are probably not reliable. You can e.g. increase 'max_auto_corr' or try "
+                                f"to increase the number of first-order points during step 1 and 2.")
 
         point_id_img = np.arange(0, point1_obj.length * point1_obj.width).reshape(
             (point1_obj.length, point1_obj.width))
@@ -684,7 +684,7 @@ class Processing:
 
             if self.config.phase_linking.mask_phase_linking_file is not None:
                 path_mask_pl_aoi = join(self.config.phase_linking.mask_phase_linking_file)
-                self.logger.info(msg="load mask for area of interest from: {}.".format(path_mask_pl_aoi))
+                self.logger.info("load mask for area of interest from: {}.".format(path_mask_pl_aoi))
                 mask_pl_aoi = readfile.read(path_mask_pl_aoi, datasetName='mask')[0].astype(np.bool_)
 
                 fig = plt.figure(figsize=(15, 5))
@@ -713,12 +713,12 @@ class Processing:
 
         if self.config.filtering.mask_p2_file is not None:
             path_mask_aoi = join(self.config.filtering.mask_p2_file)
-            self.logger.info(msg="load mask for area of interest from: {}.".format(path_mask_aoi))
+            self.logger.info("load mask for area of interest from: {}.".format(path_mask_aoi))
             mask_aoi = readfile.read(path_mask_aoi, datasetName='mask')[0].astype(np.bool_)
             mask_valid_area &= mask_aoi
             # todo: add unstable points from p1 for densification
         else:
-            self.logger.info(msg="No mask for area of interest given.")
+            self.logger.info("No mask for area of interest given.")
 
         cand_mask2[p1_mask] = True  # add all selected 1.order points to avoid spatial gaps in 2D unwrapping
         # cand_mask2[cand_mask_sparse] = True  # add only stable points from 1.order points
@@ -756,7 +756,7 @@ class Processing:
                                                  point_id_img=point_id_img, logger=self.logger)
 
         if self.config.phase_linking.use_phase_linking_results:
-            self.logger.info(msg="read phase from MiaplPy results...")
+            self.logger.info("read phase from MiaplPy results...")
             phase_linking_obj = BaseStack(
                 file=join(self.config.phase_linking.inverted_path, "phase_series.h5"),
                 logger=self.logger
@@ -822,7 +822,7 @@ class Processing:
             msg = "#" * 10
             msg += " SKIP ATMOSPHERIC FILTERING! "
             msg += "#" * 10
-            self.logger.info(msg=msg)
+            self.logger.info(msg)
             num_points1 = phase_for_aps_filtering.shape[0]
             num_points2 = aps2_obj.coord_utm.shape[0]
             num_time = phase_for_aps_filtering.shape[1]
@@ -977,8 +977,8 @@ class Processing:
         plt.close(fig)
 
         mask_gamma = gamma >= self.config.densification.arc_unwrapping_coherence
-        self.logger.info(msg=f"Reduce the dense point set by {mask_gamma[~mask_gamma].shape[0]} points,")
-        self.logger.info(msg=f"due to coherence from temporal unwrapping < "
+        self.logger.info(f"Reduce the dense point set by {mask_gamma[~mask_gamma].shape[0]} points,")
+        self.logger.info(f"due to coherence from temporal unwrapping < "
                              f"{self.config.densification.arc_unwrapping_coherence}")
         point2_obj.removePoints(mask=mask_gamma, keep_id=[], input_path=self.config.general.input_path)
 
@@ -1013,7 +1013,7 @@ class Processing:
         fig.savefig(join(self.path, "pic", "step_4_estimation_dem_correction_p2_coh{}.png".format(coh_value)), dpi=300)
         plt.close(fig)
 
-        self.logger.info(msg="Remove phase contributions from mean velocity "
+        self.logger.info("Remove phase contributions from mean velocity "
                              "and DEM correction from wrapped phase of points.")
         pred_phase_demerr, pred_phase_vel = ut.predictPhase(
             obj=point2_obj,
@@ -1038,7 +1038,7 @@ class Processing:
                                           edges=arcs,
                                           num_cores=self.config.general.num_cores, logger=self.logger)
 
-        self.logger.info(msg="Add phase contributions from mean velocity "
+        self.logger.info("Add phase contributions from mean velocity "
                              "and DEM correction back to spatially unwrapped residual phase.")
         unw_phase = unw_res_phase + pred_phase
 
