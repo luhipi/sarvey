@@ -63,7 +63,7 @@ class PointNetworkTriangulation:
         self.adj_mat = lil_matrix((num_points, num_points), dtype=np.bool_)
 
         if coord_utmxy is not None:
-            logger.info(msg="create distance matrix between all points...")
+            logger.info("create distance matrix between all points...")
             self.dist_mat = distance_matrix(coord_utmxy, coord_utmxy)
             # todo: check out alternatives:
             #       scipy.spatial.KDTree.sparse_distance_matrix
@@ -113,7 +113,7 @@ class PointNetworkTriangulation:
 
     def triangulateGlobal(self):
         """Connect the points with a GLOBAL delaunay triangulation."""
-        self.logger.info(msg="Triangulate points with global delaunay.")
+        self.logger.info("Triangulate points with global delaunay.")
 
         network = Delaunay(points=self.coord_xy)
         for p1, p2, p3 in network.simplices:
@@ -132,7 +132,7 @@ class PointNetworkTriangulation:
 
         if k > num_points:
             k = num_points
-            self.logger.info(msg="k > number of points. Connect all points with each other.")
+            self.logger.info("k > number of points. Connect all points with each other.")
         for p1 in range(num_points):
             idx = tree.query(self.coord_xy[p1, :], k)[1]
             self.adj_mat[p1, idx] = True
@@ -141,4 +141,4 @@ class PointNetworkTriangulation:
                             suffix='{}/{} points triangulated'.format(count + 1, num_points + 1))
         prog_bar.close()
         m, s = divmod(time.time() - start_time, 60)
-        self.logger.debug(msg='time used: {:02.0f} mins {:02.1f} secs.'.format(m, s))
+        self.logger.debug('time used: {:02.0f} mins {:02.1f} secs.'.format(m, s))

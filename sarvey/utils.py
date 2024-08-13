@@ -80,7 +80,7 @@ def invertIfgNetwork(*, phase: np.ndarray, num_points: int, ifg_net_obj: IfgNetw
     msg = "#" * 10
     msg += " INVERT IFG NETWORK "
     msg += "#" * 10
-    logger.info(msg=msg)
+    logger.info(msg)
 
     start_time = time.time()
     design_mat = ifg_net_obj.getDesignMatrix()
@@ -91,7 +91,7 @@ def invertIfgNetwork(*, phase: np.ndarray, num_points: int, ifg_net_obj: IfgNetw
     else:
         # use only 10 percent of the cores, because scipy.sparse.linalg.lsqr is already running in parallel
         num_cores = int(np.floor(num_cores / 10))
-        logger.info(msg="start parallel processing with {} cores.".format(num_cores))
+        logger.info("start parallel processing with {} cores.".format(num_cores))
         pool = multiprocessing.Pool(processes=num_cores)
 
         phase_ts = np.zeros((num_points, ifg_net_obj.num_images), dtype=np.float32)
@@ -113,7 +113,7 @@ def invertIfgNetwork(*, phase: np.ndarray, num_points: int, ifg_net_obj: IfgNetw
             phase_ts[i, :] = phase_i
 
     m, s = divmod(time.time() - start_time, 60)
-    logger.debug(msg='time used: {:02.0f} mins {:02.1f} secs.'.format(m, s))
+    logger.debug('time used: {:02.0f} mins {:02.1f} secs.'.format(m, s))
     return phase_ts
 
 
@@ -200,7 +200,7 @@ def predictPhase(*, obj: [NetworkParameter, Points], vel: np.ndarray = None, dem
     """
     if isinstance(obj, Points):
         if (vel is None) or (demerr is None):
-            logger.error(msg="Both 'vel' and 'demerr' are needed if 'obj' is instance of class 'points'!")
+            logger.error("Both 'vel' and 'demerr' are needed if 'obj' is instance of class 'points'!")
             raise ValueError
         pred_phase_demerr, pred_phase_vel = predictPhaseCore(
             ifg_net_obj=obj.ifg_net_obj,
@@ -222,7 +222,7 @@ def predictPhase(*, obj: [NetworkParameter, Points], vel: np.ndarray = None, dem
             ifg_space=ifg_space
         )
     else:
-        logger.error(msg="'obj' must be instance of 'points' or 'networkParameter'!")
+        logger.error("'obj' must be instance of 'points' or 'networkParameter'!")
         raise TypeError
     return pred_phase_demerr, pred_phase_vel
 
@@ -509,7 +509,7 @@ def preparePatches(*, num_patches: int, width: int, length: int, logger: Logger)
                                                          width=width,
                                                          num_box_az=patch_size_lut[num_patches][1],
                                                          num_box_rng=patch_size_lut[num_patches][0])
-        logger.info(msg=f"Process {num_patches} patches " +
+        logger.info(f"Process {num_patches} patches " +
                     f"({patch_size_lut[num_patches][1]} x {patch_size_lut[num_patches][0]}).")
     return box_list, num_patches
 
@@ -767,7 +767,7 @@ def readPhasePatchwise(*, stack_obj: BaseStack, dataset_name: str, num_patches: 
             cur_point_id = point_id_img[bbox[1]:bbox[3], bbox[0]:bbox[2]]
             cur_point_id = cur_point_id[cur_cand_mask]
             point_id_order.append(cur_point_id)
-            logger.info(msg="\r\033[KPatches read:\t {}/{}".format(idx + 1, num_patches))
+            logger.info("\r\033[KPatches read:\t {}/{}".format(idx + 1, num_patches))
         # reorder points to fit to the same structure for all datasets
         idx = np.argsort(np.hstack(point_id_order))
         phase_points = phase_points[idx, :]
@@ -794,7 +794,7 @@ def detectValidAreas(*, bmap_obj: AmplitudeImage, logger: Logger):
     mask_valid_area = (10 ** (bmap_obj.background_map / 10)) > 0
     num_invalid = mask_valid_area[~mask_valid_area].shape[0]
     if num_invalid > 0:
-        logger.info(msg=f"Number of invalid pixels found in image: {num_invalid}")
+        logger.info(f"Number of invalid pixels found in image: {num_invalid}")
     return mask_valid_area
 
 
