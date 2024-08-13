@@ -87,20 +87,20 @@ def createTimeMaskFromDates(*, start_date: str, stop_date: str, date_list: list,
         stop_date = datetime.date.fromisoformat(stop_date)
 
     if start_date >= stop_date:
-        logger.error(msg="Choose start date < stop date!")
+        logger.error("Choose start date < stop date!")
         raise ValueError
 
     if stop_date < min(date_list):
-        logger.error(msg="Stop date is before the first acquired image. Choose a later stop date!")
+        logger.error("Stop date is before the first acquired image. Choose a later stop date!")
         raise ValueError
 
     if start_date > max(date_list):
-        logger.error(msg="Start date is after the last acquired image. Choose an earlier start date!")
+        logger.error("Start date is after the last acquired image. Choose an earlier start date!")
         raise ValueError
 
     shift = "    "
-    logger.debug(msg=shift + "{:>10} {:>10}".format("   Date   ", "Selected"))
-    logger.debug(msg=shift + "{:>10} {:>10}".format("__________", "________"))
+    logger.debug(shift + "{:>10} {:>10}".format("   Date   ", "Selected"))
+    logger.debug(shift + "{:>10} {:>10}".format("__________", "________"))
 
     result_date_list = list()
     for i, date in enumerate(date_list):
@@ -109,7 +109,7 @@ def createTimeMaskFromDates(*, start_date: str, stop_date: str, date_list: list,
         else:
             result_date_list.append(date.isoformat())
         val = "      x" if time_mask[i] else ""
-        logger.debug(msg=shift + f"{date.isoformat():>10} {val:>3}")
+        logger.debug(shift + f"{date.isoformat():>10} {val:>3}")
 
     num_slc = time_mask[time_mask].shape[0]
     total_num_slc = time_mask.shape[0]
@@ -136,13 +136,13 @@ def readSlcFromMiaplpy(*, path: str, box: tuple = None, logger: Logger) -> np.nd
     slc: np.ndarray
         slc stack created from phase-linking results.
     """
-    logger.info(msg="read phase from MiaplPy results...")
+    logger.info("read phase from MiaplPy results...")
     phase = readfile.read(path, datasetName='phase', box=box)[0]
 
-    logger.info(msg="read amplitude from MiaplPy results...")
+    logger.info("read amplitude from MiaplPy results...")
     amp = readfile.read(path, datasetName='amplitude', box=box)[0]
 
-    logger.info(msg="combine phase and amplitude to slc...")
+    logger.info("combine phase and amplitude to slc...")
     slc = amp * np.exp(phase * 1j)
     return slc
 
@@ -164,7 +164,7 @@ def readCoherenceFromMiaplpy(*, path: str, box: tuple = None, logger: Logger) ->
     temp_coh: np.ndarray
         temporal coherence image from phase-linking results of MiaplPy.
     """
-    logger.info(msg="read quality from MiaplPy results...")
+    logger.info("read quality from MiaplPy results...")
     temp_coh = readfile.read(path, datasetName='temporalCoherence', box=box)[0][1, :, :]
     return temp_coh
 
@@ -279,6 +279,6 @@ def createArcsBetweenPoints(*, point_obj: Points, knn: int = None, max_arc_lengt
     if not triang_obj.isConnected():
         triang_obj.triangulateGlobal()
 
-    logger.info(msg="retrieve arcs from adjacency matrix.")
+    logger.info("retrieve arcs from adjacency matrix.")
     arcs = triang_obj.getArcsFromAdjMat()
     return arcs
