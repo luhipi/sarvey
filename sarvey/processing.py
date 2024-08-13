@@ -253,6 +253,9 @@ class Processing:
             grid_size=self.config.consistency_check.grid_size, bool_plot=True, logger=log
         )
 
+        total_num_pixels = length * width
+        log.debug(f"Number of initial 1st order point candidates: {np.sum(cand_mask1)}/{total_num_pixels}")
+
         bmap_obj = AmplitudeImage(file_path=join(self.path, "background_map.h5"))
         mask_valid_area = ut.detectValidAreas(bmap_obj=bmap_obj, logger=log)
 
