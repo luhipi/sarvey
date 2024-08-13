@@ -704,9 +704,10 @@ class Network:
         arcs: np.ndarray
             Array with the indices of the points connected by an arc.
         """
+        self.logger.debug("Compute arc observations.")
         self.arcs = arcs
         self.num_arcs = self.arcs.shape[0]
-        self.logger.info(msg="no. arcs:\t{}".format(self.num_arcs))
+        self.logger.info(f"no. arcs:\t{self.num_arcs}")
 
         self.phase = np.zeros((self.num_arcs, point_obj.ifg_net_obj.num_ifgs))
         self.loc_inc = np.zeros((self.num_arcs,))
@@ -717,7 +718,24 @@ class Network:
             self.loc_inc[idx] = np.mean([point_obj.loc_inc[arc[0]], point_obj.loc_inc[arc[1]]])
             self.slant_range[idx] = np.mean([point_obj.slant_range[arc[0]], point_obj.slant_range[arc[1]]])
 
-        self.logger.info(msg="ifg arc observations created.")
+        self.logger.debug(f"arc observations local incidence angle - "
+                          f"Min:{np.min(self.loc_inc):.1f}, "
+                          f"Max:{np.max(self.loc_inc):.1f}, "
+                          f"Mean:{np.mean(self.loc_inc):.1f}")
+        self.logger.debug(f"arc observations slant_range - "
+                          f"Min:{np.min(self.slant_range):.1f}, "
+                          f"Max:{np.max(self.slant_range):.1f}, "
+                          f"Mean:{np.mean(self.slant_range):.1f}")
+
+        num_valid_arc_phase = np.sum(np.logical_and(self.phase <= np.pi, self.phase >= -np.pi), axis=1)
+        num_invalid_arcs = np.sum(num_valid_arc_phase != self.phase.shape[1])
+        if num_invalid_arcs == 0:
+            self.logger.debug(f"All arc phases values are valid.")
+        else:
+            self.logger.warning(f"Number of arcs with invalid phase values: "
+                                f"{num_invalid_arcs}/{self.num_arcs}")
+
+        self.logger.info("ifg arc observations created.")
 
     def removeArcs(self, *, mask: np.ndarray):
         """Remove arcs from the list of arcs in the network.
