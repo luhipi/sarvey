@@ -79,7 +79,8 @@ class Processing:
             log.debug(f"SLC stack {key}: {val}")
 
         if "ORBIT_DIRECTION" in slc_stack_obj.metadata:
-            log.info("Orbit direction: {}".format(slc_stack_obj.metadata["ORBIT_DIRECTION"]))
+            orbit_direction = slc_stack_obj.metadata["ORBIT_DIRECTION"]
+            log.info(f"Orbit direction: {orbit_direction}")
         else:
             log.warning("No orbit direction found in metadata. Add 'ORBIT_DIRECTION' to metadata of 'slcStack.h5'"
                             "and run again!")
