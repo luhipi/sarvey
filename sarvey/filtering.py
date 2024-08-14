@@ -240,7 +240,7 @@ def estimateAtmosphericPhaseScreen(*, residuals: np.ndarray, coord_utm1: np.ndar
             aps2[:, i] = aps2_i
 
     m, s = divmod(time.time() - start_time, 60)
-    logger.debug('time used: {:02.0f} mins {:02.1f} secs.\n'.format(m, s))
+    logger.debug(f"time used: {m:02.0f} mins {s:02.1f} secs.\n")
 
     return aps1, aps2
 

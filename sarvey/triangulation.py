@@ -124,7 +124,7 @@ class PointNetworkTriangulation:
 
     def triangulateKnn(self, *, k: int):
         """Connect points to the k-nearest neighbours."""
-        self.logger.info("Triangulate points with {}-nearest neighbours.".format(k))
+        self.logger.info(f"Triangulate points with {k}-nearest neighbours.")
         num_points = self.coord_xy.shape[0]
         prog_bar = ptime.progressBar(maxValue=num_points)
         start_time = time.time()
@@ -142,4 +142,4 @@ class PointNetworkTriangulation:
                             suffix='{}/{} points triangulated'.format(count + 1, num_points + 1))
         prog_bar.close()
         m, s = divmod(time.time() - start_time, 60)
-        self.logger.debug('time used: {:02.0f} mins {:02.1f} secs.'.format(m, s))
+        self.logger.debug(f"time used: {m:02.0f} mins {s:02.1f} secs.")

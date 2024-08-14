@@ -345,7 +345,7 @@ def temporalUnwrapping(*, ifg_net_obj: IfgNetwork, net_obj: Network,  wavelength
             net_obj.slant_range, net_obj.loc_inc, ifg_net_obj, wavelength, velocity_bound, demerr_bound, num_samples)
         arc_idx_range, demerr, vel, gamma = launchAmbiguityFunctionSearch(parameters=args)
     else:
-        logger.info("start parallel processing with {} cores.".format(num_cores))
+        logger.info(f"start parallel processing with {num_cores} cores.")
         pool = multiprocessing.Pool(processes=num_cores)
 
         demerr = np.zeros((net_obj.num_arcs, 1), dtype=np.float32)
@@ -378,7 +378,7 @@ def temporalUnwrapping(*, ifg_net_obj: IfgNetwork, net_obj: Network,  wavelength
 
     m, s = divmod(time.time() - start_time, 60)
     logger.info("Finished temporal unwrapping.")
-    logger.debug('time used: {:02.0f} mins {:02.1f} secs.'.format(m, s))
+    logger.debug(f"time used: {m:02.0f} mins {s:02.1f} secs.")
     return demerr, vel, gamma
 
 
@@ -474,7 +474,7 @@ def spatialUnwrapping(*, num_ifgs: int, num_points: int, phase: np.ndarray, edge
         )
         idx_range, unw_phase = launchSpatialUnwrapping(parameters=parameters)
     else:
-        logger.info("start parallel processing with {} cores.".format(num_cores))
+        logger.info(f"start parallel processing with {num_cores} cores.")
         pool = multiprocessing.Pool(processes=num_cores)
 
         unw_phase = np.zeros((num_points, num_ifgs), dtype=np.float32)
@@ -496,7 +496,7 @@ def spatialUnwrapping(*, num_ifgs: int, num_points: int, phase: np.ndarray, edge
             unw_phase[:, i] = phase
 
     m, s = divmod(time.time() - start_time, 60)
-    logger.debug('time used: {:02.0f} mins {:02.1f} secs.'.format(m, s))
+    logger.debug("time used: {m:02.0f} mins {s:02.1f} secs.")
 
     return unw_phase
 
@@ -641,7 +641,7 @@ def spatialParameterIntegrationIterative(*,
     val_points[points_idx] = x_hat
 
     m, s = divmod(time.time() - start_time, 60)
-    logger.debug('time used: {:02.0f} mins {:02.1f} secs.\n'.format(m, s))
+    logger.debug(f"time used: {m:02.0f} mins {s:02.1f} secs.\n")
 
     return val_points
 
@@ -701,7 +701,7 @@ def spatialParameterIntegration(*,
     x_hat = lsqr(design_mat, obv_vec)[0]
 
     m, s = divmod(time.time() - start_time, 60)
-    logger.debug('time used: {:02.0f} mins {:02.1f} secs.'.format(m, s))
+    logger.debug(f"time used: {m:02.0f} mins {s:02.1f} secs.")
 
     val_points = np.zeros((num_points,))
     points_idx = np.ones((num_points,), dtype=bool)
@@ -838,7 +838,7 @@ def removeArcsByPointMask(*, net_obj: Union[Network, NetworkParameter], point_id
         net_obj.arcs[np.where((net_obj.arcs[:, 0] > p_idx)), 0] -= 1
         net_obj.arcs[np.where((net_obj.arcs[:, 1] > p_idx)), 1] -= 1
 
-    logger.info("Removed {} arc(s) connected to the removed point(s)".format(a_idx.size))
+    logger.info(f"Removed {a_idx.size} arc(s) connected to the removed point(s)")
     return net_obj, point_id, coord_xy, design_mat
 
 
@@ -873,28 +873,27 @@ def removeGrossOutliers(*, net_obj: Network, point_id: np.ndarray, coord_xy: np.
     a: np.ndarray
         Design matrix describing the relation between arcs and points without the removed points and arcs.
     """
-    logger.info("Detect points with low quality arcs (mean): < {}".format(quality_thrsh))
+    logger.info(f"Detect points with low quality arcs (mean): < {quality_thrsh}")
     mean_gamma_point = computeAvgCoherencePerPoint(net_obj=net_obj,
                                                    point_id=point_id, logger=logger)
     # not yet removed, because arcs are removed separately
     p_mask_mean_coh = (mean_gamma_point >= quality_thrsh).ravel()
-    logger.info("Detected {} point(s) with mean coherence of all connected arcs < {} ".format(
-        p_mask_mean_coh[~p_mask_mean_coh].shape[0], quality_thrsh))
+    logger.info(f"Detected {p_mask_mean_coh[~p_mask_mean_coh].shape[0]} point(s) "
+                f"with mean coherence of all connected arcs < {quality_thrsh}.")
 
-    logger.info("Removal of low quality arcs: < {}".format(quality_thrsh))
+    logger.info(f"Removal of low quality arcs: < {quality_thrsh}")
     a_mask = (net_obj.gamma >= quality_thrsh).ravel()
-    logger.info("Removed {} arc(s)".format(a_mask[~a_mask].shape[0]))
+    logger.info(f"Removed {a_mask[~a_mask].shape[0]} arc(s)")
     net_obj.removeArcs(mask=a_mask)
 
     design_mat, arcs_per_point = computeNumArcsPerPoints(net_obj=net_obj, point_id=point_id, logger=logger)
 
     p_mask_num_arcs = (arcs_per_point >= min_num_arc).ravel()
-    logger.info("Detected {} point(s) with less than {} arcs".format(p_mask_num_arcs[~p_mask_num_arcs].shape[0],
-                                                                         min_num_arc))
+    logger.info(f"Detected {p_mask_num_arcs[~p_mask_num_arcs].shape[0]} point(s) with less than {min_num_arc} arcs")
 
     # remove them jointly
     p_mask = p_mask_num_arcs & p_mask_mean_coh
-    logger.info("Remove {} point(s)".format(p_mask[~p_mask].shape[0]))
+    logger.info(f"Remove {p_mask[~p_mask].shape[0]} point(s)")
     net_obj, point_id, coord_xy, design_mat = removeArcsByPointMask(net_obj=net_obj, point_id=point_id,
                                                                     coord_xy=coord_xy, p_mask=p_mask,
                                                                     design_mat=design_mat, logger=logger)
@@ -967,7 +966,7 @@ def parameterBasedNoisyPointRemoval(*, net_par_obj: NetworkParameter, point_id: 
 
     it_count = 0
     while True:
-        logger.info("ITERATION: {}".format(it_count))
+        logger.info(f"ITERATION: {it_count}")
         design_mat = csr_matrix(design_mat)
 
         if structural_rank(design_mat) < design_mat.shape[1]:
@@ -994,8 +993,8 @@ def parameterBasedNoisyPointRemoval(*, net_par_obj: NetworkParameter, point_id: 
 
         rmse = rmse_vel.copy()
         max_rmse = np.max(rmse.ravel())
-        logger.info("Maximum RMSE DEM correction: {:.2f} m".format(np.max(rmse_demerr.ravel())))
-        logger.info("Maximum RMSE velocity: {:.4f} m / year".format(np.max(rmse_vel.ravel())))
+        logger.info(f"Maximum RMSE DEM correction: {np.max(rmse_demerr.ravel()):.2f} m")
+        logger.info(f"Maximum RMSE velocity: {np.max(rmse_vel.ravel()):.4f} m / year")
 
         if bool_plot:
             # vel
@@ -1038,7 +1037,7 @@ def parameterBasedNoisyPointRemoval(*, net_par_obj: NetworkParameter, point_id: 
         it_count += 1
 
     m, s = divmod(time.time() - start_time, 60)
-    logger.debug('time used: {:02.0f} mins {:02.1f} secs.'.format(m, s))
+    logger.debug(f"time used: {m:02.0f} mins {s:02.1f} secs.")
 
     # add spatialRefIdx back to point_id
     point_id = np.sort(np.hstack([spatial_ref_id, point_id]))

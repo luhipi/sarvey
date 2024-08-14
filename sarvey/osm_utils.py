@@ -106,7 +106,7 @@ def runOsmQuery(*, ll_corner_wgs: np.ndarray, ur_corner_wgs: np.ndarray, type_li
 
     query_cmd = "[bbox: {},{},{},{}];("
     for infra_type in type_list:
-        logger.info('\t - {}'.format(infra_type))
+        logger.info(f"\t - {infra_type}")
         if infra_type == 'rail':
             query_cmd += "way[railway={}];".format(infra_type)
         else:

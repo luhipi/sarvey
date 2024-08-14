@@ -371,7 +371,7 @@ class Processing:
             plt.tight_layout()
             fig.savefig(join(self.path, "pic", "step_1_arc_coherence.png"), dpi=300)
         except BaseException as e:
-            log.exception("NOT POSSIBLE TO PLOT SPATIAL NETWORK OF POINTS. {}".format(e))
+            log.exception(f"NOT POSSIBLE TO PLOT SPATIAL NETWORK OF POINTS. {e}")
 
         net_par_obj, point_id, coord_xy, design_mat = removeGrossOutliers(
             net_obj=net_par_obj,
@@ -396,7 +396,7 @@ class Processing:
             plt.tight_layout()
             fig.savefig(join(self.path, "pic", "step_1_arc_coherence_reduced.png"), dpi=300)
         except BaseException as e:
-            log.exception("NOT POSSIBLE TO PLOT SPATIAL NETWORK OF POINTS. {}".format(e))
+            log.exception(f"NOT POSSIBLE TO PLOT SPATIAL NETWORK OF POINTS. {e}")
 
         spatial_ref_id, point_id, net_par_obj = parameterBasedNoisyPointRemoval(
             net_par_obj=net_par_obj,
@@ -707,7 +707,7 @@ class Processing:
 
             if self.config.phase_linking.mask_phase_linking_file is not None:
                 path_mask_pl_aoi = join(self.config.phase_linking.mask_phase_linking_file)
-                self.logger.info("load mask for area of interest from: {}.".format(path_mask_pl_aoi))
+                self.logger.info(f"load mask for area of interest from: {path_mask_pl_aoi}.")
                 mask_pl_aoi = readfile.read(path_mask_pl_aoi, datasetName='mask')[0].astype(np.bool_)
 
                 fig = plt.figure(figsize=(15, 5))
@@ -736,7 +736,7 @@ class Processing:
 
         if self.config.filtering.mask_p2_file is not None:
             path_mask_aoi = join(self.config.filtering.mask_p2_file)
-            self.logger.info("load mask for area of interest from: {}.".format(path_mask_aoi))
+            self.logger.info(f"load mask for area of interest from: {path_mask_aoi}.")
             mask_aoi = readfile.read(path_mask_aoi, datasetName='mask')[0].astype(np.bool_)
             mask_valid_area &= mask_aoi
             # todo: add unstable points from p1 for densification

@@ -99,8 +99,8 @@ def createTimeMaskFromDates(*, start_date: str, stop_date: str, date_list: list,
         raise ValueError
 
     shift = "    "
-    logger.debug(shift + "{:>10} {:>10}".format("   Date   ", "Selected"))
-    logger.debug(shift + "{:>10} {:>10}".format("__________", "________"))
+    logger.debug(shift + f"{'   Date   ':>10} {'Selected':>10}")
+    logger.debug(shift + f"{'__________':>10} {'________':>10}")
 
     result_date_list = list()
     for i, date in enumerate(date_list):
@@ -283,7 +283,7 @@ def createArcsBetweenPoints(*, point_obj: Points, knn: int = None, max_arc_lengt
 
     triang_obj.triangulateGlobal()
 
-    logger.info("remove arcs with length > {}.".format(max_arc_length))
+    logger.info(f"remove arcs with length > {max_arc_length}.")
 
     # logger.info(f"remove arcs with length > {max_arc_length} m.")
     ut_mask = np.triu(triang_obj.dist_mat, k=1) != 0

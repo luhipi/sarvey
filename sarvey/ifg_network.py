@@ -124,7 +124,7 @@ class IfgNetwork:
         logger: Logger
             Logging handler.
         """
-        self.logger.info("write IfgNetwork to {}".format(path))
+        self.logger.info(f"write IfgNetwork to {path}")
 
         self.logger.debug(f"Image stack perpendicular baselines (m):\n{self.pbase.astype(int)}")
         self.logger.debug(f"Image stack temporl baselines (days):\n{np.round(self.tbase*365.25).astype(int)}")

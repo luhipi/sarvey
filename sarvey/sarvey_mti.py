@@ -289,7 +289,7 @@ def main(iargs=None):
     if args.workdir is None:
         args.workdir = os.path.abspath(os.path.curdir)
     else:
-        logger.info("Working directory: {}".format(args.workdir))
+        logger.info(f"Working directory: {args.workdir}")
 
     config_file_path = os.path.abspath(join(args.workdir, args.filepath))
 

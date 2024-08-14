@@ -214,7 +214,7 @@ def main(iargs=None):
     if args.workdir is None:
         args.workdir = os.path.abspath(os.path.curdir)
     else:
-        logger.info("Working directory: {}".format(args.workdir))
+        logger.info(f"Working directory: {args.workdir}")
 
     args.log_dir = join(args.workdir, args.log_dir)
     current_datetime = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())

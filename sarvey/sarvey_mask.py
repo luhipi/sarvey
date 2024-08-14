@@ -134,7 +134,7 @@ class CoordinateSearch:
 
         logger.info('... done.')
         m, s = divmod(time.time() - start_time, 60)
-        logger.debug('time used: {:02.0f} mins {:02.1f} secs.'.format(m, s))
+        logger.debug(f"time used: {m:02.0f} mins {s:02.1f} secs.")
 
     def getMeanDistanceBetweenPixels(self):
         """Compute mean distance between adjacent pixels."""
@@ -615,7 +615,7 @@ def main(iargs=None):
         if not os.path.exists(path=work_dir):
             logger.info('create output folder: ' + work_dir)
             os.mkdir(path=work_dir)
-    logger.info('working directory: {}'.format(work_dir))
+    logger.info(f"working directory: {work_dir}")
 
     input_file = join(work_dir, inps.input_file)
     out_file_name = join(work_dir, inps.out_file_name)

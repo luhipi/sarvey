@@ -62,8 +62,8 @@ def printCurrentConfig(*, config_section: dict, config_section_default: dict, lo
         Logging handler.
     """
     shift = "    "
-    logger.info(shift + "{:>35} {:>15}      {:>10}".format("Parameter", "value", "default"))
-    logger.info(shift + "{:>35} {:>15}      {:>10}".format("_________", "_____", "_______"))
+    logger.info(shift + f"{'Parameter':>35} {'value':>15}      {'default':>10}")
+    logger.info(shift + f"{'_________':>35} {'_____':>15}      {'_______':>10}")
 
     for key in config_section.keys():
         default = config_section_default[key]
@@ -76,9 +76,9 @@ def printCurrentConfig(*, config_section: dict, config_section_default: dict, lo
         value = "True" if value is True else value
         value = "False" if value is False else value
         if default == value:
-            logger.info(shift + "{:>35} {:>15}      {:>10}".format(key, value, default))
+            logger.info(shift + f"{key:>35} {value:>15}      {default:>10}")
         else:
-            logger.info(shift + "{:>35} {:>15} <--- {:>10}".format(key, value, default))
+            logger.info(shift + f"{key:>35} {value:>15} <--- {default:>10}")
 
     logger.info("")
 

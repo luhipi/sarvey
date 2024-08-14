@@ -203,7 +203,7 @@ def main(iargs=None):
         if not os.path.exists(path=work_dir):
             logger.info('create output folder: ' + work_dir)
             os.mkdir(path=work_dir)
-    logger.info('working directory: {}'.format(work_dir))
+    logger.info(f"working directory: {work_dir}")
 
     downloadOSM(
         railway=inps.railway,

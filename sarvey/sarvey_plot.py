@@ -298,7 +298,7 @@ def plotAllIfgs(*, obj_name: str, save_path: str, interactive: bool = False, log
     console.showLogoSARvey(logger=logger, step="Plot interferograms")
 
     if obj_name.split("/")[-1] != "ifg_stack.h5":
-        logger.warning("Cannot plot ifgs from {}".format(obj_name))
+        logger.warning(f"Cannot plot ifgs from {obj_name}")
         return
 
     ifg_stack_obj = BaseStack(file=obj_name, logger=logger)
@@ -353,7 +353,7 @@ def plotAllIfgs(*, obj_name: str, save_path: str, interactive: bool = False, log
         prog_bar.update(value=i + 1, every=1, suffix='{}/{} ifgs'.format(i + 1, num_ifgs))
     prog_bar.close()
     m, s = divmod(time.time() - start_time, 60)
-    logger.debug('time used: {:02.0f} mins {:02.1f} secs.'.format(m, s))
+    logger.debug(f"time used: {b:02.0f} mins {s:02.1f} secs.")
 
 
 def createParser():
@@ -420,7 +420,7 @@ def main(iargs=None):
     logger.addHandler(console_handler)
     logger.setLevel(logging_level)
 
-    logger.info("Working directory: {}".format(args.workdir))
+    logger.info(f"Working directory: {args.workdir}")
     args.input_file = join(args.workdir, args.input_file)
 
     config_file_path = os.path.abspath(join(args.workdir, dirname(args.input_file), "config.json"))

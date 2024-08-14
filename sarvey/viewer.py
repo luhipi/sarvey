@@ -501,7 +501,7 @@ class TimeSeriesViewer:
 
         Update the plot of the velocity and time series.
         """
-        self.logger.info("changed reference to ID: {}".format(self.point_obj.point_id[self.ts_refpoint_idx]))
+        self.logger.info(f"changed reference to ID: {self.point_obj.point_id[self.ts_refpoint_idx]}")
         self.point_obj.phase -= self.point_obj.phase[self.ts_refpoint_idx, :]
         vel, demerr, ref_atmo, coherence, omega, v_hat = ut.estimateParameters(obj=self.point_obj, ifg_space=False)
         self.vel = vel
