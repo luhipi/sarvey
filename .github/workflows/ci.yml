@@ -167,26 +167,9 @@ jobs:
         with:
           python-version: '3.x'
 
-      -   name: Install Miniconda
-          run: |
-              if [ -d "$HOME/miniconda" ]; then
-                echo "Updating existing Miniconda installation."
-                wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
-                bash miniconda.sh -b -u -p $HOME/miniconda
-              else
-                echo "Installing Miniconda."
-                wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
-                bash miniconda.sh -b -p $HOME/miniconda
-              fi
-              echo "$HOME/miniconda/bin" >> $GITHUB_PATH
-              source $HOME/miniconda/bin/activate
-              conda init bash
-              source ~/.bashrc
-
       -   name: Install dependencies
           run: |
               source $HOME/miniconda/bin/activate
-              conda install mamba -n base -c conda-forge
               mamba update -n base mamba conda
               mamba info
               mamba env remove --name sarvey_testinstall --yes || echo "Environment sarvey_testinstall does not exist"
