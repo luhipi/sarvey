@@ -46,6 +46,7 @@ jobs:
         run: |
           conda init bash
           source ~/.bashrc
+          mamba env remove --name ci_temp_env --yes || echo "Environment ci_temp_env does not exist"
           conda create -n ci_temp_env --clone ci_env
           wget https://raw.githubusercontent.com/insarlab/MiaplPy/main/conda-env.yml
           conda-merge conda-env.yml tests/CI_docker/context/environment_sarvey.yml > env.yml
@@ -55,6 +56,7 @@ jobs:
           wget -nv -c -O testdata.zip https://seafile.projekt.uni-hannover.de/f/4b3be399dffa488e98db/?dl=1
           unzip testdata.zip
           mv testdata tests/
+          mamba list
           make pytest
         shell: bash
 
