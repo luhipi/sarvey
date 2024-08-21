@@ -46,15 +46,15 @@ jobs:
         run: |
           conda init bash
           source ~/.bashrc
+          mamba env remove --name ci_temp_env --yes || echo "Environment ci_temp_env does not exist"
           conda create -n ci_temp_env --clone ci_env
-          wget https://raw.githubusercontent.com/insarlab/MiaplPy/main/conda-env.yml
-          conda-merge conda-env.yml tests/CI_docker/context/environment_sarvey.yml > env.yml
-          mamba update -n ci_temp_env -f env.yml
           source activate ci_temp_env
+          mamba install json5
           rm -rf tests/testdata
           wget -nv -c -O testdata.zip https://seafile.projekt.uni-hannover.de/f/4b3be399dffa488e98db/?dl=1
           unzip testdata.zip
           mv testdata tests/
+          mamba list
           make pytest
         shell: bash
 
@@ -167,26 +167,9 @@ jobs:
         with:
           python-version: '3.x'
 
-      -   name: Install Miniconda
-          run: |
-              if [ -d "$HOME/miniconda" ]; then
-                echo "Updating existing Miniconda installation."
-                wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
-                bash miniconda.sh -b -u -p $HOME/miniconda
-              else
-                echo "Installing Miniconda."
-                wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
-                bash miniconda.sh -b -p $HOME/miniconda
-              fi
-              echo "$HOME/miniconda/bin" >> $GITHUB_PATH
-              source $HOME/miniconda/bin/activate
-              conda init bash
-              source ~/.bashrc
-
       -   name: Install dependencies
           run: |
               source $HOME/miniconda/bin/activate
-              conda install mamba -n base -c conda-forge
               mamba update -n base mamba conda
               mamba info
               mamba env remove --name sarvey_testinstall --yes || echo "Environment sarvey_testinstall does not exist"
