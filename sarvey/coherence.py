@@ -93,8 +93,10 @@ def computeIfgsAndTemporalCoherence(*, path_temp_coh: str, path_ifgs: str, path_
         # read slc
         slc = slc_stack_obj.read(datasetName='slc', box=bbox, print_msg=False)
         slc = slc[time_mask, :, :]
-        # todo: check if mean in log() is 0, then mask it to avoid computational problems.
-        mean_amp_img[bbox[1]:bbox[3], bbox[0]:bbox[2]] = np.log10(np.mean(np.abs(slc), axis=0))
+
+        mean_amp = np.mean(np.abs(slc), axis=0)
+        mean_amp[mean_amp == 0] = np.nan
+        mean_amp_img[bbox[1]:bbox[3], bbox[0]:bbox[2]] = np.log10(mean_amp)
 
         # compute ifgs
         ifgs = computeIfgs(slc=slc, ifg_array=ifg_array)
