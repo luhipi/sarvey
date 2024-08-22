@@ -284,10 +284,12 @@ def main(iargs=None):
         os.mkdir(logpath)
     file_handler = logging.FileHandler(filename=join(logpath, log_filename))
     file_handler.setFormatter(log_format)
+    file_logging_level = logging.getLevelName("DEBUG")
+    file_handler.setLevel(file_logging_level)
     logger.addHandler(file_handler)
 
     logging_level = logging.getLevelName(config.general.logging_level)
-    logger.setLevel(logging_level)
+    console_handler.setLevel(logging_level)
 
     config.general.output_path = os.path.abspath(join(args.workdir, config.general.output_path))
     if config.consistency_check.mask_p1_file is not None:
