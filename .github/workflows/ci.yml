@@ -225,12 +225,12 @@ jobs:
           mkdir -p public/test_reports
           
           cp -r docs/_build/html/* public/docs/
-          # cp -r htmlcov/* public/coverage/
-          # cp report.html public/test_reports/
-          # ls -al public
+          cp -r htmlcov/* public/coverage/
+          cp report.html public/test_reports/
+          ls -al public
           ls -al public/docs
-          # ls -al public/coverage
-          # ls -al public/test_reports
+          ls -al public/coverage
+          ls -al public/test_reports
         shell: bash
 
       - name: Upload to GitHub Pages
