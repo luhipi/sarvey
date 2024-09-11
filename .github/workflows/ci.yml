@@ -220,21 +220,10 @@ jobs:
           mkdir -p public/images/
           mkdir -p public/coverage
           mkdir -p public/test_reports
-
-          # ls
-          ls docs/
-          ls docs/_build
-          Copy command with checks if directories exist
-          if [ -d docs/_build/html ]; then
-              cp -r docs/_build/html/* public/doc/
-          else
-              echo "docs/_build/html does not exist"
-              exit 1
-          fi
           
           cp -r docs/_build/html/* public/doc/
-          cp -r htmlcov/* public/coverage/
-          cp report.html public/test_reports/
+          # cp -r htmlcov/* public/coverage/
+          # cp report.html public/test_reports/
           ls -al public
           ls -al public/doc
           ls -al public/coverage
