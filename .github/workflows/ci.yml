@@ -46,10 +46,14 @@ jobs:
         run: |
           conda init bash
           source ~/.bashrc
-          mamba env remove --name ci_temp_env --yes || echo "Environment ci_temp_env does not exist"
-          # remove ci_temp_env directory
-          env_path=$(mamba info --envs | grep ci_temp_env | awk '{print $2}')
-          rm -rf $env_path
+          # mamba env remove --name ci_temp_env --yes || echo "Environment ci_temp_env does not exist"
+          
+          if mamba info --envs | grep -q "ci_temp_env"; then
+            mamba env remove --name ci_temp_env --yes
+          else
+            echo "ci_temp_env is not a valid conda environment, skipping removal"
+          fi
+          
           conda create -n ci_temp_env --clone ci_env
           source activate ci_temp_env
           mamba install json5
