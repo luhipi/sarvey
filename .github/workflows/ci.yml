@@ -224,10 +224,10 @@ jobs:
           cp -r docs/_build/html/* public/doc/
           # cp -r htmlcov/* public/coverage/
           # cp report.html public/test_reports/
-          ls -al public
+          # ls -al public
           ls -al public/doc
-          ls -al public/coverage
-          ls -al public/test_reports
+          # ls -al public/coverage
+          # ls -al public/test_reports
         shell: bash
 
       - name: Upload to GitHub Pages
