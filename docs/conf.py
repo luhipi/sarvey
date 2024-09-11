@@ -229,6 +229,9 @@ html_static_path = ['_static']
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'sarveydoc'
 
+# baseurel
+html_baseurl = 'https://luhipi.github.io/sarvey/docs/'
+
 
 # -- Options for LaTeX output ------------------------------------------
 
