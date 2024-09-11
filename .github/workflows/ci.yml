@@ -168,6 +168,7 @@ jobs:
           python-version: '3.x'
 
       -   name: Install dependencies
+          if: false
           run: |
               source $HOME/miniconda/bin/activate
               mamba update -n base mamba conda
@@ -207,7 +208,7 @@ jobs:
           mkdir -p public/coverage
           mkdir -p public/test_reports
 
-          ls -al docs/_build/html
+          ls
           # Copy command with checks if directories exist
           if [ -d docs/_build/html ]; then
               cp -r docs/_build/html/* public/doc/
