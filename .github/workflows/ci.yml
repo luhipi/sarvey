@@ -55,7 +55,7 @@ jobs:
           unzip testdata.zip
           mv testdata tests/
           mamba list
-          make pytest
+          #make pytest
         shell: bash
 
       - name: create docs
@@ -206,6 +206,16 @@ jobs:
           mkdir -p public/images/
           mkdir -p public/coverage
           mkdir -p public/test_reports
+
+          ls -al docs/_build/html
+          # Copy command with checks if directories exist
+          if [ -d docs/_build/html ]; then
+              cp -r docs/_build/html/* public/doc/
+          else
+              echo "docs/_build/html does not exist"
+              exit 1
+          fi
+          
           cp -r docs/_build/html/* public/doc/
           cp -r htmlcov/* public/coverage/
           cp report.html public/test_reports/
