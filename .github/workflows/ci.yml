@@ -50,9 +50,8 @@ jobs:
           
           if mamba info --envs | grep -q "ci_temp_env"; then
             mamba env remove --name ci_temp_env --yes
-          else
-            echo "ci_temp_env is not a valid conda environment, skipping removal"
           fi
+          rm -rf ~/.conda/envs/ci_temp_env
           
           conda create -n ci_temp_env --clone ci_env
           source activate ci_temp_env
