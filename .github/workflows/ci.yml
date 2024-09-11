@@ -224,7 +224,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: test-report
-          path: report.html
 
       - name: Deploy to GitHub Pages
         if: env.SKIP == 'false'
