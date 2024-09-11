@@ -65,7 +65,7 @@ jobs:
           unzip testdata.zip
           mv testdata tests/
           mamba list
-          #make pytest
+          make pytest
         shell: bash
 
       - name: create docs
