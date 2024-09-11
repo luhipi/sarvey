@@ -213,8 +213,10 @@ jobs:
           mkdir -p public/coverage
           mkdir -p public/test_reports
 
-          ls
-          # Copy command with checks if directories exist
+          # ls
+          ls docs/
+          ls docs/_build
+          Copy command with checks if directories exist
           if [ -d docs/_build/html ]; then
               cp -r docs/_build/html/* public/doc/
           else
