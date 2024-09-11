@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>sarvey.unwrapping &#8212; SARvey 1.0.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=def86cc0" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=86cf1cd6" />
+    
+    <script src="../../_static/documentation_options.js?v=8d563738"></script>
+    <script src="../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">SARvey 1.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">sarvey.unwrapping</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for sarvey.unwrapping</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+
+<span class="c1"># SARvey - A multitemporal InSAR time series tool for the derivation of displacements.</span>
+<span class="c1">#</span>
+<span class="c1"># Copyright (C) 2021-2024 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)</span>
+<span class="c1">#</span>
+<span class="c1"># This software was developed together with FERN.Lab (fernlab@gfz-potsdam.de) in the context</span>
+<span class="c1"># of the SAR4Infra project with funds of the German Federal Ministry for Digital and</span>
+<span class="c1"># Transport and contributions from Landesamt fuer Vermessung und Geoinformation</span>
+<span class="c1"># Schleswig-Holstein and Landesbetrieb Strassenbau und Verkehr Schleswig-Holstein.</span>
+<span class="c1">#</span>
+<span class="c1"># This program is free software: you can redistribute it and/or modify it under</span>
+<span class="c1"># the terms of the GNU General Public License as published by the Free Software</span>
+<span class="c1"># Foundation, either version 3 of the License, or (at your option) any later</span>
+<span class="c1"># version.</span>
+<span class="c1">#</span>
+<span class="c1"># Important: This package uses PyMaxFlow. The core of PyMaxflows library is the C++</span>
+<span class="c1"># implementation by Vladimir Kolmogorov. It is also licensed under the GPL, but it REQUIRES that you</span>
+<span class="c1"># cite [BOYKOV04] (see LICENSE) in any resulting publication if you use this code for research purposes.</span>
+<span class="c1"># This requirement extends to SARvey.</span>
+<span class="c1">#</span>
+<span class="c1"># This program is distributed in the hope that it will be useful, but WITHOUT</span>
+<span class="c1"># ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS</span>
+<span class="c1"># FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more</span>
+<span class="c1"># details.</span>
+<span class="c1">#</span>
+<span class="c1"># You should have received a copy of the GNU Lesser General Public License along</span>
+<span class="c1"># with this program. If not, see &lt;https://www.gnu.org/licenses/&gt;.</span>
+
+<span class="sd">&quot;&quot;&quot;Unwrapping module for SARvey.&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">multiprocessing</span>
+<span class="kn">from</span> <span class="nn">os.path</span> <span class="kn">import</span> <span class="n">join</span><span class="p">,</span> <span class="n">dirname</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">kamui</span> <span class="kn">import</span> <span class="n">unwrap_arbitrary</span>
+<span class="kn">from</span> <span class="nn">scipy.sparse</span> <span class="kn">import</span> <span class="n">csr_matrix</span>
+<span class="kn">from</span> <span class="nn">scipy.sparse.csgraph</span> <span class="kn">import</span> <span class="n">structural_rank</span>
+<span class="kn">from</span> <span class="nn">scipy.sparse.linalg</span> <span class="kn">import</span> <span class="n">lsqr</span>
+<span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="kn">import</span> <span class="n">minimize</span>
+<span class="kn">from</span> <span class="nn">logging</span> <span class="kn">import</span> <span class="n">Logger</span>
+
+<span class="kn">from</span> <span class="nn">mintpy.utils</span> <span class="kn">import</span> <span class="n">ptime</span>
+
+<span class="kn">import</span> <span class="nn">sarvey.utils</span> <span class="k">as</span> <span class="nn">ut</span>
+<span class="kn">from</span> <span class="nn">sarvey.ifg_network</span> <span class="kn">import</span> <span class="n">IfgNetwork</span>
+<span class="kn">from</span> <span class="nn">sarvey.objects</span> <span class="kn">import</span> <span class="n">Network</span><span class="p">,</span> <span class="n">NetworkParameter</span><span class="p">,</span> <span class="n">AmplitudeImage</span>
+
+
+<div class="viewcode-block" id="objFuncTemporalCoherence">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.unwrapping.objFuncTemporalCoherence">[docs]</a>
+<span class="k">def</span> <span class="nf">objFuncTemporalCoherence</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute temporal coherence from parameters and phase. To be used as objective function for optimization.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    x: np.ndarray</span>
+<span class="sd">        Search space for the DEM error in a 1D grid.</span>
+<span class="sd">    args: tuple</span>
+<span class="sd">        Additional arguments: (design_mat, obs_phase, scale_vel, scale_demerr).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    1 - gamma: float</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="p">(</span><span class="n">design_mat</span><span class="p">,</span> <span class="n">obs_phase</span><span class="p">,</span> <span class="n">scale_vel</span><span class="p">,</span> <span class="n">scale_demerr</span><span class="p">)</span> <span class="o">=</span> <span class="n">args</span>
+
+    <span class="c1"># equalize the gradients in both directions</span>
+    <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*=</span> <span class="n">scale_demerr</span>
+    <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*=</span> <span class="n">scale_vel</span>
+
+    <span class="n">pred_phase</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">design_mat</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="p">(</span><span class="n">obs_phase</span> <span class="o">-</span> <span class="n">pred_phase</span><span class="o">.</span><span class="n">T</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+    <span class="n">gamma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">res</span><span class="p">)))</span>
+    <span class="k">return</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">gamma</span></div>
+
+
+
+<div class="viewcode-block" id="gridSearchTemporalCoherence">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.unwrapping.gridSearchTemporalCoherence">[docs]</a>
+<span class="k">def</span> <span class="nf">gridSearchTemporalCoherence</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">demerr_grid</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">vel_grid</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">design_mat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                                <span class="n">obs_phase</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Grid search which maximizes the temporal coherence as the objective function.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    demerr_grid: np.ndarray</span>
+<span class="sd">        Search space for the DEM error in a 2D grid.</span>
+<span class="sd">    vel_grid: np.ndarray</span>
+<span class="sd">        Search space for the velocity in a 2D grid.</span>
+<span class="sd">    design_mat: np.ndarray</span>
+<span class="sd">        Design matrix for estimating parameters from arc phase.</span>
+<span class="sd">    obs_phase: np.ndarray</span>
+<span class="sd">        Observed phase of the arc.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    demerr: float</span>
+<span class="sd">        estimated DEM error.</span>
+<span class="sd">    vel: float</span>
+<span class="sd">        estimated velocity.</span>
+<span class="sd">    gamma: float</span>
+<span class="sd">        estimated temporal coherence.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">demerr_grid_flat</span> <span class="o">=</span> <span class="n">demerr_grid</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+    <span class="n">vel_grid_flat</span> <span class="o">=</span> <span class="n">vel_grid</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+    <span class="n">gamma_flat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+        <span class="p">[</span><span class="mi">1</span> <span class="o">-</span> <span class="n">objFuncTemporalCoherence</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">demerr_grid_flat</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">vel_grid_flat</span><span class="p">[</span><span class="n">i</span><span class="p">]]),</span>
+                                      <span class="n">design_mat</span><span class="p">,</span> <span class="n">obs_phase</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">demerr_grid_flat</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])])</span>
+    <span class="n">gamma</span> <span class="o">=</span> <span class="n">gamma_flat</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">demerr_grid</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+    <span class="n">idx_max_gamma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">gamma_flat</span><span class="p">)</span>
+
+    <span class="c1"># return demerr_grid_flat[idx_max_gamma], vel_grid_flat[idx_max_gamma], gamma_flat[idx_max_gamma]</span>
+    <span class="k">return</span> <span class="n">demerr_grid_flat</span><span class="p">[</span><span class="n">idx_max_gamma</span><span class="p">],</span> <span class="n">vel_grid_flat</span><span class="p">[</span><span class="n">idx_max_gamma</span><span class="p">],</span> <span class="n">gamma</span></div>
+
+
+
+<div class="viewcode-block" id="findOptimum">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.unwrapping.findOptimum">[docs]</a>
+<span class="k">def</span> <span class="nf">findOptimum</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">obs_phase</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">design_mat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">val_range</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Find optimal value within a one dimensional search space that fits to the observed phase.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    obs_phase: np.ndarray</span>
+<span class="sd">        Observed phase of the arc.</span>
+<span class="sd">    design_mat: np.ndarray</span>
+<span class="sd">        Design matrix for estimating parameters from arc phase.</span>
+<span class="sd">    val_range: np.ndarray</span>
+<span class="sd">        Range of possible values for the solution. Can be either for DEM error or velocity.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    opt_val: scipy.optimize.minimize return value</span>
+<span class="sd">    gamma: float</span>
+<span class="sd">    pred_phase: np.ndarray</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">pred_phase</span> <span class="o">=</span> <span class="n">design_mat</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span> <span class="o">*</span> <span class="n">val_range</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:]</span>  <span class="c1"># broadcasting</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">obs_phase</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="c1"># step densification</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">obs_phase</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">pred_phase</span><span class="o">.</span><span class="n">T</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">moveaxis</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">pred_phase</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>  <span class="c1"># combine residuals from all arcs</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># step consistency check</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">obs_phase</span> <span class="o">-</span> <span class="n">pred_phase</span><span class="o">.</span><span class="n">T</span>
+
+    <span class="n">gamma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">res</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">max_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">gamma</span><span class="p">)</span>
+    <span class="n">opt_val</span> <span class="o">=</span> <span class="n">val_range</span><span class="p">[</span><span class="n">max_idx</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">opt_val</span><span class="p">,</span> <span class="n">gamma</span><span class="p">[</span><span class="n">max_idx</span><span class="p">],</span> <span class="n">pred_phase</span><span class="p">[:,</span> <span class="n">max_idx</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="oneDimSearchTemporalCoherence">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.unwrapping.oneDimSearchTemporalCoherence">[docs]</a>
+<span class="k">def</span> <span class="nf">oneDimSearchTemporalCoherence</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">demerr_range</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">vel_range</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">obs_phase</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                                  <span class="n">design_mat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;One dimensional search for maximum temporal coherence that fits the observed arc phase.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    demerr_range: np.ndarray</span>
+<span class="sd">        Search space for the DEM error in a 1D grid.</span>
+<span class="sd">    vel_range: np.ndarray</span>
+<span class="sd">        Search space for the velocity in a 1D grid.</span>
+<span class="sd">    design_mat: np.ndarray</span>
+<span class="sd">        Design matrix for estimating parameters from arc phase.</span>
+<span class="sd">    obs_phase: np.ndarray</span>
+<span class="sd">        Observed phase of the arc.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    demerr: float</span>
+<span class="sd">    vel: float</span>
+<span class="sd">    gamma: float</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">demerr</span><span class="p">,</span> <span class="n">gamma_demerr</span><span class="p">,</span> <span class="n">pred_phase_demerr</span> <span class="o">=</span> <span class="n">findOptimum</span><span class="p">(</span>
+        <span class="n">obs_phase</span><span class="o">=</span><span class="n">obs_phase</span><span class="p">,</span>
+        <span class="n">design_mat</span><span class="o">=</span><span class="n">design_mat</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
+        <span class="n">val_range</span><span class="o">=</span><span class="n">demerr_range</span>
+    <span class="p">)</span>
+
+    <span class="n">vel</span><span class="p">,</span> <span class="n">gamma_vel</span><span class="p">,</span> <span class="n">pred_phase_vel</span> <span class="o">=</span> <span class="n">findOptimum</span><span class="p">(</span>
+        <span class="n">obs_phase</span><span class="o">=</span><span class="n">obs_phase</span><span class="p">,</span>
+        <span class="n">design_mat</span><span class="o">=</span><span class="n">design_mat</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span>
+        <span class="n">val_range</span><span class="o">=</span><span class="n">vel_range</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">gamma_vel</span> <span class="o">&gt;</span> <span class="n">gamma_demerr</span><span class="p">:</span>
+        <span class="n">demerr</span><span class="p">,</span> <span class="n">gamma_demerr</span><span class="p">,</span> <span class="n">pred_phase_demerr</span> <span class="o">=</span> <span class="n">findOptimum</span><span class="p">(</span>
+            <span class="n">obs_phase</span><span class="o">=</span><span class="n">obs_phase</span> <span class="o">-</span> <span class="n">pred_phase_vel</span><span class="p">,</span>
+            <span class="n">design_mat</span><span class="o">=</span><span class="n">design_mat</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="n">val_range</span><span class="o">=</span><span class="n">demerr_range</span>
+        <span class="p">)</span>
+        <span class="n">vel</span><span class="p">,</span> <span class="n">gamma_vel</span><span class="p">,</span> <span class="n">pred_phase_vel</span> <span class="o">=</span> <span class="n">findOptimum</span><span class="p">(</span>
+            <span class="n">obs_phase</span><span class="o">=</span><span class="n">obs_phase</span> <span class="o">-</span> <span class="n">pred_phase_demerr</span><span class="p">,</span>
+            <span class="n">design_mat</span><span class="o">=</span><span class="n">design_mat</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span>
+            <span class="n">val_range</span><span class="o">=</span><span class="n">vel_range</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">vel</span><span class="p">,</span> <span class="n">gamma_vel</span><span class="p">,</span> <span class="n">pred_phase_vel</span> <span class="o">=</span> <span class="n">findOptimum</span><span class="p">(</span>
+            <span class="n">obs_phase</span><span class="o">=</span><span class="n">obs_phase</span> <span class="o">-</span> <span class="n">pred_phase_demerr</span><span class="p">,</span>
+            <span class="n">design_mat</span><span class="o">=</span><span class="n">design_mat</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span>
+            <span class="n">val_range</span><span class="o">=</span><span class="n">vel_range</span>
+        <span class="p">)</span>
+        <span class="n">demerr</span><span class="p">,</span> <span class="n">gamma_demerr</span><span class="p">,</span> <span class="n">pred_phase_demerr</span> <span class="o">=</span> <span class="n">findOptimum</span><span class="p">(</span>
+            <span class="n">obs_phase</span><span class="o">=</span><span class="n">obs_phase</span> <span class="o">-</span> <span class="n">pred_phase_vel</span><span class="p">,</span>
+            <span class="n">design_mat</span><span class="o">=</span><span class="n">design_mat</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="n">val_range</span><span class="o">=</span><span class="n">demerr_range</span>
+        <span class="p">)</span>
+
+    <span class="c1"># improve initial estimate with gradient descent approach</span>
+    <span class="n">scale_demerr</span> <span class="o">=</span> <span class="n">demerr_range</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+    <span class="n">scale_vel</span> <span class="o">=</span> <span class="n">vel_range</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+
+    <span class="n">demerr</span><span class="p">,</span> <span class="n">vel</span><span class="p">,</span> <span class="n">gamma</span> <span class="o">=</span> <span class="n">gradientSearchTemporalCoherence</span><span class="p">(</span>
+        <span class="n">scale_vel</span><span class="o">=</span><span class="n">scale_vel</span><span class="p">,</span>
+        <span class="n">scale_demerr</span><span class="o">=</span><span class="n">scale_demerr</span><span class="p">,</span>
+        <span class="n">obs_phase</span><span class="o">=</span><span class="n">obs_phase</span><span class="p">,</span>
+        <span class="n">design_mat</span><span class="o">=</span><span class="n">design_mat</span><span class="p">,</span>
+        <span class="n">x0</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">demerr</span> <span class="o">/</span> <span class="n">scale_demerr</span><span class="p">,</span>
+                     <span class="n">vel</span> <span class="o">/</span> <span class="n">scale_vel</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>
+    <span class="p">)</span>
+
+    <span class="n">pred_phase</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">design_mat</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">demerr</span><span class="p">,</span> <span class="n">vel</span><span class="p">]))</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="p">(</span><span class="n">obs_phase</span> <span class="o">-</span> <span class="n">pred_phase</span><span class="o">.</span><span class="n">T</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+    <span class="n">gamma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">res</span><span class="p">)))</span>
+    <span class="k">return</span> <span class="n">demerr</span><span class="p">,</span> <span class="n">vel</span><span class="p">,</span> <span class="n">gamma</span></div>
+
+
+
+<div class="viewcode-block" id="gradientSearchTemporalCoherence">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.unwrapping.gradientSearchTemporalCoherence">[docs]</a>
+<span class="k">def</span> <span class="nf">gradientSearchTemporalCoherence</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">scale_vel</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">scale_demerr</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">obs_phase</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                                    <span class="n">design_mat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">x0</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;GradientSearchTemporalCoherence.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    scale_demerr: float</span>
+<span class="sd">        Scaling factor for DEM error to equalize the axis of the search space.</span>
+<span class="sd">    scale_vel: float</span>
+<span class="sd">        Scaling factor for velocity to equalize the axis of the search space.</span>
+<span class="sd">    design_mat: np.ndarray</span>
+<span class="sd">        Design matrix for estimating parameters from arc phase.</span>
+<span class="sd">    obs_phase: np.ndarray</span>
+<span class="sd">        Observed phase of the arc.</span>
+<span class="sd">    x0: np.ndarray</span>
+<span class="sd">        Initial values for optimization.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    demerr: float</span>
+<span class="sd">    vel: float</span>
+<span class="sd">    gamma: float</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">opt_res</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span>
+        <span class="n">objFuncTemporalCoherence</span><span class="p">,</span>
+        <span class="n">x0</span><span class="p">,</span>
+        <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">design_mat</span><span class="p">,</span> <span class="n">obs_phase</span><span class="p">,</span> <span class="n">scale_vel</span><span class="p">,</span> <span class="n">scale_demerr</span><span class="p">),</span>
+        <span class="n">bounds</span><span class="o">=</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span>
+        <span class="n">method</span><span class="o">=</span><span class="s1">&#39;L-BFGS-B&#39;</span>
+    <span class="p">)</span>
+    <span class="n">gamma</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">opt_res</span><span class="o">.</span><span class="n">fun</span>
+    <span class="n">demerr</span> <span class="o">=</span> <span class="n">opt_res</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">scale_demerr</span>
+    <span class="n">vel</span> <span class="o">=</span> <span class="n">opt_res</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">scale_vel</span>
+    <span class="k">return</span> <span class="n">demerr</span><span class="p">,</span> <span class="n">vel</span><span class="p">,</span> <span class="n">gamma</span></div>
+
+
+
+<div class="viewcode-block" id="launchAmbiguityFunctionSearch">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.unwrapping.launchAmbiguityFunctionSearch">[docs]</a>
+<span class="k">def</span> <span class="nf">launchAmbiguityFunctionSearch</span><span class="p">(</span><span class="n">parameters</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Wrap for launching ambiguity function for temporal unwrapping in parallel.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    parameters: tuple</span>
+<span class="sd">        Arguments for temporal unwrapping in parallel.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    arc_idx_range: np.ndarray</span>
+<span class="sd">    demerr: np.ndarray</span>
+<span class="sd">    vel: np.ndarray</span>
+<span class="sd">    gamma: np.ndarray</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="p">(</span><span class="n">arc_idx_range</span><span class="p">,</span> <span class="n">num_arcs</span><span class="p">,</span> <span class="n">phase</span><span class="p">,</span> <span class="n">slant_range</span><span class="p">,</span> <span class="n">loc_inc</span><span class="p">,</span> <span class="n">ifg_net_obj</span><span class="p">,</span> <span class="n">wavelength</span><span class="p">,</span> <span class="n">velocity_bound</span><span class="p">,</span> <span class="n">demerr_bound</span><span class="p">,</span>
+     <span class="n">num_samples</span><span class="p">)</span> <span class="o">=</span> <span class="n">parameters</span>
+
+    <span class="n">demerr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_arcs</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">vel</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_arcs</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">gamma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_arcs</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+    <span class="n">design_mat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">ifg_net_obj</span><span class="o">.</span><span class="n">num_ifgs</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+    <span class="n">demerr_range</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="n">demerr_bound</span><span class="p">,</span> <span class="n">demerr_bound</span><span class="p">,</span> <span class="n">num_samples</span><span class="p">)</span>
+    <span class="n">vel_range</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="n">velocity_bound</span><span class="p">,</span> <span class="n">velocity_bound</span><span class="p">,</span> <span class="n">num_samples</span><span class="p">)</span>
+
+    <span class="c1"># prog_bar = ptime.progressBar(maxValue=num_arcs)</span>
+
+    <span class="n">factor</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="n">wavelength</span>
+
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_arcs</span><span class="p">):</span>
+        <span class="n">design_mat</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">factor</span> <span class="o">*</span> <span class="n">ifg_net_obj</span><span class="o">.</span><span class="n">pbase_ifg</span> <span class="o">/</span> <span class="p">(</span><span class="n">slant_range</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">loc_inc</span><span class="p">[</span><span class="n">k</span><span class="p">]))</span>
+        <span class="n">design_mat</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">factor</span> <span class="o">*</span> <span class="n">ifg_net_obj</span><span class="o">.</span><span class="n">tbase_ifg</span>
+
+        <span class="n">demerr</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">vel</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">gamma</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">oneDimSearchTemporalCoherence</span><span class="p">(</span>
+            <span class="n">demerr_range</span><span class="o">=</span><span class="n">demerr_range</span><span class="p">,</span>
+            <span class="n">vel_range</span><span class="o">=</span><span class="n">vel_range</span><span class="p">,</span>
+            <span class="n">obs_phase</span><span class="o">=</span><span class="n">phase</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="p">:],</span>
+            <span class="n">design_mat</span><span class="o">=</span><span class="n">design_mat</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">arc_idx_range</span><span class="p">,</span> <span class="n">demerr</span><span class="p">,</span> <span class="n">vel</span><span class="p">,</span> <span class="n">gamma</span></div>
+
+
+
+<div class="viewcode-block" id="temporalUnwrapping">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.unwrapping.temporalUnwrapping">[docs]</a>
+<span class="k">def</span> <span class="nf">temporalUnwrapping</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">ifg_net_obj</span><span class="p">:</span> <span class="n">IfgNetwork</span><span class="p">,</span> <span class="n">net_obj</span><span class="p">:</span> <span class="n">Network</span><span class="p">,</span>  <span class="n">wavelength</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">velocity_bound</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+                       <span class="n">demerr_bound</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">num_samples</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">num_cores</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">)</span> <span class="o">-&gt;</span> \
+        <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Solve ambiguities for every arc in spatial Network object.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ifg_net_obj: IfgNetwork</span>
+<span class="sd">        The IfgNetwork object.</span>
+<span class="sd">    net_obj: Network</span>
+<span class="sd">        The Network object.</span>
+<span class="sd">    wavelength: float</span>
+<span class="sd">        The wavelength.</span>
+<span class="sd">    velocity_bound: float</span>
+<span class="sd">        The velocity bound.</span>
+<span class="sd">    demerr_bound: float</span>
+<span class="sd">        The DEM error bound.</span>
+<span class="sd">    num_samples: int</span>
+<span class="sd">        The number of samples for the search space.</span>
+<span class="sd">    num_cores: int</span>
+<span class="sd">        Number of cores to be used. Default is 1.</span>
+<span class="sd">    logger: Logger</span>
+<span class="sd">        Logging handler.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    demerr: np.ndarray</span>
+<span class="sd">    vel: np.ndarray</span>
+<span class="sd">    gamma: np.ndarray</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;#&quot;</span> <span class="o">*</span> <span class="mi">10</span>
+    <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot; TEMPORAL UNWRAPPING: AMBIGUITY FUNCTION &quot;</span>
+    <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;#&quot;</span> <span class="o">*</span> <span class="mi">10</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">num_cores</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">net_obj</span><span class="o">.</span><span class="n">num_arcs</span><span class="p">),</span> <span class="n">net_obj</span><span class="o">.</span><span class="n">num_arcs</span><span class="p">,</span> <span class="n">net_obj</span><span class="o">.</span><span class="n">phase</span><span class="p">,</span>
+            <span class="n">net_obj</span><span class="o">.</span><span class="n">slant_range</span><span class="p">,</span> <span class="n">net_obj</span><span class="o">.</span><span class="n">loc_inc</span><span class="p">,</span> <span class="n">ifg_net_obj</span><span class="p">,</span> <span class="n">wavelength</span><span class="p">,</span> <span class="n">velocity_bound</span><span class="p">,</span> <span class="n">demerr_bound</span><span class="p">,</span> <span class="n">num_samples</span><span class="p">)</span>
+        <span class="n">arc_idx_range</span><span class="p">,</span> <span class="n">demerr</span><span class="p">,</span> <span class="n">vel</span><span class="p">,</span> <span class="n">gamma</span> <span class="o">=</span> <span class="n">launchAmbiguityFunctionSearch</span><span class="p">(</span><span class="n">parameters</span><span class="o">=</span><span class="n">args</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;start parallel processing with </span><span class="si">{}</span><span class="s2"> cores.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">num_cores</span><span class="p">))</span>
+        <span class="n">pool</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">Pool</span><span class="p">(</span><span class="n">processes</span><span class="o">=</span><span class="n">num_cores</span><span class="p">)</span>
+
+        <span class="n">demerr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">net_obj</span><span class="o">.</span><span class="n">num_arcs</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">vel</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">net_obj</span><span class="o">.</span><span class="n">num_arcs</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">gamma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">net_obj</span><span class="o">.</span><span class="n">num_arcs</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+        <span class="n">num_cores</span> <span class="o">=</span> <span class="n">net_obj</span><span class="o">.</span><span class="n">num_arcs</span> <span class="k">if</span> <span class="n">num_cores</span> <span class="o">&gt;</span> <span class="n">net_obj</span><span class="o">.</span><span class="n">num_arcs</span> <span class="k">else</span> <span class="n">num_cores</span>  <span class="c1"># avoids having more samples then</span>
+        <span class="c1"># cores</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">splitDatasetForParallelProcessing</span><span class="p">(</span><span class="n">num_samples</span><span class="o">=</span><span class="n">net_obj</span><span class="o">.</span><span class="n">num_arcs</span><span class="p">,</span> <span class="n">num_cores</span><span class="o">=</span><span class="n">num_cores</span><span class="p">)</span>
+
+        <span class="n">args</span> <span class="o">=</span> <span class="p">[(</span>
+            <span class="n">idx_range</span><span class="p">,</span>
+            <span class="n">idx_range</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">net_obj</span><span class="o">.</span><span class="n">phase</span><span class="p">[</span><span class="n">idx_range</span><span class="p">,</span> <span class="p">:],</span>
+            <span class="n">net_obj</span><span class="o">.</span><span class="n">slant_range</span><span class="p">[</span><span class="n">idx_range</span><span class="p">],</span>
+            <span class="n">net_obj</span><span class="o">.</span><span class="n">loc_inc</span><span class="p">[</span><span class="n">idx_range</span><span class="p">],</span>
+            <span class="n">ifg_net_obj</span><span class="p">,</span>
+            <span class="n">wavelength</span><span class="p">,</span>
+            <span class="n">velocity_bound</span><span class="p">,</span>
+            <span class="n">demerr_bound</span><span class="p">,</span>
+            <span class="n">num_samples</span><span class="p">)</span> <span class="k">for</span> <span class="n">idx_range</span> <span class="ow">in</span> <span class="n">idx</span><span class="p">]</span>
+
+        <span class="n">results</span> <span class="o">=</span> <span class="n">pool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">launchAmbiguityFunctionSearch</span><span class="p">,</span> <span class="n">iterable</span><span class="o">=</span><span class="n">args</span><span class="p">)</span>
+
+        <span class="c1"># retrieve results</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">demerr_i</span><span class="p">,</span> <span class="n">vel_i</span><span class="p">,</span> <span class="n">gamma_i</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+            <span class="n">demerr</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">demerr_i</span>
+            <span class="n">vel</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">vel_i</span>
+            <span class="n">gamma</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">gamma_i</span>
+
+    <span class="n">m</span><span class="p">,</span> <span class="n">s</span> <span class="o">=</span> <span class="nb">divmod</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">,</span> <span class="mi">60</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Finished temporal unwrapping.&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s1">&#39;time used: </span><span class="si">{:02.0f}</span><span class="s1"> mins </span><span class="si">{:02.1f}</span><span class="s1"> secs.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">s</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">demerr</span><span class="p">,</span> <span class="n">vel</span><span class="p">,</span> <span class="n">gamma</span></div>
+
+
+
+<div class="viewcode-block" id="launchSpatialUnwrapping">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.unwrapping.launchSpatialUnwrapping">[docs]</a>
+<span class="k">def</span> <span class="nf">launchSpatialUnwrapping</span><span class="p">(</span><span class="n">parameters</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;LaunchSpatialUnwrapping.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    parameters: tuple</span>
+<span class="sd">        idx_range, num_ifgs, num_points, edges, phase</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    idx_range: np.ndarray</span>
+<span class="sd">    unw_phase: np.ndarray</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Unpack the parameters</span>
+    <span class="p">(</span><span class="n">idx_range</span><span class="p">,</span> <span class="n">num_ifgs</span><span class="p">,</span> <span class="n">num_points</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">edges</span><span class="p">,</span> <span class="n">phase</span><span class="p">)</span> <span class="o">=</span> <span class="n">parameters</span>
+
+    <span class="n">prog_bar</span> <span class="o">=</span> <span class="n">ptime</span><span class="o">.</span><span class="n">progressBar</span><span class="p">(</span><span class="n">maxValue</span><span class="o">=</span><span class="n">num_ifgs</span><span class="p">)</span>
+
+    <span class="n">unw_phase</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_points</span><span class="p">,</span> <span class="n">num_ifgs</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+    <span class="c1"># Perform the PUMA phase unwrapping</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_ifgs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;puma&quot;</span><span class="p">:</span>
+            <span class="n">unw_phase</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">unwrap_arbitrary</span><span class="p">(</span>
+                <span class="n">psi</span><span class="o">=</span><span class="n">phase</span><span class="p">[:,</span> <span class="n">i</span><span class="p">],</span>
+                <span class="n">edges</span><span class="o">=</span><span class="n">edges</span><span class="p">,</span>
+                <span class="n">simplices</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">method</span><span class="o">=</span><span class="s2">&quot;gc&quot;</span><span class="p">,</span>
+                <span class="n">period</span><span class="o">=</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span>
+                <span class="n">start_i</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                <span class="n">p</span><span class="o">=</span><span class="mf">0.2</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">unw_phase</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">unwrap_arbitrary</span><span class="p">(</span>
+                <span class="n">psi</span><span class="o">=</span><span class="n">phase</span><span class="p">[:,</span> <span class="n">i</span><span class="p">],</span>
+                <span class="n">edges</span><span class="o">=</span><span class="n">edges</span><span class="p">,</span>
+                <span class="n">simplices</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="c1"># todo: compute simplices for ILP</span>
+                <span class="n">method</span><span class="o">=</span><span class="s2">&quot;ilp&quot;</span><span class="p">,</span>
+                <span class="n">period</span><span class="o">=</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span>
+                <span class="n">start_i</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="n">prog_bar</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">every</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                        <span class="n">suffix</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">/</span><span class="si">{}</span><span class="s1"> ifgs unwrapped. &#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_ifgs</span><span class="p">))</span>
+
+    <span class="n">unw_phase</span> <span class="o">=</span> <span class="n">unw_phase</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">unw_phase</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">idx_range</span><span class="p">,</span> <span class="n">unw_phase</span></div>
+
+
+
+<div class="viewcode-block" id="spatialUnwrapping">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.unwrapping.spatialUnwrapping">[docs]</a>
+<span class="k">def</span> <span class="nf">spatialUnwrapping</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">num_ifgs</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">num_points</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">phase</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">edges</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                      <span class="n">num_cores</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Spatial unwrapping of interferograms for a set of points.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    num_ifgs: int</span>
+<span class="sd">        Number of interferograms.</span>
+<span class="sd">    num_points: int</span>
+<span class="sd">        Number of points.</span>
+<span class="sd">    phase: np.ndarray</span>
+<span class="sd">        Phase of the interferograms at the points.</span>
+<span class="sd">    edges: np.ndarray</span>
+<span class="sd">        Edges/arcs of the graph.</span>
+<span class="sd">    method: str</span>
+<span class="sd">        Method for spatial unwrapping (puma or ilp).</span>
+<span class="sd">    num_cores: int</span>
+<span class="sd">        Number of cores to be used in multiprocessing.</span>
+<span class="sd">    logger: Logger</span>
+<span class="sd">        Logging handler.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    unw_phase: np.ndarray</span>
+<span class="sd">        Unwrapped phase of the interferograms at the points.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;#&quot;</span> <span class="o">*</span> <span class="mi">10</span>
+    <span class="n">msg</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot; SPATIAL UNWRAPPING: </span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2"> &quot;</span>
+    <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;#&quot;</span> <span class="o">*</span> <span class="mi">10</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">num_cores</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">parameters</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">num_ifgs</span><span class="p">),</span>
+            <span class="n">num_ifgs</span><span class="p">,</span>
+            <span class="n">num_points</span><span class="p">,</span>
+            <span class="n">method</span><span class="p">,</span>
+            <span class="n">edges</span><span class="p">,</span>
+            <span class="n">phase</span>
+        <span class="p">)</span>
+        <span class="n">idx_range</span><span class="p">,</span> <span class="n">unw_phase</span> <span class="o">=</span> <span class="n">launchSpatialUnwrapping</span><span class="p">(</span><span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;start parallel processing with </span><span class="si">{}</span><span class="s2"> cores.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">num_cores</span><span class="p">))</span>
+        <span class="n">pool</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">Pool</span><span class="p">(</span><span class="n">processes</span><span class="o">=</span><span class="n">num_cores</span><span class="p">)</span>
+
+        <span class="n">unw_phase</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_points</span><span class="p">,</span> <span class="n">num_ifgs</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">num_cores</span> <span class="o">=</span> <span class="n">num_ifgs</span> <span class="k">if</span> <span class="n">num_cores</span> <span class="o">&gt;</span> <span class="n">num_ifgs</span> <span class="k">else</span> <span class="n">num_cores</span>
+        <span class="c1"># avoids having more samples than cores</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">splitDatasetForParallelProcessing</span><span class="p">(</span><span class="n">num_samples</span><span class="o">=</span><span class="n">num_ifgs</span><span class="p">,</span> <span class="n">num_cores</span><span class="o">=</span><span class="n">num_cores</span><span class="p">)</span>
+
+        <span class="n">args</span> <span class="o">=</span> <span class="p">[(</span>
+            <span class="n">idx_range</span><span class="p">,</span>
+            <span class="n">idx_range</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">num_points</span><span class="p">,</span>
+            <span class="n">method</span><span class="p">,</span>
+            <span class="n">edges</span><span class="p">,</span>
+            <span class="n">phase</span><span class="p">[:,</span> <span class="n">idx_range</span><span class="p">])</span> <span class="k">for</span> <span class="n">idx_range</span> <span class="ow">in</span> <span class="n">idx</span><span class="p">]</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">pool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">launchSpatialUnwrapping</span><span class="p">,</span> <span class="n">iterable</span><span class="o">=</span><span class="n">args</span><span class="p">)</span>
+
+        <span class="c1"># retrieve results</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">phase</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+            <span class="n">unw_phase</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">phase</span>
+
+    <span class="n">m</span><span class="p">,</span> <span class="n">s</span> <span class="o">=</span> <span class="nb">divmod</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">,</span> <span class="mi">60</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s1">&#39;time used: </span><span class="si">{:02.0f}</span><span class="s1"> mins </span><span class="si">{:02.1f}</span><span class="s1"> secs.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">s</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">unw_phase</span></div>
+
+
+
+<div class="viewcode-block" id="spatialParameterIntegrationIterative">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.unwrapping.spatialParameterIntegrationIterative">[docs]</a>
+<span class="k">def</span> <span class="nf">spatialParameterIntegrationIterative</span><span class="p">(</span><span class="o">*</span><span class="p">,</span>
+                                         <span class="n">val_arcs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                                         <span class="n">all_arcs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                                         <span class="n">coord_xy</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                                         <span class="n">all_weights</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                                         <span class="n">spatial_ref_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+                                         <span class="n">res_tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-3</span><span class="p">,</span>
+                                         <span class="n">max_rm_fraction</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span>
+                                         <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Unwrapping double-difference arc parameters spatially.</span>
+
+<span class="sd">    The parameters at the arcs are integrated spatially to the points. The integration is done iteratively using</span>
+<span class="sd">    least-squares by removing the arcs with the highest residuals in each iteration.</span>
+<span class="sd">    The integration stops when the sum of the residuals is below a threshold.</span>
+<span class="sd">    Function is adopted from StaMPS software (Hooper et al., 2007).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    val_arcs: np.ndarray</span>
+<span class="sd">        Value at the arcs (e.g. DEM error, velocity).</span>
+<span class="sd">    all_arcs: np.ndarray</span>
+<span class="sd">        Arcs of the spatial network.</span>
+<span class="sd">    coord_xy: np.ndarray</span>
+<span class="sd">        Radar coordinates of the points in the spatial network.</span>
+<span class="sd">    all_weights: np.ndarray</span>
+<span class="sd">        Weights of the arcs (e.g. temporal coherence from temporal unwrapping)</span>
+<span class="sd">    spatial_ref_idx: int</span>
+<span class="sd">        Index of the spatial reference point (default = 0). Can be arbitrary.</span>
+<span class="sd">    res_tol: float</span>
+<span class="sd">        Threshold on the sum of the residual phase (default = 1e-3). Convergence criterion.</span>
+<span class="sd">    max_rm_fraction: float</span>
+<span class="sd">        Fraction of the arcs that are removed in each iteration (default = 0.001).</span>
+<span class="sd">    logger: Logger</span>
+<span class="sd">        Logging handler</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    val_points: np.ndarray</span>
+<span class="sd">        Estimated parameters at the points resulting from the integration of the parameters at the arcs.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">all_arcs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">all_arcs</span><span class="p">)</span>
+    <span class="n">num_points</span> <span class="o">=</span> <span class="n">coord_xy</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">num_arcs</span> <span class="o">=</span> <span class="n">all_arcs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># create design matrix</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_arcs</span><span class="p">,</span> <span class="n">num_points</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_arcs</span><span class="p">):</span>
+        <span class="n">a</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">all_arcs</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">a</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">all_arcs</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+
+    <span class="c1"># find the number of arcs per point</span>
+    <span class="n">arcs_per_point</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">num_points</span><span class="p">,</span> <span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_points</span><span class="p">):</span>
+        <span class="n">arcs_per_point</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">a</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># remove reference point from design matrix</span>
+    <span class="n">all_a</span> <span class="o">=</span> <span class="n">csr_matrix</span><span class="p">(</span><span class="n">all_weights</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">spatial_ref_idx</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+    <span class="c1"># don&#39;t even start if the network is not connected</span>
+    <span class="k">if</span> <span class="n">structural_rank</span><span class="p">(</span><span class="n">all_a</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">all_a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Spatial point network is not connected. Phase cannot be unwrapped!&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">Exception</span>
+
+    <span class="c1"># set n_bad to maximum fraction of bad edges that can be removed</span>
+    <span class="n">n_bad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">num_arcs</span> <span class="o">*</span> <span class="n">max_rm_fraction</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int16</span><span class="p">)</span>
+
+    <span class="c1"># initialize output</span>
+    <span class="n">val_points</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_points</span><span class="p">,))</span>
+    <span class="n">points_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">num_points</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+    <span class="n">points_idx</span><span class="p">[</span><span class="n">spatial_ref_idx</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">x_hat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_points</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,))</span>
+
+    <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+    <span class="n">arcs</span> <span class="o">=</span> <span class="n">all_arcs</span>
+    <span class="n">obv_vec</span> <span class="o">=</span> <span class="n">val_arcs</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">)</span> <span class="o">*</span> <span class="n">all_weights</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">)</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">all_a</span>
+    <span class="n">weights</span> <span class="o">=</span> <span class="n">all_weights</span>
+    <span class="n">num_arcs</span> <span class="o">=</span> <span class="n">obv_vec</span><span class="o">.</span><span class="n">size</span>
+
+    <span class="n">r</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">num_arcs_save</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">arcs_save</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">a_save</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">weights_save</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">obv_vec_save</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">structural_rank</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="n">x_hat</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">lsqr</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">obv_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="c1"># store the current version of variables, being able to go back to previous iteration if too many arcs</span>
+            <span class="c1"># removed</span>
+            <span class="n">a_save</span> <span class="o">=</span> <span class="n">a</span>
+            <span class="n">obv_vec_save</span> <span class="o">=</span> <span class="n">obv_vec</span>
+            <span class="n">weights_save</span> <span class="o">=</span> <span class="n">weights</span>
+            <span class="n">arcs_save</span> <span class="o">=</span> <span class="n">arcs</span>
+            <span class="n">num_arcs_save</span> <span class="o">=</span> <span class="n">num_arcs</span>
+
+            <span class="c1"># compute residuals</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">obv_vec</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">toarray</span><span class="p">(),</span> <span class="n">x_hat</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># network is not connected anymore, remove less psPoints and try again</span>
+            <span class="c1"># x_hat = np.linalg.lstsq(a_save, obv_vec_save, rcond=None)[0]  # unclear: I think it is not necessary to</span>
+            <span class="c1"># recompute the inversion.</span>
+            <span class="n">n_bad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">n_bad</span> <span class="o">/</span> <span class="mi">10</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int16</span><span class="p">)</span>  <span class="c1"># remove less point</span>
+
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">res_tol</span><span class="p">):</span>
+            <span class="k">break</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># drop arcs with the highest residuals, but only drop max one arc per point</span>
+            <span class="n">ps_w_dropped_arc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_points</span><span class="p">,))</span>
+            <span class="n">good_arc_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">num_arcs_save</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+            <span class="n">r_sort_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">r</span><span class="p">)</span><span class="o">.</span><span class="n">argsort</span><span class="p">()[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># descending order, makes for loop easier</span>
+
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_bad</span><span class="p">):</span>  <span class="c1"># remove arcs one by one</span>
+                <span class="n">bad_arc_idx</span> <span class="o">=</span> <span class="n">r_sort_idx</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+                <span class="n">ps_idx0</span> <span class="o">=</span> <span class="n">arcs_save</span><span class="p">[</span><span class="n">bad_arc_idx</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">ps_idx1</span> <span class="o">=</span> <span class="n">arcs_save</span><span class="p">[</span><span class="n">bad_arc_idx</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">ps_w_dropped_arc</span><span class="p">[</span><span class="n">ps_idx0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">ps_w_dropped_arc</span><span class="p">[</span>
+                                                             <span class="n">ps_idx1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>  <span class="c1"># if arc not already dropped for either</span>
+                    <span class="c1"># point of current arc drop current arc</span>
+                    <span class="n">good_arc_idx</span><span class="p">[</span><span class="n">bad_arc_idx</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+                    <span class="c1"># mark both psPoints from the arc as having an arc dropped</span>
+                    <span class="n">ps_w_dropped_arc</span><span class="p">[</span><span class="n">ps_idx0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+                    <span class="n">ps_w_dropped_arc</span><span class="p">[</span><span class="n">ps_idx1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+            <span class="c1"># update all variables for next iteration</span>
+            <span class="n">arcs</span> <span class="o">=</span> <span class="n">arcs_save</span><span class="p">[</span><span class="n">good_arc_idx</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="n">obv_vec</span> <span class="o">=</span> <span class="n">obv_vec_save</span><span class="p">[</span><span class="n">good_arc_idx</span><span class="p">]</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">a_save</span><span class="p">[</span><span class="n">good_arc_idx</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="n">weights</span> <span class="o">=</span> <span class="n">weights_save</span><span class="p">[</span><span class="n">good_arc_idx</span><span class="p">]</span>
+            <span class="n">num_arcs</span> <span class="o">=</span> <span class="n">obv_vec</span><span class="o">.</span><span class="n">size</span>
+
+        <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="n">val_points</span><span class="p">[</span><span class="n">points_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">x_hat</span>
+
+    <span class="n">m</span><span class="p">,</span> <span class="n">s</span> <span class="o">=</span> <span class="nb">divmod</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">,</span> <span class="mi">60</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s1">&#39;time used: </span><span class="si">{:02.0f}</span><span class="s1"> mins </span><span class="si">{:02.1f}</span><span class="s1"> secs.</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">s</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">val_points</span></div>
+
+
+
+<div class="viewcode-block" id="spatialParameterIntegration">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.unwrapping.spatialParameterIntegration">[docs]</a>
+<span class="k">def</span> <span class="nf">spatialParameterIntegration</span><span class="p">(</span><span class="o">*</span><span class="p">,</span>
+                                <span class="n">val_arcs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                                <span class="n">arcs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                                <span class="n">coord_xy</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                                <span class="n">weights</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                                <span class="n">spatial_ref_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+                                <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Unwrapping double-difference arc parameters spatially.</span>
+
+<span class="sd">    The parameters at the arcs are integrated spatially to the points. The integration is done using least-squares.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    val_arcs: np.ndarray</span>
+<span class="sd">        Value at the arcs (e.g. DEM error, velocity).</span>
+<span class="sd">    arcs: np.ndarray</span>
+<span class="sd">        Arcs of the spatial network.</span>
+<span class="sd">    coord_xy: np.ndarray</span>
+<span class="sd">        Radar coordinates of the points in the spatial network.</span>
+<span class="sd">    weights: np.ndarray</span>
+<span class="sd">        Weights of the arcs (e.g. temporal coherence from temporal unwrapping)</span>
+<span class="sd">    spatial_ref_idx: int</span>
+<span class="sd">        Index of the spatial reference point (default = 0). Can be arbitrary.</span>
+<span class="sd">    logger: Logger</span>
+<span class="sd">        Logging handler</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    val_points: np.ndarray</span>
+<span class="sd">        Estimated parameters at the points resulting from the integration of the parameters at the arcs.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">arcs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">arcs</span><span class="p">)</span>
+    <span class="n">num_points</span> <span class="o">=</span> <span class="n">coord_xy</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">num_arcs</span> <span class="o">=</span> <span class="n">arcs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># create design matrix</span>
+    <span class="n">design_mat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_arcs</span><span class="p">,</span> <span class="n">num_points</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_arcs</span><span class="p">):</span>
+        <span class="n">design_mat</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">arcs</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">design_mat</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">arcs</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+
+    <span class="c1"># remove reference point from design matrix</span>
+    <span class="n">design_mat</span> <span class="o">=</span> <span class="n">csr_matrix</span><span class="p">(</span><span class="n">weights</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">design_mat</span><span class="p">,</span> <span class="n">spatial_ref_idx</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+    <span class="c1"># don&#39;t even start if the network is not connected</span>
+    <span class="k">if</span> <span class="n">structural_rank</span><span class="p">(</span><span class="n">design_mat</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">design_mat</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Spatial point network is not connected. Cannot integrate parameters spatially!&quot;</span><span class="p">)</span>
+
+    <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+    <span class="n">obv_vec</span> <span class="o">=</span> <span class="n">val_arcs</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">)</span> <span class="o">*</span> <span class="n">weights</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">)</span>
+
+    <span class="n">x_hat</span> <span class="o">=</span> <span class="n">lsqr</span><span class="p">(</span><span class="n">design_mat</span><span class="p">,</span> <span class="n">obv_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">m</span><span class="p">,</span> <span class="n">s</span> <span class="o">=</span> <span class="nb">divmod</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">,</span> <span class="mi">60</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s1">&#39;time used: </span><span class="si">{:02.0f}</span><span class="s1"> mins </span><span class="si">{:02.1f}</span><span class="s1"> secs.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">s</span><span class="p">))</span>
+
+    <span class="n">val_points</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_points</span><span class="p">,))</span>
+    <span class="n">points_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">num_points</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+    <span class="n">points_idx</span><span class="p">[</span><span class="n">spatial_ref_idx</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">val_points</span><span class="p">[</span><span class="n">points_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">x_hat</span>
+
+    <span class="k">return</span> <span class="n">val_points</span></div>
+
+
+
+<div class="viewcode-block" id="computeNumArcsPerPoints">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.unwrapping.computeNumArcsPerPoints">[docs]</a>
+<span class="k">def</span> <span class="nf">computeNumArcsPerPoints</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">net_obj</span><span class="p">:</span> <span class="n">Network</span><span class="p">,</span> <span class="n">point_id</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                            <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Remove Points with less than specified number of arcs.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    net_obj: Network</span>
+<span class="sd">        The spatial Network object.</span>
+<span class="sd">    point_id: np.ndarray</span>
+<span class="sd">        ID of the points in the network.</span>
+<span class="sd">    logger: Logger</span>
+<span class="sd">        Logging handler.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">     design_mat: np.ndarray</span>
+<span class="sd">        Design matrix of the spatial network</span>
+<span class="sd">     arcs_per_point: np.ndarray</span>
+<span class="sd">        Number of arcs that each point is connected with.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Removal of arcs and PSC that cannot be tested.&quot;</span><span class="p">)</span>
+
+    <span class="n">num_points</span> <span class="o">=</span> <span class="n">point_id</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># create design matrix</span>
+    <span class="n">design_mat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">net_obj</span><span class="o">.</span><span class="n">num_arcs</span><span class="p">,</span> <span class="n">num_points</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">net_obj</span><span class="o">.</span><span class="n">num_arcs</span><span class="p">):</span>
+        <span class="n">design_mat</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">net_obj</span><span class="o">.</span><span class="n">arcs</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">design_mat</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">net_obj</span><span class="o">.</span><span class="n">arcs</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+
+    <span class="c1"># find the number of arcs per point</span>
+    <span class="n">arcs_per_point</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">num_points</span><span class="p">,</span> <span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_points</span><span class="p">):</span>
+        <span class="n">arcs_per_point</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">design_mat</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">design_mat</span><span class="p">,</span> <span class="n">arcs_per_point</span></div>
+
+
+
+<div class="viewcode-block" id="computeAvgCoherencePerPoint">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.unwrapping.computeAvgCoherencePerPoint">[docs]</a>
+<span class="k">def</span> <span class="nf">computeAvgCoherencePerPoint</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">net_obj</span><span class="p">:</span> <span class="n">Network</span><span class="p">,</span> <span class="n">point_id</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the average coherence from all arcs that a point is connected with. Used to remove incoherent points.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    net_obj: Network</span>
+<span class="sd">        The Network object.</span>
+<span class="sd">    point_id: np.ndarray</span>
+<span class="sd">        ID of the points in the network.</span>
+<span class="sd">    logger: Logger</span>
+<span class="sd">        Logging handler.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    mean_gamma_point: np.ndarray</span>
+<span class="sd">        Average coherence per point</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Removal of points whose arcs are incoherent in average.&quot;</span><span class="p">)</span>
+
+    <span class="n">num_points</span> <span class="o">=</span> <span class="n">point_id</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># create design matrix</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">net_obj</span><span class="o">.</span><span class="n">num_arcs</span><span class="p">,</span> <span class="n">num_points</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">net_obj</span><span class="o">.</span><span class="n">num_arcs</span><span class="p">):</span>
+        <span class="n">a</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">net_obj</span><span class="o">.</span><span class="n">arcs</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="n">net_obj</span><span class="o">.</span><span class="n">gamma</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">a</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">net_obj</span><span class="o">.</span><span class="n">arcs</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="n">net_obj</span><span class="o">.</span><span class="n">gamma</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+    <span class="n">a</span><span class="p">[</span><span class="n">a</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+    <span class="n">mean_gamma_point</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">mean_gamma_point</span></div>
+
+
+
+<div class="viewcode-block" id="removeArcsByPointMask">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.unwrapping.removeArcsByPointMask">[docs]</a>
+<span class="k">def</span> <span class="nf">removeArcsByPointMask</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">net_obj</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Network</span><span class="p">,</span> <span class="n">NetworkParameter</span><span class="p">],</span> <span class="n">point_id</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">coord_xy</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                          <span class="n">p_mask</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">design_mat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                          <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Network</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Remove all entries related to the arc observations connected to the points which have a False value in p_mask.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    net_obj: Network</span>
+<span class="sd">        The Network object.</span>
+<span class="sd">    point_id: np.ndarray</span>
+<span class="sd">        ID of the points in the network.</span>
+<span class="sd">    coord_xy: np.ndarray</span>
+<span class="sd">        Radar coordinates of the points in the spatial network.</span>
+<span class="sd">    p_mask: np.ndarray</span>
+<span class="sd">        Boolean mask with True for points to keep, and False for points to remove.</span>
+<span class="sd">    design_mat: np.ndarray</span>
+<span class="sd">        Design matrix describing the relation between arcs and points.</span>
+<span class="sd">    logger: Logger</span>
+<span class="sd">        Logging handler.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    net_obj: Network</span>
+<span class="sd">        Network object without the removed arcs and points.</span>
+<span class="sd">    point_id: np.ndarray</span>
+<span class="sd">        ID of the points in the network without the removed points.</span>
+<span class="sd">    coord_xy: np.ndarray</span>
+<span class="sd">        Radar coordinates of the points in the spatial network without the removed points.</span>
+<span class="sd">    design_mat: np.ndarray</span>
+<span class="sd">        Design matrix describing the relation between arcs and points without the removed points and arcs.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># find respective arcs</span>
+    <span class="n">a_idx</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">p_idx</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="o">~</span><span class="n">p_mask</span><span class="p">)[</span><span class="mi">0</span><span class="p">]:</span>
+        <span class="n">a_idx</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">design_mat</span><span class="p">[:,</span> <span class="n">p_idx</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a_idx</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">a_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span><span class="n">a_idx</span><span class="p">)</span>
+        <span class="n">a_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">net_obj</span><span class="o">.</span><span class="n">num_arcs</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">)</span>
+        <span class="n">a_mask</span><span class="p">[</span><span class="n">a_idx</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">net_obj</span><span class="o">.</span><span class="n">removeArcs</span><span class="p">(</span><span class="n">mask</span><span class="o">=</span><span class="n">a_mask</span><span class="p">)</span>
+        <span class="n">design_mat</span> <span class="o">=</span> <span class="n">design_mat</span><span class="p">[</span><span class="n">a_mask</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">a_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">a_idx</span><span class="p">)</span>  <span class="c1"># so I can check the size</span>
+
+    <span class="c1"># remove psPoints</span>
+    <span class="n">point_id</span> <span class="o">=</span> <span class="n">point_id</span><span class="p">[</span><span class="n">p_mask</span><span class="p">]</span>
+    <span class="n">design_mat</span> <span class="o">=</span> <span class="n">design_mat</span><span class="p">[:,</span> <span class="n">p_mask</span><span class="p">]</span>
+    <span class="n">coord_xy</span> <span class="o">=</span> <span class="n">coord_xy</span><span class="p">[</span><span class="n">p_mask</span><span class="p">,</span> <span class="p">:]</span>
+
+    <span class="c1"># beside removing the arcs in &quot;arcs&quot;, the tuple indices have to be changed to make them fit to new point indices</span>
+    <span class="k">for</span> <span class="n">p_idx</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="o">~</span><span class="n">p_mask</span><span class="p">)[</span><span class="mi">0</span><span class="p">])[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="n">net_obj</span><span class="o">.</span><span class="n">arcs</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">net_obj</span><span class="o">.</span><span class="n">arcs</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">p_idx</span><span class="p">)),</span> <span class="mi">0</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+        <span class="n">net_obj</span><span class="o">.</span><span class="n">arcs</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">net_obj</span><span class="o">.</span><span class="n">arcs</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">p_idx</span><span class="p">)),</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Removed </span><span class="si">{}</span><span class="s2"> arc(s) connected to the removed point(s)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">a_idx</span><span class="o">.</span><span class="n">size</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">net_obj</span><span class="p">,</span> <span class="n">point_id</span><span class="p">,</span> <span class="n">coord_xy</span><span class="p">,</span> <span class="n">design_mat</span></div>
+
+
+
+<div class="viewcode-block" id="removeGrossOutliers">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.unwrapping.removeGrossOutliers">[docs]</a>
+<span class="k">def</span> <span class="nf">removeGrossOutliers</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">net_obj</span><span class="p">:</span> <span class="n">Network</span><span class="p">,</span> <span class="n">point_id</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">coord_xy</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">min_num_arc</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+                        <span class="n">quality_thrsh</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+                        <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Network</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Remove both gross outliers which have many low quality arcs and points which are not well connected.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    net_obj: Network</span>
+<span class="sd">        The spatial Network object.</span>
+<span class="sd">    point_id: np.ndarray</span>
+<span class="sd">        ID of the points in the network.</span>
+<span class="sd">    coord_xy: np.ndarray</span>
+<span class="sd">        Radar coordinates of the points in the spatial network.</span>
+<span class="sd">    min_num_arc: int</span>
+<span class="sd">        Threshold on the minimal number of arcs per point. Default = 3.</span>
+<span class="sd">    quality_thrsh: float</span>
+<span class="sd">        Threshold on the temporal coherence of the arcs. Default = 0.0.</span>
+<span class="sd">    logger: Logger</span>
+<span class="sd">        Logging handler.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    net_obj: Network</span>
+<span class="sd">        Network object without the removed arcs and points.</span>
+<span class="sd">    point_id: np.ndarray</span>
+<span class="sd">        ID of the points in the network without the removed points.</span>
+<span class="sd">    coord_xy: np.ndarray</span>
+<span class="sd">        Radar coordinates of the points in the spatial network without the removed points.</span>
+<span class="sd">    a: np.ndarray</span>
+<span class="sd">        Design matrix describing the relation between arcs and points without the removed points and arcs.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Detect points with low quality arcs (mean): &lt; </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">quality_thrsh</span><span class="p">))</span>
+    <span class="n">mean_gamma_point</span> <span class="o">=</span> <span class="n">computeAvgCoherencePerPoint</span><span class="p">(</span><span class="n">net_obj</span><span class="o">=</span><span class="n">net_obj</span><span class="p">,</span>
+                                                   <span class="n">point_id</span><span class="o">=</span><span class="n">point_id</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
+    <span class="c1"># not yet removed, because arcs are removed separately</span>
+    <span class="n">p_mask_mean_coh</span> <span class="o">=</span> <span class="p">(</span><span class="n">mean_gamma_point</span> <span class="o">&gt;=</span> <span class="n">quality_thrsh</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Detected </span><span class="si">{}</span><span class="s2"> point(s) with mean coherence of all connected arcs &lt; </span><span class="si">{}</span><span class="s2"> &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">p_mask_mean_coh</span><span class="p">[</span><span class="o">~</span><span class="n">p_mask_mean_coh</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">quality_thrsh</span><span class="p">))</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Removal of low quality arcs: &lt; </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">quality_thrsh</span><span class="p">))</span>
+    <span class="n">a_mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">net_obj</span><span class="o">.</span><span class="n">gamma</span> <span class="o">&gt;=</span> <span class="n">quality_thrsh</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Removed </span><span class="si">{}</span><span class="s2"> arc(s)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">a_mask</span><span class="p">[</span><span class="o">~</span><span class="n">a_mask</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+    <span class="n">net_obj</span><span class="o">.</span><span class="n">removeArcs</span><span class="p">(</span><span class="n">mask</span><span class="o">=</span><span class="n">a_mask</span><span class="p">)</span>
+
+    <span class="n">design_mat</span><span class="p">,</span> <span class="n">arcs_per_point</span> <span class="o">=</span> <span class="n">computeNumArcsPerPoints</span><span class="p">(</span><span class="n">net_obj</span><span class="o">=</span><span class="n">net_obj</span><span class="p">,</span> <span class="n">point_id</span><span class="o">=</span><span class="n">point_id</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
+
+    <span class="n">p_mask_num_arcs</span> <span class="o">=</span> <span class="p">(</span><span class="n">arcs_per_point</span> <span class="o">&gt;=</span> <span class="n">min_num_arc</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Detected </span><span class="si">{}</span><span class="s2"> point(s) with less than </span><span class="si">{}</span><span class="s2"> arcs&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p_mask_num_arcs</span><span class="p">[</span><span class="o">~</span><span class="n">p_mask_num_arcs</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                                                                         <span class="n">min_num_arc</span><span class="p">))</span>
+
+    <span class="c1"># remove them jointly</span>
+    <span class="n">p_mask</span> <span class="o">=</span> <span class="n">p_mask_num_arcs</span> <span class="o">&amp;</span> <span class="n">p_mask_mean_coh</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Remove </span><span class="si">{}</span><span class="s2"> point(s)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p_mask</span><span class="p">[</span><span class="o">~</span><span class="n">p_mask</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+    <span class="n">net_obj</span><span class="p">,</span> <span class="n">point_id</span><span class="p">,</span> <span class="n">coord_xy</span><span class="p">,</span> <span class="n">design_mat</span> <span class="o">=</span> <span class="n">removeArcsByPointMask</span><span class="p">(</span><span class="n">net_obj</span><span class="o">=</span><span class="n">net_obj</span><span class="p">,</span> <span class="n">point_id</span><span class="o">=</span><span class="n">point_id</span><span class="p">,</span>
+                                                                    <span class="n">coord_xy</span><span class="o">=</span><span class="n">coord_xy</span><span class="p">,</span> <span class="n">p_mask</span><span class="o">=</span><span class="n">p_mask</span><span class="p">,</span>
+                                                                    <span class="n">design_mat</span><span class="o">=</span><span class="n">design_mat</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">net_obj</span><span class="p">,</span> <span class="n">point_id</span><span class="p">,</span> <span class="n">coord_xy</span><span class="p">,</span> <span class="n">design_mat</span></div>
+
+
+
+<div class="viewcode-block" id="parameterBasedNoisyPointRemoval">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.unwrapping.parameterBasedNoisyPointRemoval">[docs]</a>
+<span class="k">def</span> <span class="nf">parameterBasedNoisyPointRemoval</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">net_par_obj</span><span class="p">:</span> <span class="n">NetworkParameter</span><span class="p">,</span> <span class="n">point_id</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">coord_xy</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                                    <span class="n">design_mat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">rmse_thrsh</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.02</span><span class="p">,</span> <span class="n">num_points_remove</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+                                    <span class="n">bmap_obj</span><span class="p">:</span> <span class="n">AmplitudeImage</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">bool_plot</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                                    <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Remove Points during spatial integration step if residuals at many connected arcs are high.</span>
+
+<span class="sd">    The idea is similar to outlier removal in DePSI, but without hypothesis testing.</span>
+<span class="sd">    It can be used as a preprocessing step to spatial integration.</span>
+<span class="sd">    The points are removed based on the RMSE computed from the residuals of the parameters (DEM error, velocity) per</span>
+<span class="sd">    arc. The point with the highest RMSE is removed in each iteration. The process stops when the maximum RMSE is below</span>
+<span class="sd">    a threshold.</span>
+
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    net_par_obj: NetworkParameter</span>
+<span class="sd">        The spatial NetworkParameter object containing the parameters estimates at each arc.</span>
+<span class="sd">    point_id: np.ndarray</span>
+<span class="sd">        ID of the points in the network.</span>
+<span class="sd">    coord_xy: np.ndarray</span>
+<span class="sd">        Radar coordinates of the points in the spatial network.</span>
+<span class="sd">    design_mat: np.ndarray</span>
+<span class="sd">        Design matrix describing the relation between arcs and points.</span>
+<span class="sd">    rmse_thrsh: float</span>
+<span class="sd">        Threshold for the RMSE of the residuals per point. Default = 0.02.</span>
+<span class="sd">    num_points_remove: int</span>
+<span class="sd">        Number of points to remove in each iteration. Default = 1.</span>
+<span class="sd">    bmap_obj: AmplitudeImage</span>
+<span class="sd">        Basemap object for plotting. Default = None.</span>
+<span class="sd">    bool_plot: bool</span>
+<span class="sd">        Plot the RMSE per point. Default = False.</span>
+<span class="sd">    logger: Logger</span>
+<span class="sd">        Logging handler.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    spatial_ref_id: int</span>
+<span class="sd">        ID of the spatial reference point.</span>
+<span class="sd">    point_id: np.ndarray</span>
+<span class="sd">        ID of the points in the network without the removed points.</span>
+<span class="sd">    net_par_obj: NetworkParameter</span>
+<span class="sd">        The NetworkParameter object without the removed points.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;#&quot;</span> <span class="o">*</span> <span class="mi">10</span>
+    <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot; NOISY POINT REMOVAL BASED ON ARC PARAMETERS &quot;</span>
+    <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;#&quot;</span> <span class="o">*</span> <span class="mi">10</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="n">num_points</span> <span class="o">=</span> <span class="n">point_id</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Selection of the reference PSC&quot;</span><span class="p">)</span>
+    <span class="c1"># select one of the two pixels which are connected via the arc with the highest quality</span>
+    <span class="n">spatial_ref_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">design_mat</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">net_par_obj</span><span class="o">.</span><span class="n">gamma</span><span class="p">),</span> <span class="p">:]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">coord_xy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">arr</span><span class="o">=</span><span class="n">coord_xy</span><span class="p">,</span> <span class="n">obj</span><span class="o">=</span><span class="n">spatial_ref_idx</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">spatial_ref_id</span> <span class="o">=</span> <span class="n">point_id</span><span class="p">[</span><span class="n">spatial_ref_idx</span><span class="p">]</span>
+    <span class="n">point_id</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">arr</span><span class="o">=</span><span class="n">point_id</span><span class="p">,</span> <span class="n">obj</span><span class="o">=</span><span class="n">spatial_ref_idx</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">num_points</span> <span class="o">-=</span> <span class="mi">1</span>
+
+    <span class="c1"># remove reference point from design matrix</span>
+    <span class="n">design_mat</span> <span class="o">=</span> <span class="n">net_par_obj</span><span class="o">.</span><span class="n">gamma</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">arr</span><span class="o">=</span><span class="n">design_mat</span><span class="p">,</span> <span class="n">obj</span><span class="o">=</span><span class="n">spatial_ref_idx</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Spatial integration to detect noisy point&quot;</span><span class="p">)</span>
+    <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+    <span class="n">it_count</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;ITERATION: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">it_count</span><span class="p">))</span>
+        <span class="n">design_mat</span> <span class="o">=</span> <span class="n">csr_matrix</span><span class="p">(</span><span class="n">design_mat</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">structural_rank</span><span class="p">(</span><span class="n">design_mat</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">design_mat</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Singular normal matrix. Network is no longer connected!&quot;</span><span class="p">)</span>
+            <span class="c1"># point_id = np.sort(np.hstack([spatial_ref_id, point_id]))</span>
+            <span class="c1"># return spatial_ref_id, point_id, net_par_obj</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span>
+        <span class="c1"># demerr</span>
+        <span class="n">obv_vec</span> <span class="o">=</span> <span class="n">net_par_obj</span><span class="o">.</span><span class="n">demerr</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">)</span>
+        <span class="n">demerr_points</span> <span class="o">=</span> <span class="n">lsqr</span><span class="p">(</span><span class="n">design_mat</span><span class="o">.</span><span class="n">toarray</span><span class="p">(),</span> <span class="n">obv_vec</span> <span class="o">*</span> <span class="n">net_par_obj</span><span class="o">.</span><span class="n">gamma</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">r_demerr</span> <span class="o">=</span> <span class="n">obv_vec</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">design_mat</span><span class="o">.</span><span class="n">toarray</span><span class="p">(),</span> <span class="n">demerr_points</span><span class="p">)</span>
+
+        <span class="c1"># vel</span>
+        <span class="n">obv_vec</span> <span class="o">=</span> <span class="n">net_par_obj</span><span class="o">.</span><span class="n">vel</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">)</span>
+        <span class="n">vel_points</span> <span class="o">=</span> <span class="n">lsqr</span><span class="p">(</span><span class="n">design_mat</span><span class="o">.</span><span class="n">toarray</span><span class="p">(),</span> <span class="n">obv_vec</span> <span class="o">*</span> <span class="n">net_par_obj</span><span class="o">.</span><span class="n">gamma</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">r_vel</span> <span class="o">=</span> <span class="n">obv_vec</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">design_mat</span><span class="o">.</span><span class="n">toarray</span><span class="p">(),</span> <span class="n">vel_points</span><span class="p">)</span>
+
+        <span class="n">rmse_demerr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_points</span><span class="p">,))</span>
+        <span class="n">rmse_vel</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_points</span><span class="p">,))</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_points</span><span class="p">):</span>
+            <span class="n">r_mask</span> <span class="o">=</span> <span class="n">design_mat</span><span class="p">[:,</span> <span class="n">p</span><span class="p">]</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span> <span class="o">!=</span> <span class="mi">0</span>
+            <span class="n">rmse_demerr</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">r_demerr</span><span class="p">[</span><span class="n">r_mask</span><span class="o">.</span><span class="n">ravel</span><span class="p">()]</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span>
+            <span class="n">rmse_vel</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">r_vel</span><span class="p">[</span><span class="n">r_mask</span><span class="o">.</span><span class="n">ravel</span><span class="p">()]</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span>
+
+        <span class="n">rmse</span> <span class="o">=</span> <span class="n">rmse_vel</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">max_rmse</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">rmse</span><span class="o">.</span><span class="n">ravel</span><span class="p">())</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Maximum RMSE DEM correction: </span><span class="si">{:.2f}</span><span class="s2"> m&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">rmse_demerr</span><span class="o">.</span><span class="n">ravel</span><span class="p">())))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Maximum RMSE velocity: </span><span class="si">{:.4f}</span><span class="s2"> m / year&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">rmse_vel</span><span class="o">.</span><span class="n">ravel</span><span class="p">())))</span>
+
+        <span class="k">if</span> <span class="n">bool_plot</span><span class="p">:</span>
+            <span class="c1"># vel</span>
+            <span class="n">ax</span> <span class="o">=</span> <span class="n">bmap_obj</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
+            <span class="n">sc</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">coord_xy</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">coord_xy</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">c</span><span class="o">=</span><span class="n">rmse_vel</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mf">3.5</span><span class="p">,</span>
+                            <span class="n">cmap</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="s2">&quot;autumn_r&quot;</span><span class="p">),</span> <span class="n">vmin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="n">rmse_thrsh</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">sc</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mf">0.03</span><span class="p">,</span> <span class="n">shrink</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">. iteration</span><span class="se">\n</span><span class="s2">mean velocity - RMSE per point in [mm / year]&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">it_count</span><span class="p">))</span>
+            <span class="n">fig</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">get_figure</span><span class="p">()</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+            <span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">join</span><span class="p">(</span><span class="n">dirname</span><span class="p">(</span><span class="n">net_par_obj</span><span class="o">.</span><span class="n">file_path</span><span class="p">),</span> <span class="s2">&quot;pic&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;step_1_rmse_vel_</span><span class="si">{</span><span class="n">it_count</span><span class="si">}</span><span class="s2">th_iter.png&quot;</span><span class="p">),</span>
+                        <span class="n">dpi</span><span class="o">=</span><span class="mi">300</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
+
+            <span class="c1"># demerr</span>
+            <span class="n">ax</span> <span class="o">=</span> <span class="n">bmap_obj</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
+            <span class="n">sc</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">coord_xy</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">coord_xy</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">c</span><span class="o">=</span><span class="n">rmse_demerr</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mf">3.5</span><span class="p">,</span>
+                            <span class="n">cmap</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="s2">&quot;autumn_r&quot;</span><span class="p">))</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">sc</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mf">0.03</span><span class="p">,</span> <span class="n">shrink</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">. iteration</span><span class="se">\n</span><span class="s2">DEM correction - RMSE per point in [m]&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">it_count</span><span class="p">))</span>
+            <span class="n">fig</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">get_figure</span><span class="p">()</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+            <span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">join</span><span class="p">(</span><span class="n">dirname</span><span class="p">(</span><span class="n">net_par_obj</span><span class="o">.</span><span class="n">file_path</span><span class="p">),</span> <span class="s2">&quot;pic&quot;</span><span class="p">,</span>
+                             <span class="sa">f</span><span class="s2">&quot;step_1_rmse_dem_correction_</span><span class="si">{</span><span class="n">it_count</span><span class="si">}</span><span class="s2">th_iter.png&quot;</span><span class="p">),</span>
+                        <span class="n">dpi</span><span class="o">=</span><span class="mi">300</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">max_rmse</span> <span class="o">&lt;=</span> <span class="n">rmse_thrsh</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;No noisy pixels detected.&quot;</span><span class="p">)</span>
+            <span class="k">break</span>
+
+        <span class="c1"># remove point with highest rmse</span>
+        <span class="n">p_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">num_points</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">)</span>
+        <span class="n">p_mask</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">rmse</span><span class="p">)[::</span><span class="o">-</span><span class="mi">1</span><span class="p">][:</span><span class="n">num_points_remove</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># see description of function removeArcsByPointMask</span>
+        <span class="n">net_par_obj</span><span class="p">,</span> <span class="n">point_id</span><span class="p">,</span> <span class="n">coord_xy</span><span class="p">,</span> <span class="n">design_mat</span> <span class="o">=</span> <span class="n">removeArcsByPointMask</span><span class="p">(</span><span class="n">net_obj</span><span class="o">=</span><span class="n">net_par_obj</span><span class="p">,</span> <span class="n">point_id</span><span class="o">=</span><span class="n">point_id</span><span class="p">,</span>
+                                                                            <span class="n">coord_xy</span><span class="o">=</span><span class="n">coord_xy</span><span class="p">,</span> <span class="n">p_mask</span><span class="o">=</span><span class="n">p_mask</span><span class="p">,</span>
+                                                                            <span class="n">design_mat</span><span class="o">=</span><span class="n">design_mat</span><span class="o">.</span><span class="n">toarray</span><span class="p">(),</span>
+                                                                            <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
+        <span class="n">num_points</span> <span class="o">-=</span> <span class="n">num_points_remove</span>
+        <span class="n">it_count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="n">m</span><span class="p">,</span> <span class="n">s</span> <span class="o">=</span> <span class="nb">divmod</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">,</span> <span class="mi">60</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s1">&#39;time used: </span><span class="si">{:02.0f}</span><span class="s1"> mins </span><span class="si">{:02.1f}</span><span class="s1"> secs.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">s</span><span class="p">))</span>
+
+    <span class="c1"># add spatialRefIdx back to point_id</span>
+    <span class="n">point_id</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span><span class="n">spatial_ref_id</span><span class="p">,</span> <span class="n">point_id</span><span class="p">]))</span>
+    <span class="k">return</span> <span class="n">spatial_ref_id</span><span class="p">,</span> <span class="n">point_id</span><span class="p">,</span> <span class="n">net_par_obj</span></div>
+
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">SARvey 1.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">sarvey.unwrapping</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2024, IPI - Leibniz Universitaet Hannover.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.4.4.
+    </div>
+  </body>
+</html>

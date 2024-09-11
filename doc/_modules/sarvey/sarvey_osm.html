@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>sarvey.sarvey_osm &#8212; SARvey 1.0.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=def86cc0" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=86cf1cd6" />
+    
+    <script src="../../_static/documentation_options.js?v=8d563738"></script>
+    <script src="../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">SARvey 1.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">sarvey.sarvey_osm</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for sarvey.sarvey_osm</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+
+<span class="c1"># SARvey - A multitemporal InSAR time series tool for the derivation of displacements.</span>
+<span class="c1">#</span>
+<span class="c1"># Copyright (C) 2021-2024 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)</span>
+<span class="c1">#</span>
+<span class="c1"># This software was developed together with FERN.Lab (fernlab@gfz-potsdam.de) in the context</span>
+<span class="c1"># of the SAR4Infra project with funds of the German Federal Ministry for Digital and</span>
+<span class="c1"># Transport and contributions from Landesamt fuer Vermessung und Geoinformation</span>
+<span class="c1"># Schleswig-Holstein and Landesbetrieb Strassenbau und Verkehr Schleswig-Holstein.</span>
+<span class="c1">#</span>
+<span class="c1"># This program is free software: you can redistribute it and/or modify it under</span>
+<span class="c1"># the terms of the GNU General Public License as published by the Free Software</span>
+<span class="c1"># Foundation, either version 3 of the License, or (at your option) any later</span>
+<span class="c1"># version.</span>
+<span class="c1">#</span>
+<span class="c1"># Important: This package uses PyMaxFlow. The core of PyMaxflows library is the C++</span>
+<span class="c1"># implementation by Vladimir Kolmogorov. It is also licensed under the GPL, but it REQUIRES that you</span>
+<span class="c1"># cite [BOYKOV04] (see LICENSE) in any resulting publication if you use this code for research purposes.</span>
+<span class="c1"># This requirement extends to SARvey.</span>
+<span class="c1">#</span>
+<span class="c1"># This program is distributed in the hope that it will be useful, but WITHOUT</span>
+<span class="c1"># ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS</span>
+<span class="c1"># FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more</span>
+<span class="c1"># details.</span>
+<span class="c1">#</span>
+<span class="c1"># You should have received a copy of the GNU Lesser General Public License along</span>
+<span class="c1"># with this program. If not, see &lt;https://www.gnu.org/licenses/&gt;.</span>
+
+<span class="sd">&quot;&quot;&quot;Download openstreetmap data for area of interest.&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">from</span> <span class="nn">os.path</span> <span class="kn">import</span> <span class="n">join</span>
+<span class="kn">import</span> <span class="nn">geopandas</span> <span class="k">as</span> <span class="nn">gpd</span>
+<span class="kn">from</span> <span class="nn">shapely</span> <span class="kn">import</span> <span class="n">ops</span><span class="p">,</span> <span class="n">Point</span>
+<span class="kn">import</span> <span class="nn">matplotlib</span>
+
+<span class="kn">from</span> <span class="nn">sarvey.osm_utils</span> <span class="kn">import</span> <span class="n">runOsmQueryBridge</span><span class="p">,</span> <span class="n">runOsmQuery</span><span class="p">,</span> <span class="n">getSpatialExtend</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">matplotlib</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s1">&#39;TkAgg&#39;</span><span class="p">)</span>
+<span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+
+
+<span class="n">EXAMPLE</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;Example:</span>
+<span class="s2">  sarvey_osm --geom ./geometryRadar.h5 --railway                       # download railway</span>
+<span class="s2">  sarvey_osm --geom ./geometryRadar.h5 --highway                       # download highway</span>
+<span class="s2">  sarvey_osm --geom ./geometryRadar.h5 --railway --bridge              # download railway bridge</span>
+<span class="s2">  sarvey_osm --geom ./geometryRadar.h5 --railway -o mask_railway.shp   # specify output path</span>
+<span class="s2">&quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="create_parser">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.sarvey_osm.create_parser">[docs]</a>
+<span class="k">def</span> <span class="nf">create_parser</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create_parser.&quot;&quot;&quot;</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span>
+        <span class="n">description</span><span class="o">=</span><span class="s1">&#39;Download transport infrastructure information from openstreetmap and store as shp-file.&#39;</span><span class="p">,</span>
+        <span class="n">formatter_class</span><span class="o">=</span><span class="n">argparse</span><span class="o">.</span><span class="n">RawTextHelpFormatter</span><span class="p">,</span>
+        <span class="n">epilog</span><span class="o">=</span><span class="n">EXAMPLE</span><span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-w&#39;</span><span class="p">,</span> <span class="s1">&#39;--work_dir&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s1">&#39;work_dir&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s1">&#39;absolute path to working directory</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span>
+                             <span class="s1">&#39;(default: current directory).&#39;</span><span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--geom&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s1">&#39;geom_file&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s1">&#39;path to existing geometryRadar.h5 file&#39;</span><span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--railway&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s1">&#39;railway&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Set true to query railways.&#39;</span><span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--highway&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s1">&#39;highway&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Set true to query highways.&#39;</span><span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--bridge&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s1">&#39;bridge&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Set true to mask bridges.</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span>
+                             <span class="s1">&#39;If --railway or --highway set true, only railway/highway bridges are queried.&#39;</span><span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-o&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s1">&#39;out_file_name&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;osm_infra.shp&#39;</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;name of output file. (default: &#39;osm_infra.shp&#39;)&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">parser</span></div>
+
+
+
+<div class="viewcode-block" id="downloadOSM">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.sarvey_osm.downloadOSM">[docs]</a>
+<span class="k">def</span> <span class="nf">downloadOSM</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">railway</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">highway</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">bridge</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+                <span class="n">work_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">out_file_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">logger</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span><span class="p">,</span> <span class="n">geom_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Download openstreetmap data and store to file.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    railway: bool</span>
+<span class="sd">        download railway data.</span>
+<span class="sd">    highway: bool</span>
+<span class="sd">        download highway data.</span>
+<span class="sd">    bridge: bool</span>
+<span class="sd">        download bridge data.</span>
+<span class="sd">    work_dir: str</span>
+<span class="sd">        working directory.</span>
+<span class="sd">    out_file_name: str</span>
+<span class="sd">        output file name.</span>
+<span class="sd">    logger: logging.Logger</span>
+<span class="sd">        logger.</span>
+<span class="sd">    geom_file: str</span>
+<span class="sd">        path to geometryRadar.h5 file.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Start creating mask file based on openstreetmap data.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># get bounding box</span>
+    <span class="n">ll_bbox</span><span class="p">,</span> <span class="n">ur_bbox</span><span class="p">,</span> <span class="n">img_ext</span><span class="p">,</span> <span class="n">coord</span><span class="p">,</span> <span class="n">atr</span> <span class="o">=</span> <span class="n">getSpatialExtend</span><span class="p">(</span><span class="n">geom_file</span><span class="o">=</span><span class="n">geom_file</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
+
+    <span class="c1"># store image extend</span>
+    <span class="n">gdf</span> <span class="o">=</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">({</span><span class="s2">&quot;geometry&quot;</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">geoseries</span><span class="o">.</span><span class="n">GeoSeries</span><span class="p">(</span><span class="n">img_ext</span><span class="p">)})</span>
+    <span class="n">gdf</span> <span class="o">=</span> <span class="n">gdf</span><span class="o">.</span><span class="n">dissolve</span><span class="p">()</span><span class="o">.</span><span class="n">convex_hull</span>
+    <span class="n">gdf</span><span class="o">.</span><span class="n">to_file</span><span class="p">(</span><span class="n">join</span><span class="p">(</span><span class="n">work_dir</span><span class="p">,</span> <span class="s2">&quot;img_extend.gpkg&quot;</span><span class="p">))</span>
+
+    <span class="c1"># store bounding box</span>
+    <span class="n">bbox_points</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">Point</span><span class="p">(</span><span class="n">ll_bbox</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">ll_bbox</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+        <span class="n">Point</span><span class="p">(</span><span class="n">ur_bbox</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">ll_bbox</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+        <span class="n">Point</span><span class="p">(</span><span class="n">ur_bbox</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">ur_bbox</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+        <span class="n">Point</span><span class="p">(</span><span class="n">ll_bbox</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">ur_bbox</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="p">]</span>
+
+    <span class="n">gdf</span> <span class="o">=</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">({</span><span class="s2">&quot;geometry&quot;</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">geoseries</span><span class="o">.</span><span class="n">GeoSeries</span><span class="p">(</span><span class="n">bbox_points</span><span class="p">)})</span>
+    <span class="n">gdf</span> <span class="o">=</span> <span class="n">gdf</span><span class="o">.</span><span class="n">dissolve</span><span class="p">()</span><span class="o">.</span><span class="n">convex_hull</span>
+    <span class="n">gdf</span><span class="o">.</span><span class="n">to_file</span><span class="p">(</span><span class="n">join</span><span class="p">(</span><span class="n">work_dir</span><span class="p">,</span> <span class="s2">&quot;bounding_box.gpkg&quot;</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">railway</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="ow">not</span> <span class="n">highway</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="ow">not</span> <span class="n">bridge</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;No infrastructure type was specified.&quot;</span><span class="p">)</span>
+        <span class="k">return</span>
+
+    <span class="k">if</span> <span class="n">bridge</span><span class="p">:</span>
+        <span class="c1"># get requested OSM layer</span>
+        <span class="n">query_result</span> <span class="o">=</span> <span class="n">runOsmQueryBridge</span><span class="p">(</span>
+            <span class="n">ll_corner_wgs</span><span class="o">=</span><span class="n">ll_bbox</span><span class="p">,</span> <span class="n">ur_corner_wgs</span><span class="o">=</span><span class="n">ur_bbox</span><span class="p">,</span>
+            <span class="n">bridge_highway</span><span class="o">=</span><span class="n">highway</span><span class="p">,</span> <span class="n">bridge_railway</span><span class="o">=</span><span class="n">railway</span><span class="p">,</span>
+            <span class="n">logger</span><span class="o">=</span><span class="n">logger</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">type_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">railway</span><span class="p">:</span>
+            <span class="n">type_list</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;rail&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">highway</span><span class="p">:</span>
+            <span class="n">type_list</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;motorway&quot;</span><span class="p">,</span> <span class="s2">&quot;motorway_link&quot;</span><span class="p">,</span> <span class="s2">&quot;trunk&quot;</span><span class="p">,</span> <span class="s2">&quot;trunk_link&quot;</span><span class="p">]</span>
+
+        <span class="c1"># get requested OSM layer</span>
+        <span class="n">query_result</span> <span class="o">=</span> <span class="n">runOsmQuery</span><span class="p">(</span><span class="n">ll_corner_wgs</span><span class="o">=</span><span class="n">ll_bbox</span><span class="p">,</span> <span class="n">ur_corner_wgs</span><span class="o">=</span><span class="n">ur_bbox</span><span class="p">,</span>
+                                   <span class="n">type_list</span><span class="o">=</span><span class="n">type_list</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
+
+    <span class="n">multi_line_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">way</span> <span class="ow">in</span> <span class="n">query_result</span><span class="o">.</span><span class="n">ways</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s2">&quot;area&quot;</span> <span class="ow">in</span> <span class="n">way</span><span class="o">.</span><span class="n">tags</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">way</span><span class="o">.</span><span class="n">tags</span><span class="p">[</span><span class="s2">&quot;area&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;yes&quot;</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Area flag is true&#39;</span><span class="p">)</span>
+                <span class="k">continue</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># keep coordinates in lat/lon. It will be needed in masking step.</span>
+            <span class="n">coord</span> <span class="o">=</span> <span class="p">[[</span><span class="nb">float</span><span class="p">(</span><span class="n">way</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">lon</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">way</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">lat</span><span class="p">)]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">way</span><span class="o">.</span><span class="n">nodes</span><span class="p">))]</span>
+            <span class="n">multi_line_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">coord</span><span class="p">)</span>
+
+    <span class="c1"># Merge all road segments</span>
+    <span class="n">merged_road</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">ops</span><span class="o">.</span><span class="n">linemerge</span><span class="p">(</span><span class="n">multi_line_list</span><span class="p">)</span><span class="o">.</span><span class="n">geoms</span><span class="p">)</span>
+    <span class="n">gdf</span> <span class="o">=</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">({</span><span class="s2">&quot;geometry&quot;</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoSeries</span><span class="p">(</span><span class="n">merged_road</span><span class="p">)})</span>
+    <span class="c1"># gdf = gdf.set_crs(crs=utm_crs)  # set appropriate CRS</span>
+    <span class="c1"># todo: add attributes if required</span>
+
+    <span class="c1"># todo: check ending of output file name</span>
+    <span class="n">gdf</span><span class="o">.</span><span class="n">to_file</span><span class="p">(</span><span class="n">join</span><span class="p">(</span><span class="n">work_dir</span><span class="p">,</span> <span class="n">out_file_name</span><span class="p">))</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;OSM download finished.&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="main">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.sarvey_osm.main">[docs]</a>
+<span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">iargs</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Download openstreetmap data and store to file.&quot;&quot;&quot;</span>
+    <span class="c1"># check input</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">create_parser</span><span class="p">()</span>
+    <span class="n">inps</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="n">iargs</span><span class="p">)</span>
+
+    <span class="c1"># initiate logger</span>
+    <span class="n">logging_level</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLevelName</span><span class="p">(</span><span class="s1">&#39;DEBUG&#39;</span><span class="p">)</span>
+
+    <span class="n">log_format</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">Formatter</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%(asctime)s</span><span class="s1"> - </span><span class="si">%(levelname)s</span><span class="s1"> - </span><span class="si">%(message)s</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+    <span class="n">current_datetime</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">-%H-%M-%S&quot;</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">localtime</span><span class="p">())</span>
+    <span class="n">log_filename</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;sarvey_osm_</span><span class="si">{</span><span class="n">current_datetime</span><span class="si">}</span><span class="s2">.log&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">(),</span> <span class="s2">&quot;logfiles&quot;</span><span class="p">)):</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">(),</span> <span class="s2">&quot;logfiles&quot;</span><span class="p">))</span>
+    <span class="n">file_handler</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">FileHandler</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">(),</span> <span class="s2">&quot;logfiles&quot;</span><span class="p">,</span> <span class="n">log_filename</span><span class="p">))</span>
+    <span class="n">file_handler</span><span class="o">.</span><span class="n">setFormatter</span><span class="p">(</span><span class="n">log_format</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">file_handler</span><span class="p">)</span>
+
+    <span class="n">console_handler</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">StreamHandler</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">)</span>
+    <span class="n">console_handler</span><span class="o">.</span><span class="n">setFormatter</span><span class="p">(</span><span class="n">log_format</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">console_handler</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging_level</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">inps</span><span class="o">.</span><span class="n">work_dir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">work_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">work_dir</span> <span class="o">=</span> <span class="n">inps</span><span class="o">.</span><span class="n">work_dir</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">work_dir</span><span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s1">&#39;create output folder: &#39;</span> <span class="o">+</span> <span class="n">work_dir</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">work_dir</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s1">&#39;working directory: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">work_dir</span><span class="p">))</span>
+
+    <span class="n">downloadOSM</span><span class="p">(</span>
+        <span class="n">railway</span><span class="o">=</span><span class="n">inps</span><span class="o">.</span><span class="n">railway</span><span class="p">,</span>
+        <span class="n">highway</span><span class="o">=</span><span class="n">inps</span><span class="o">.</span><span class="n">highway</span><span class="p">,</span>
+        <span class="n">bridge</span><span class="o">=</span><span class="n">inps</span><span class="o">.</span><span class="n">bridge</span><span class="p">,</span>
+        <span class="n">work_dir</span><span class="o">=</span><span class="n">work_dir</span><span class="p">,</span>
+        <span class="n">out_file_name</span><span class="o">=</span><span class="n">inps</span><span class="o">.</span><span class="n">out_file_name</span><span class="p">,</span>
+        <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
+        <span class="n">geom_file</span><span class="o">=</span><span class="n">inps</span><span class="o">.</span><span class="n">geom_file</span>
+    <span class="p">)</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">SARvey 1.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">sarvey.sarvey_osm</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2024, IPI - Leibniz Universitaet Hannover.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.4.4.
+    </div>
+  </body>
+</html>

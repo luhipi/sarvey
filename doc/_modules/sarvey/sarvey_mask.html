@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>sarvey.sarvey_mask &#8212; SARvey 1.0.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=def86cc0" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=86cf1cd6" />
+    
+    <script src="../../_static/documentation_options.js?v=8d563738"></script>
+    <script src="../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">SARvey 1.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">sarvey.sarvey_mask</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for sarvey.sarvey_mask</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+
+<span class="c1"># SARvey - A multitemporal InSAR time series tool for the derivation of displacements.</span>
+<span class="c1">#</span>
+<span class="c1"># Copyright (C) 2021-2024 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)</span>
+<span class="c1">#</span>
+<span class="c1"># This software was developed together with FERN.Lab (fernlab@gfz-potsdam.de) in the context</span>
+<span class="c1"># of the SAR4Infra project with funds of the German Federal Ministry for Digital and</span>
+<span class="c1"># Transport and contributions from Landesamt fuer Vermessung und Geoinformation</span>
+<span class="c1"># Schleswig-Holstein and Landesbetrieb Strassenbau und Verkehr Schleswig-Holstein.</span>
+<span class="c1">#</span>
+<span class="c1"># This program is free software: you can redistribute it and/or modify it under</span>
+<span class="c1"># the terms of the GNU General Public License as published by the Free Software</span>
+<span class="c1"># Foundation, either version 3 of the License, or (at your option) any later</span>
+<span class="c1"># version.</span>
+<span class="c1">#</span>
+<span class="c1"># Important: This package uses PyMaxFlow. The core of PyMaxflows library is the C++</span>
+<span class="c1"># implementation by Vladimir Kolmogorov. It is also licensed under the GPL, but it REQUIRES that you</span>
+<span class="c1"># cite [BOYKOV04] (see LICENSE) in any resulting publication if you use this code for research purposes.</span>
+<span class="c1"># This requirement extends to SARvey.</span>
+<span class="c1">#</span>
+<span class="c1"># This program is distributed in the hope that it will be useful, but WITHOUT</span>
+<span class="c1"># ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS</span>
+<span class="c1"># FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more</span>
+<span class="c1"># details.</span>
+<span class="c1">#</span>
+<span class="c1"># You should have received a copy of the GNU Lesser General Public License along</span>
+<span class="c1"># with this program. If not, see &lt;https://www.gnu.org/licenses/&gt;.</span>
+
+<span class="sd">&quot;&quot;&quot;Generate mask from shape file.&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">from</span> <span class="nn">os.path</span> <span class="kn">import</span> <span class="n">join</span>
+<span class="kn">import</span> <span class="nn">PIL.Image</span> <span class="k">as</span> <span class="nn">Image</span>
+<span class="kn">import</span> <span class="nn">PIL.ImageDraw</span> <span class="k">as</span> <span class="nn">ImageDraw</span>
+<span class="kn">import</span> <span class="nn">matplotlib</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">spatial</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">logging</span> <span class="kn">import</span> <span class="n">Logger</span>
+<span class="kn">import</span> <span class="nn">geopandas</span> <span class="k">as</span> <span class="nn">gpd</span>
+
+<span class="kn">from</span> <span class="nn">mintpy.utils</span> <span class="kn">import</span> <span class="n">writefile</span><span class="p">,</span> <span class="n">ptime</span><span class="p">,</span> <span class="n">utils</span>
+
+<span class="kn">from</span> <span class="nn">sarvey.osm_utils</span> <span class="kn">import</span> <span class="n">getSpatialExtend</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">matplotlib</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s1">&#39;TkAgg&#39;</span><span class="p">)</span>
+<span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+
+<span class="n">EXAMPLE</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;Example:</span>
+<span class="s2">  sarvey_mask path/to/file.shp --geom ./geometryRadar.h5 --width 6 -o mask_infra.h5</span>
+<span class="s2">&quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="create_parser">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.sarvey_mask.create_parser">[docs]</a>
+<span class="k">def</span> <span class="nf">create_parser</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create_parser.&quot;&quot;&quot;</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span>
+        <span class="n">description</span><span class="o">=</span><span class="s1">&#39;Create transport infrastructure mask from shp-file.&#39;</span><span class="p">,</span>
+        <span class="n">formatter_class</span><span class="o">=</span><span class="n">argparse</span><span class="o">.</span><span class="n">RawTextHelpFormatter</span><span class="p">,</span>
+        <span class="n">epilog</span><span class="o">=</span><span class="n">EXAMPLE</span><span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="n">dest</span><span class="o">=</span><span class="s1">&#39;input_file&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;path to input shp-file.&#39;</span><span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-w&#39;</span><span class="p">,</span> <span class="s1">&#39;--work_dir&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s1">&#39;work_dir&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s1">&#39;absolute path to working directory</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span>
+                             <span class="s1">&#39;(default: current directory).&#39;</span><span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--geom&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s1">&#39;geom_file&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s1">&#39;path to existing geometryRadar.h5 file.&#39;</span><span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--width&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s1">&#39;width&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Width of the mask in pixel (default: 6).&#39;</span><span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-o&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s1">&#39;out_file_name&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;mask_infra.h5&#39;</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;name of output file. (default: &#39;mask_infra.h5&#39;).&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">parser</span></div>
+
+
+
+<div class="viewcode-block" id="Node">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.sarvey_mask.Node">[docs]</a>
+<span class="k">class</span> <span class="nc">Node</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Define simple class for a node at a road (similar to overpy.Node).&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">lat</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">lon</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Init.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lat</span> <span class="o">=</span> <span class="n">lat</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lon</span> <span class="o">=</span> <span class="n">lon</span></div>
+
+
+
+<div class="viewcode-block" id="CoordinateSearch">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.sarvey_mask.CoordinateSearch">[docs]</a>
+<span class="k">class</span> <span class="nc">CoordinateSearch</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;CoordinateSearch.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Init.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">search_tree</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">yidx</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">xidx</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lon</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lat</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">coord</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="CoordinateSearch.createSearchTree">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.sarvey_mask.CoordinateSearch.createSearchTree">[docs]</a>
+    <span class="k">def</span> <span class="nf">createSearchTree</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">coord</span><span class="p">:</span> <span class="n">utils</span><span class="o">.</span><span class="n">coordinate</span><span class="p">,</span> <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create search tree.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        coord: utils.coordinate</span>
+<span class="sd">            Coordinates</span>
+<span class="sd">        logger: Logger</span>
+<span class="sd">            Logging handler.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">coord</span> <span class="o">=</span> <span class="n">coord</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s1">&#39;create kd-tree for efficient search...&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">coord</span><span class="o">.</span><span class="n">lut_y</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">coord</span><span class="o">.</span><span class="n">lut_x</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">coord</span><span class="o">.</span><span class="n">open</span><span class="p">()</span>
+            <span class="n">lat</span><span class="p">,</span> <span class="n">lon</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coord</span><span class="o">.</span><span class="n">read_lookup_table</span><span class="p">(</span><span class="n">print_msg</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lat</span> <span class="o">=</span> <span class="n">lat</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lon</span> <span class="o">=</span> <span class="n">lon</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+
+        <span class="c1"># create the 2D coordinate arrays for fast indexing</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coord</span><span class="o">.</span><span class="n">lut_x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coord</span><span class="o">.</span><span class="n">lut_x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">xx</span><span class="p">,</span> <span class="n">yy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">xidx</span> <span class="o">=</span> <span class="n">xx</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">yidx</span> <span class="o">=</span> <span class="n">yy</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">search_tree</span> <span class="o">=</span> <span class="n">spatial</span><span class="o">.</span><span class="n">KDTree</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">lon</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="p">])</span><span class="o">.</span><span class="n">transpose</span><span class="p">())</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s1">&#39;... done.&#39;</span><span class="p">)</span>
+        <span class="n">m</span><span class="p">,</span> <span class="n">s</span> <span class="o">=</span> <span class="nb">divmod</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">,</span> <span class="mi">60</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s1">&#39;time used: </span><span class="si">{:02.0f}</span><span class="s1"> mins </span><span class="si">{:02.1f}</span><span class="s1"> secs.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">s</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="CoordinateSearch.getMeanDistanceBetweenPixels">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.sarvey_mask.CoordinateSearch.getMeanDistanceBetweenPixels">[docs]</a>
+    <span class="k">def</span> <span class="nf">getMeanDistanceBetweenPixels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute mean distance between adjacent pixels.&quot;&quot;&quot;</span>
+        <span class="n">distances</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">search_tree</span><span class="o">.</span><span class="n">query</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">lon</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span> <span class="n">k</span><span class="o">=</span><span class="mi">10</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">mean_dist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">distances</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+        <span class="k">return</span> <span class="n">mean_dist</span></div>
+
+
+<div class="viewcode-block" id="CoordinateSearch.getNearestNeighbour">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.sarvey_mask.CoordinateSearch.getNearestNeighbour">[docs]</a>
+    <span class="k">def</span> <span class="nf">getNearestNeighbour</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">Node</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Query the kd-tree for the nearest neighbour.</span>
+
+<span class="sd">        :param node: Node object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># find nearest neighbour</span>
+        <span class="n">dist</span><span class="p">,</span> <span class="n">idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">search_tree</span><span class="o">.</span><span class="n">query</span><span class="p">([</span><span class="n">node</span><span class="o">.</span><span class="n">lon</span><span class="p">,</span> <span class="n">node</span><span class="o">.</span><span class="n">lat</span><span class="p">])</span>
+        <span class="n">found_node</span> <span class="o">=</span> <span class="n">Node</span><span class="p">(</span><span class="n">lat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">lon</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">lon</span><span class="p">[</span><span class="n">idx</span><span class="p">])</span>
+        <span class="c1"># return index of NN in radar coordinates</span>
+        <span class="k">return</span> <span class="n">dist</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">yidx</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">xidx</span><span class="p">[</span><span class="n">idx</span><span class="p">]),</span> <span class="n">found_node</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="findLastRoadPixel">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.sarvey_mask.findLastRoadPixel">[docs]</a>
+<span class="k">def</span> <span class="nf">findLastRoadPixel</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">csearch</span><span class="p">:</span> <span class="n">CoordinateSearch</span><span class="p">,</span> <span class="n">cur_node</span><span class="p">:</span> <span class="n">Node</span><span class="p">,</span> <span class="n">prev_node</span><span class="p">:</span> <span class="n">Node</span><span class="p">,</span> <span class="n">dist_thrsh</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Find the index of the last road pixel that is within the image extend.</span>
+
+<span class="sd">    Idea: the pixel with the shortest distance to the current node of a road is not necessarily on the road, if the</span>
+<span class="sd">    current node is outside the image extend. Split the road in further linear parts and find the last road pixel</span>
+<span class="sd">    recursively that is still inside the image.</span>
+<span class="sd">    Hint: all nodes are instances from class Node</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    csearch: CoordinateSearch</span>
+<span class="sd">        Search tree for efficient spatial search of the coordinate of a pixel in the radar image.</span>
+<span class="sd">    cur_node: Node</span>
+<span class="sd">        Current node of the road that is outside the image extend.</span>
+<span class="sd">    prev_node: Node</span>
+<span class="sd">        Previous node of the road that is inside the image extend.</span>
+<span class="sd">    dist_thrsh: float</span>
+<span class="sd">        Distance threshold for stop criterion (derived from average distance between two pixels in the image).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    node_idx: int</span>
+<span class="sd">        Node of the pixel which is the last pixel on the road inside the image.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># create a new node at half of the road distance between previous and current node</span>
+    <span class="n">mid_lat</span> <span class="o">=</span> <span class="n">cur_node</span><span class="o">.</span><span class="n">lat</span> <span class="o">+</span> <span class="p">(</span><span class="n">cur_node</span><span class="o">.</span><span class="n">lat</span> <span class="o">-</span> <span class="n">prev_node</span><span class="o">.</span><span class="n">lat</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+    <span class="n">mid_lon</span> <span class="o">=</span> <span class="n">cur_node</span><span class="o">.</span><span class="n">lon</span> <span class="o">+</span> <span class="p">(</span><span class="n">cur_node</span><span class="o">.</span><span class="n">lon</span> <span class="o">-</span> <span class="n">prev_node</span><span class="o">.</span><span class="n">lon</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+    <span class="n">mid_node</span> <span class="o">=</span> <span class="n">Node</span><span class="p">(</span><span class="n">lat</span><span class="o">=</span><span class="n">mid_lat</span><span class="p">,</span> <span class="n">lon</span><span class="o">=</span><span class="n">mid_lon</span><span class="p">)</span>
+
+    <span class="n">dist</span><span class="p">,</span> <span class="n">node_idx</span> <span class="o">=</span> <span class="n">csearch</span><span class="o">.</span><span class="n">getNearestNeighbour</span><span class="p">(</span><span class="n">node</span><span class="o">=</span><span class="n">mid_node</span><span class="p">)[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">dist</span> <span class="o">&lt;</span> <span class="n">dist_thrsh</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">node_idx</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">node_idx</span> <span class="o">=</span> <span class="n">findLastRoadPixel</span><span class="p">(</span><span class="n">csearch</span><span class="o">=</span><span class="n">csearch</span><span class="p">,</span> <span class="n">cur_node</span><span class="o">=</span><span class="n">cur_node</span><span class="p">,</span> <span class="n">prev_node</span><span class="o">=</span><span class="n">prev_node</span><span class="p">,</span> <span class="n">dist_thrsh</span><span class="o">=</span><span class="n">dist_thrsh</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">node_idx</span></div>
+
+
+
+<div class="viewcode-block" id="euclDist">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.sarvey_mask.euclDist">[docs]</a>
+<span class="k">def</span> <span class="nf">euclDist</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">node1</span><span class="p">:</span> <span class="n">Node</span><span class="p">,</span> <span class="n">node2</span><span class="p">:</span> <span class="n">Node</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the euclidean distance between two nodes.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">node1</span><span class="o">.</span><span class="n">lat</span> <span class="o">-</span> <span class="n">node2</span><span class="o">.</span><span class="n">lat</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">node1</span><span class="o">.</span><span class="n">lon</span> <span class="o">-</span> <span class="n">node2</span><span class="o">.</span><span class="n">lon</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="computeLastRoadPixel">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.sarvey_mask.computeLastRoadPixel">[docs]</a>
+<span class="k">def</span> <span class="nf">computeLastRoadPixel</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">cur_node</span><span class="p">:</span> <span class="n">Node</span><span class="p">,</span> <span class="n">prev_node</span><span class="p">:</span> <span class="n">Node</span><span class="p">,</span> <span class="n">found_node</span><span class="p">:</span> <span class="n">Node</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the location of the pixel at the border of the radar image that is part of the road.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    cur_node: Node</span>
+<span class="sd">        Current node of the road.</span>
+<span class="sd">    prev_node: Node</span>
+<span class="sd">        Previous node of the road.</span>
+<span class="sd">    found_node: Node</span>
+<span class="sd">        Found node of the road.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    new_lon: float</span>
+<span class="sd">        Longitude of the pixel at the border of the radar image that is part of the road.</span>
+<span class="sd">    new_lat: float</span>
+<span class="sd">        Latitude of the pixel at the border of the radar image that is part of the road.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">euclDist</span><span class="p">(</span><span class="n">node1</span><span class="o">=</span><span class="n">prev_node</span><span class="p">,</span> <span class="n">node2</span><span class="o">=</span><span class="n">found_node</span><span class="p">)</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">euclDist</span><span class="p">(</span><span class="n">node1</span><span class="o">=</span><span class="n">cur_node</span><span class="p">,</span> <span class="n">node2</span><span class="o">=</span><span class="n">found_node</span><span class="p">)</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">euclDist</span><span class="p">(</span><span class="n">node1</span><span class="o">=</span><span class="n">prev_node</span><span class="p">,</span> <span class="n">node2</span><span class="o">=</span><span class="n">cur_node</span><span class="p">)</span>
+    <span class="n">alpha</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arccos</span><span class="p">((</span><span class="o">-</span> <span class="n">a</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">b</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">c</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">b</span> <span class="o">*</span> <span class="n">c</span><span class="p">))</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">b</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span>
+    <span class="n">new_lat</span> <span class="o">=</span> <span class="n">cur_node</span><span class="o">.</span><span class="n">lat</span> <span class="o">+</span> <span class="p">(</span><span class="n">prev_node</span><span class="o">.</span><span class="n">lat</span> <span class="o">-</span> <span class="n">cur_node</span><span class="o">.</span><span class="n">lat</span><span class="p">)</span> <span class="o">/</span> <span class="n">c</span> <span class="o">*</span> <span class="n">d</span>
+    <span class="n">new_lon</span> <span class="o">=</span> <span class="n">cur_node</span><span class="o">.</span><span class="n">lon</span> <span class="o">+</span> <span class="p">(</span><span class="n">prev_node</span><span class="o">.</span><span class="n">lon</span> <span class="o">-</span> <span class="n">cur_node</span><span class="o">.</span><span class="n">lon</span><span class="p">)</span> <span class="o">/</span> <span class="n">c</span> <span class="o">*</span> <span class="n">d</span>
+    <span class="k">return</span> <span class="n">new_lon</span><span class="p">,</span> <span class="n">new_lat</span></div>
+
+
+
+<div class="viewcode-block" id="convertToRadarCoordPolygon">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.sarvey_mask.convertToRadarCoordPolygon">[docs]</a>
+<span class="k">def</span> <span class="nf">convertToRadarCoordPolygon</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">gdf_infra</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">geodataframe</span><span class="p">,</span> <span class="n">csearch</span><span class="p">:</span> <span class="n">CoordinateSearch</span><span class="p">,</span> <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert Polygon to a mask in shape of radar image.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    gdf_infra: gpd.geodataframe</span>
+<span class="sd">        The queried infrastructures containing polygons.</span>
+<span class="sd">    csearch: CoordinateSearch</span>
+<span class="sd">        The coordinate search object.</span>
+<span class="sd">    logger: Logger</span>
+<span class="sd">        Logging handler.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    img_np: np.ndarray</span>
+<span class="sd">        Mask image.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># create a new image</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s1">&#39;create mask image...&#39;</span><span class="p">)</span>
+    <span class="n">img_pil</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">&quot;1&quot;</span><span class="p">,</span>
+                        <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">csearch</span><span class="o">.</span><span class="n">coord</span><span class="o">.</span><span class="n">src_metadata</span><span class="p">[</span><span class="s1">&#39;LENGTH&#39;</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">csearch</span><span class="o">.</span><span class="n">coord</span><span class="o">.</span><span class="n">src_metadata</span><span class="p">[</span><span class="s1">&#39;WIDTH&#39;</span><span class="p">])))</span>
+    <span class="n">img_pil_draw</span> <span class="o">=</span> <span class="n">ImageDraw</span><span class="o">.</span><span class="n">Draw</span><span class="p">(</span><span class="n">im</span><span class="o">=</span><span class="n">img_pil</span><span class="p">)</span>
+
+    <span class="n">num_ways</span> <span class="o">=</span> <span class="n">gdf_infra</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">way_iter</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">prog_bar</span> <span class="o">=</span> <span class="n">ptime</span><span class="o">.</span><span class="n">progressBar</span><span class="p">(</span><span class="n">maxValue</span><span class="o">=</span><span class="n">num_ways</span><span class="p">)</span>
+
+    <span class="n">dist_thrsh</span> <span class="o">=</span> <span class="mf">1.3</span> <span class="o">*</span> <span class="n">csearch</span><span class="o">.</span><span class="n">getMeanDistanceBetweenPixels</span><span class="p">()</span>
+    <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="n">geom</span><span class="o">.</span><span class="n">boundary</span><span class="o">.</span><span class="n">coords</span> <span class="k">for</span> <span class="n">geom</span> <span class="ow">in</span> <span class="n">gdf_infra</span><span class="o">.</span><span class="n">geometry</span> <span class="k">if</span> <span class="n">geom</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">]</span>
+    <span class="n">way_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">coo</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+        <span class="n">way_list</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">Node</span><span class="p">(</span><span class="n">lat</span><span class="o">=</span><span class="n">point</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">lon</span><span class="o">=</span><span class="n">point</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">for</span> <span class="n">point</span> <span class="ow">in</span> <span class="n">coo</span><span class="p">])</span>
+
+    <span class="c1"># plt.ion()</span>
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+    <span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">()</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;lon&quot;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;lat&quot;</span><span class="p">)</span>
+    <span class="n">lat</span><span class="p">,</span> <span class="n">lon</span> <span class="o">=</span> <span class="n">csearch</span><span class="o">.</span><span class="n">coord</span><span class="o">.</span><span class="n">read_lookup_table</span><span class="p">(</span><span class="n">print_msg</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="n">lon</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">lon</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]],</span> <span class="p">[</span><span class="n">lat</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">lat</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]],</span> <span class="s1">&#39;-k&#39;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="n">lon</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">lon</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="p">[</span><span class="n">lat</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">lat</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="s1">&#39;-k&#39;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="n">lon</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">lon</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="p">[</span><span class="n">lat</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">lat</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="s1">&#39;-k&#39;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="n">lon</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">lon</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="p">[</span><span class="n">lat</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">lat</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="s1">&#39;-k&#39;</span><span class="p">)</span>
+    <span class="c1"># ax.plot(lon.ravel(), lat.ravel(), &#39;.k&#39;, markersize=0.5)</span>
+
+    <span class="k">while</span> <span class="n">way_iter</span> <span class="o">&lt;</span> <span class="n">num_ways</span><span class="p">:</span>
+        <span class="n">way</span> <span class="o">=</span> <span class="n">way_list</span><span class="p">[</span><span class="n">way_iter</span><span class="p">]</span>
+        <span class="n">poly_line_way</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># perform a preliminary search to check if polygon is partly outside image extend</span>
+        <span class="n">outside</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">way</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">way</span><span class="p">)):</span>
+            <span class="n">cur_node</span> <span class="o">=</span> <span class="n">way</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+            <span class="c1"># convert node coordinates (lat, lon) to image coordinates</span>
+            <span class="n">dist</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">csearch</span><span class="o">.</span><span class="n">getNearestNeighbour</span><span class="p">(</span><span class="n">node</span><span class="o">=</span><span class="n">cur_node</span><span class="p">)</span>
+
+            <span class="c1"># check if node is outside the image</span>
+            <span class="k">if</span> <span class="n">dist</span> <span class="o">&gt;</span> <span class="n">dist_thrsh</span><span class="p">:</span>
+                <span class="n">outside</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">outside</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># all road nodes inside image extend</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">way</span><span class="p">)):</span>
+                <span class="n">cur_node</span> <span class="o">=</span> <span class="n">way</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+                <span class="c1"># convert node coordinates (lat, lon) to image coordinates</span>
+                <span class="n">dist</span><span class="p">,</span> <span class="n">node_idx</span><span class="p">,</span> <span class="n">found_node</span> <span class="o">=</span> <span class="n">csearch</span><span class="o">.</span><span class="n">getNearestNeighbour</span><span class="p">(</span><span class="n">node</span><span class="o">=</span><span class="n">cur_node</span><span class="p">)</span>
+
+                <span class="c1"># Fill list of current way with node coordinates</span>
+                <span class="n">poly_line_way</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">node_idx</span><span class="p">)</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">cur_node</span><span class="o">.</span><span class="n">lon</span><span class="p">,</span> <span class="n">cur_node</span><span class="o">.</span><span class="n">lat</span><span class="p">,</span> <span class="s1">&#39;*k&#39;</span><span class="p">)</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">found_node</span><span class="o">.</span><span class="n">lon</span><span class="p">,</span> <span class="n">found_node</span><span class="o">.</span><span class="n">lat</span><span class="p">,</span> <span class="s1">&#39;ok&#39;</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># some polygon nodes outside image extend</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">outside</span><span class="p">)</span> <span class="o">==</span> <span class="n">outside</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>  <span class="c1"># all nodes outside, skip</span>
+                <span class="n">way_iter</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># polygon nodes partly inside and partly outside</span>
+            <span class="n">prev_p</span> <span class="o">=</span> <span class="n">outside</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span>  <span class="c1"># last point == first point (due to closed polygon). Select second last.</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">outside</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+                <span class="n">cur_p</span> <span class="o">=</span> <span class="n">outside</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span>
+                <span class="n">cur_node</span> <span class="o">=</span> <span class="n">way</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+                <span class="c1"># convert node coordinates (lat, lon) to image coordinates</span>
+                <span class="n">dist</span><span class="p">,</span> <span class="n">node_idx</span><span class="p">,</span> <span class="n">found_node</span> <span class="o">=</span> <span class="n">csearch</span><span class="o">.</span><span class="n">getNearestNeighbour</span><span class="p">(</span><span class="n">node</span><span class="o">=</span><span class="n">cur_node</span><span class="p">)</span>
+
+                <span class="c1"># check if transition happens</span>
+                <span class="c1">#   yes: check if current point is inside or outside</span>
+                <span class="c1">#        if outside: find transition point, but do not add current point</span>
+                <span class="c1">#        if inside: find transition point, then add current point</span>
+                <span class="c1">#   no:  if point inside: add point</span>
+                <span class="c1">#        if point outside: skip point</span>
+
+                <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">prev_p</span> <span class="o">==</span> <span class="n">cur_p</span><span class="p">):</span>  <span class="c1"># transition</span>
+                    <span class="n">stored_idx</span> <span class="o">=</span> <span class="kc">None</span>
+                    <span class="k">if</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">prev_node</span> <span class="o">=</span> <span class="n">way</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">prev_node</span> <span class="o">=</span> <span class="n">way</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+
+                    <span class="k">if</span> <span class="n">cur_p</span><span class="p">:</span>  <span class="c1"># transition: in -&gt; out</span>
+                        <span class="c1"># find transition point, but do not add current point</span>
+                        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">cur_node</span><span class="o">.</span><span class="n">lon</span><span class="p">,</span> <span class="n">cur_node</span><span class="o">.</span><span class="n">lat</span><span class="p">,</span> <span class="s1">&#39;*y&#39;</span><span class="p">)</span>
+
+                    <span class="k">if</span> <span class="n">prev_p</span><span class="p">:</span>  <span class="c1"># transition: out -&gt; in</span>
+                        <span class="c1"># find and add transition point, then add current point.</span>
+                        <span class="n">stored_idx</span> <span class="o">=</span> <span class="n">node_idx</span>  <span class="c1"># store current point for adding it later.</span>
+                        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">cur_node</span><span class="o">.</span><span class="n">lon</span><span class="p">,</span> <span class="n">cur_node</span><span class="o">.</span><span class="n">lat</span><span class="p">,</span> <span class="s1">&#39;*r&#39;</span><span class="p">)</span>  <span class="c1"># plot now, because variables will be overwritten</span>
+                        <span class="c1"># the &#39;found_node&#39; has to be computed from the last point outside, i.e. from &#39;prev_node&#39;</span>
+                        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">found_node</span><span class="o">.</span><span class="n">lon</span><span class="p">,</span> <span class="n">found_node</span><span class="o">.</span><span class="n">lat</span><span class="p">,</span> <span class="s1">&#39;or&#39;</span><span class="p">)</span>
+                        <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">found_node</span> <span class="o">=</span> <span class="n">csearch</span><span class="o">.</span><span class="n">getNearestNeighbour</span><span class="p">(</span><span class="n">node</span><span class="o">=</span><span class="n">prev_node</span><span class="p">)</span>
+
+                    <span class="n">new_lon</span><span class="p">,</span> <span class="n">new_lat</span> <span class="o">=</span> <span class="n">computeLastRoadPixel</span><span class="p">(</span>
+                        <span class="n">cur_node</span><span class="o">=</span><span class="n">cur_node</span><span class="p">,</span>
+                        <span class="n">prev_node</span><span class="o">=</span><span class="n">prev_node</span><span class="p">,</span>
+                        <span class="n">found_node</span><span class="o">=</span><span class="n">found_node</span>
+                    <span class="p">)</span>
+
+                    <span class="n">dist</span><span class="p">,</span> <span class="n">node_idx</span><span class="p">,</span> <span class="n">found_node</span> <span class="o">=</span> <span class="n">csearch</span><span class="o">.</span><span class="n">getNearestNeighbour</span><span class="p">(</span><span class="n">node</span><span class="o">=</span><span class="n">Node</span><span class="p">(</span><span class="n">lon</span><span class="o">=</span><span class="n">new_lon</span><span class="p">,</span> <span class="n">lat</span><span class="o">=</span><span class="n">new_lat</span><span class="p">))</span>
+                    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">cur_node</span><span class="o">.</span><span class="n">lon</span><span class="p">,</span> <span class="n">cur_node</span><span class="o">.</span><span class="n">lat</span><span class="p">,</span> <span class="s1">&#39;*b&#39;</span><span class="p">)</span>
+                    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">found_node</span><span class="o">.</span><span class="n">lon</span><span class="p">,</span> <span class="n">found_node</span><span class="o">.</span><span class="n">lat</span><span class="p">,</span> <span class="s1">&#39;ob&#39;</span><span class="p">)</span>
+                    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">new_lon</span><span class="p">,</span> <span class="n">new_lat</span><span class="p">,</span> <span class="s1">&#39;+b&#39;</span><span class="p">)</span>
+
+                    <span class="c1"># add the transition point</span>
+                    <span class="n">poly_line_way</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">node_idx</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">prev_p</span><span class="p">:</span>  <span class="c1"># transition: out -&gt; in</span>
+                        <span class="c1"># transition point found and added, now add stored current point.</span>
+                        <span class="n">poly_line_way</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">stored_idx</span><span class="p">)</span>
+                    <span class="n">prev_p</span> <span class="o">=</span> <span class="n">cur_p</span>  <span class="c1"># prepare for next iteration</span>
+
+                <span class="k">elif</span> <span class="n">cur_p</span><span class="p">:</span>  <span class="c1"># no transition, current point is outside -&gt; do not add point</span>
+                    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">cur_node</span><span class="o">.</span><span class="n">lon</span><span class="p">,</span> <span class="n">cur_node</span><span class="o">.</span><span class="n">lat</span><span class="p">,</span> <span class="s1">&#39;*y&#39;</span><span class="p">)</span>
+                    <span class="n">prev_p</span> <span class="o">=</span> <span class="n">cur_p</span>  <span class="c1"># prepare for next iteration</span>
+
+                <span class="k">else</span><span class="p">:</span>  <span class="c1"># no transition, current points is inside -&gt; add point</span>
+                    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">cur_node</span><span class="o">.</span><span class="n">lon</span><span class="p">,</span> <span class="n">cur_node</span><span class="o">.</span><span class="n">lat</span><span class="p">,</span> <span class="s1">&#39;*r&#39;</span><span class="p">)</span>
+                    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">found_node</span><span class="o">.</span><span class="n">lon</span><span class="p">,</span> <span class="n">found_node</span><span class="o">.</span><span class="n">lat</span><span class="p">,</span> <span class="s1">&#39;or&#39;</span><span class="p">)</span>
+                    <span class="n">poly_line_way</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">node_idx</span><span class="p">)</span>
+                    <span class="n">prev_p</span> <span class="o">=</span> <span class="n">cur_p</span>  <span class="c1"># prepare for next iteration</span>
+
+        <span class="n">prog_bar</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">way_iter</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">every</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">/</span><span class="si">{}</span><span class="s1"> polygons&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">way_iter</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_ways</span><span class="p">))</span>
+
+        <span class="c1"># if first point is outside image, the polygon will not be closed. However, it still works to create a polygon.</span>
+        <span class="n">img_pil_draw</span><span class="o">.</span><span class="n">polygon</span><span class="p">(</span><span class="n">poly_line_way</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="mi">255</span><span class="p">)</span>
+        <span class="c1"># plt.figure()</span>
+        <span class="c1"># plt.imshow(np.array(img_pil.getdata()).reshape(img_pil.size[1], img_pil.size[0]).astype(int))</span>
+
+        <span class="n">way_iter</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="n">img_np</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">img_pil</span><span class="o">.</span><span class="n">getdata</span><span class="p">())</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">img_pil</span><span class="o">.</span><span class="n">size</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">img_pil</span><span class="o">.</span><span class="n">size</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">img_np</span></div>
+
+
+
+<div class="viewcode-block" id="convertToRadarCoord">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.sarvey_mask.convertToRadarCoord">[docs]</a>
+<span class="k">def</span> <span class="nf">convertToRadarCoord</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">gdf_infra</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">geodataframe</span><span class="p">,</span> <span class="n">csearch</span><span class="p">:</span> <span class="n">CoordinateSearch</span><span class="p">,</span> <span class="n">width</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert Polyline to a mask in shape of radar image. Apply a buffer of size &#39;width&#39; in pixels.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    gdf_infra: gpd.geodataframe</span>
+<span class="sd">        The queried infrastructures containing polygons.</span>
+<span class="sd">    csearch: CoordinateSearch</span>
+<span class="sd">        The coordinate search object.</span>
+<span class="sd">    width: int</span>
+<span class="sd">        Width of the mask in pixel.</span>
+<span class="sd">    logger: Logger</span>
+<span class="sd">        Logging handler.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    img_np: np.ndarray</span>
+<span class="sd">        Mask image.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># create a new image</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s1">&#39;create mask image...&#39;</span><span class="p">)</span>
+    <span class="n">img_pil</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">&quot;1&quot;</span><span class="p">,</span>
+                        <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">csearch</span><span class="o">.</span><span class="n">coord</span><span class="o">.</span><span class="n">src_metadata</span><span class="p">[</span><span class="s1">&#39;LENGTH&#39;</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">csearch</span><span class="o">.</span><span class="n">coord</span><span class="o">.</span><span class="n">src_metadata</span><span class="p">[</span><span class="s1">&#39;WIDTH&#39;</span><span class="p">])))</span>
+    <span class="n">img_pil_draw</span> <span class="o">=</span> <span class="n">ImageDraw</span><span class="o">.</span><span class="n">Draw</span><span class="p">(</span><span class="n">im</span><span class="o">=</span><span class="n">img_pil</span><span class="p">)</span>
+
+    <span class="n">num_roads</span> <span class="o">=</span> <span class="n">gdf_infra</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">prog_bar</span> <span class="o">=</span> <span class="n">ptime</span><span class="o">.</span><span class="n">progressBar</span><span class="p">(</span><span class="n">maxValue</span><span class="o">=</span><span class="n">num_roads</span><span class="p">)</span>
+
+    <span class="n">dist_thrsh</span> <span class="o">=</span> <span class="mf">1.3</span> <span class="o">*</span> <span class="n">csearch</span><span class="o">.</span><span class="n">getMeanDistanceBetweenPixels</span><span class="p">()</span>
+    <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="n">ls</span><span class="o">.</span><span class="n">coords</span> <span class="k">for</span> <span class="n">ls</span> <span class="ow">in</span> <span class="n">gdf_infra</span><span class="o">.</span><span class="n">geometry</span> <span class="k">if</span> <span class="n">ls</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">]</span>  <span class="c1"># enables to append to list</span>
+    <span class="n">way_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">coo</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+        <span class="n">way_list</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">Node</span><span class="p">(</span><span class="n">lat</span><span class="o">=</span><span class="n">point</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">lon</span><span class="o">=</span><span class="n">point</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">for</span> <span class="n">point</span> <span class="ow">in</span> <span class="n">coo</span><span class="p">])</span>
+
+    <span class="n">num_ways</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">way_list</span><span class="p">)</span>  <span class="c1"># changes during iteration</span>
+    <span class="n">way_iter</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="c1"># plt.ion()</span>
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+    <span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">()</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;lon&quot;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;lat&quot;</span><span class="p">)</span>
+    <span class="n">lat</span><span class="p">,</span> <span class="n">lon</span> <span class="o">=</span> <span class="n">csearch</span><span class="o">.</span><span class="n">coord</span><span class="o">.</span><span class="n">read_lookup_table</span><span class="p">(</span><span class="n">print_msg</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="n">lon</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">lon</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]],</span> <span class="p">[</span><span class="n">lat</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">lat</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]],</span> <span class="s1">&#39;-k&#39;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="n">lon</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">lon</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="p">[</span><span class="n">lat</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">lat</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="s1">&#39;-k&#39;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="n">lon</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">lon</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="p">[</span><span class="n">lat</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">lat</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="s1">&#39;-k&#39;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="n">lon</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">lon</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="p">[</span><span class="n">lat</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">lat</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="s1">&#39;-k&#39;</span><span class="p">)</span>
+    <span class="c1"># ax.plot(lon.ravel(), lat.ravel(), &#39;.k&#39;, markersize=0.5)</span>
+
+    <span class="k">while</span> <span class="n">way_iter</span> <span class="o">&lt;</span> <span class="n">num_ways</span><span class="p">:</span>
+        <span class="n">way</span> <span class="o">=</span> <span class="n">way_list</span><span class="p">[</span><span class="n">way_iter</span><span class="p">]</span>
+        <span class="n">poly_line_way</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># perform a preliminary search to check if road is partly outside image extend</span>
+        <span class="n">outside</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">way</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">way</span><span class="p">)):</span>
+            <span class="n">cur_node</span> <span class="o">=</span> <span class="n">way</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+            <span class="c1"># convert node coordinates (lat, lon) to image coordinates</span>
+            <span class="n">dist</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">csearch</span><span class="o">.</span><span class="n">getNearestNeighbour</span><span class="p">(</span><span class="n">node</span><span class="o">=</span><span class="n">cur_node</span><span class="p">)</span>
+
+            <span class="c1"># check if node is outside the image</span>
+            <span class="k">if</span> <span class="n">dist</span> <span class="o">&gt;</span> <span class="n">dist_thrsh</span><span class="p">:</span>
+                <span class="n">outside</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">outside</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># all road nodes inside image extend</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">way</span><span class="p">)):</span>
+                <span class="n">cur_node</span> <span class="o">=</span> <span class="n">way</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+                <span class="c1"># convert node coordinates (lat, lon) to image coordinates</span>
+                <span class="n">dist</span><span class="p">,</span> <span class="n">node_idx</span><span class="p">,</span> <span class="n">found_node</span> <span class="o">=</span> <span class="n">csearch</span><span class="o">.</span><span class="n">getNearestNeighbour</span><span class="p">(</span><span class="n">node</span><span class="o">=</span><span class="n">cur_node</span><span class="p">)</span>
+
+                <span class="c1"># Fill list of current way with node coordinates</span>
+                <span class="n">poly_line_way</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">node_idx</span><span class="p">)</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">cur_node</span><span class="o">.</span><span class="n">lon</span><span class="p">,</span> <span class="n">cur_node</span><span class="o">.</span><span class="n">lat</span><span class="p">,</span> <span class="s1">&#39;*k&#39;</span><span class="p">)</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">found_node</span><span class="o">.</span><span class="n">lon</span><span class="p">,</span> <span class="n">found_node</span><span class="o">.</span><span class="n">lat</span><span class="p">,</span> <span class="s1">&#39;ok&#39;</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># some road nodes outside image extend</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">outside</span><span class="p">)</span> <span class="o">==</span> <span class="n">outside</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>  <span class="c1"># all nodes outside, skip</span>
+                <span class="n">way_iter</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">continue</span>
+            <span class="c1"># split the way into sub parts based on in-out / out-in transition</span>
+            <span class="c1"># find first node inside the image</span>
+            <span class="n">first_inside_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">outside</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">first_inside_idx</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># this is a transition into the image</span>
+                <span class="n">start_idx</span> <span class="o">=</span> <span class="n">first_inside_idx</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">start_idx</span> <span class="o">=</span> <span class="n">first_inside_idx</span>
+
+            <span class="c1"># find first node which is again outside the image</span>
+            <span class="n">outside_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">outside</span><span class="p">[</span><span class="n">first_inside_idx</span><span class="p">:]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">outside_idx</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># no more transition to outside the image</span>
+                <span class="n">stop_idx</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">way</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">stop_idx</span> <span class="o">=</span> <span class="n">outside_idx</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">first_inside_idx</span> <span class="o">+</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="n">stop_idx</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">way</span><span class="p">):</span>  <span class="c1"># split the current way and add a new way at the end of the way_list</span>
+                    <span class="c1"># to handle it later</span>
+                    <span class="n">way_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">way</span><span class="p">[</span><span class="n">stop_idx</span><span class="p">:])</span>
+                    <span class="n">num_ways</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">start_idx</span><span class="p">,</span> <span class="n">stop_idx</span><span class="p">):</span>
+                <span class="n">cur_node</span> <span class="o">=</span> <span class="n">way</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+                <span class="c1"># convert node coordinates (lat, lon) to image coordinates</span>
+                <span class="n">dist</span><span class="p">,</span> <span class="n">node_idx</span><span class="p">,</span> <span class="n">found_node</span> <span class="o">=</span> <span class="n">csearch</span><span class="o">.</span><span class="n">getNearestNeighbour</span><span class="p">(</span><span class="n">node</span><span class="o">=</span><span class="n">cur_node</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">dist</span> <span class="o">&gt;</span> <span class="n">dist_thrsh</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="n">start_idx</span><span class="p">:</span>  <span class="c1"># there is no previous node, but a next node.</span>
+                        <span class="n">prev_node</span> <span class="o">=</span> <span class="n">way</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">prev_node</span> <span class="o">=</span> <span class="n">way</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+                    <span class="n">new_lon</span><span class="p">,</span> <span class="n">new_lat</span> <span class="o">=</span> <span class="n">computeLastRoadPixel</span><span class="p">(</span><span class="n">cur_node</span><span class="o">=</span><span class="n">cur_node</span><span class="p">,</span> <span class="n">prev_node</span><span class="o">=</span><span class="n">prev_node</span><span class="p">,</span>
+                                                            <span class="n">found_node</span><span class="o">=</span><span class="n">found_node</span><span class="p">)</span>
+                    <span class="n">dist</span><span class="p">,</span> <span class="n">node_idx</span><span class="p">,</span> <span class="n">found_node</span> <span class="o">=</span> <span class="n">csearch</span><span class="o">.</span><span class="n">getNearestNeighbour</span><span class="p">(</span><span class="n">node</span><span class="o">=</span><span class="n">Node</span><span class="p">(</span><span class="n">lon</span><span class="o">=</span><span class="n">new_lon</span><span class="p">,</span> <span class="n">lat</span><span class="o">=</span><span class="n">new_lat</span><span class="p">))</span>
+                    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">cur_node</span><span class="o">.</span><span class="n">lon</span><span class="p">,</span> <span class="n">cur_node</span><span class="o">.</span><span class="n">lat</span><span class="p">,</span> <span class="s1">&#39;*b&#39;</span><span class="p">)</span>
+                    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">found_node</span><span class="o">.</span><span class="n">lon</span><span class="p">,</span> <span class="n">found_node</span><span class="o">.</span><span class="n">lat</span><span class="p">,</span> <span class="s1">&#39;ob&#39;</span><span class="p">)</span>
+                    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">new_lon</span><span class="p">,</span> <span class="n">new_lat</span><span class="p">,</span> <span class="s1">&#39;+b&#39;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">cur_node</span><span class="o">.</span><span class="n">lon</span><span class="p">,</span> <span class="n">cur_node</span><span class="o">.</span><span class="n">lat</span><span class="p">,</span> <span class="s1">&#39;*r&#39;</span><span class="p">)</span>
+                    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">found_node</span><span class="o">.</span><span class="n">lon</span><span class="p">,</span> <span class="n">found_node</span><span class="o">.</span><span class="n">lat</span><span class="p">,</span> <span class="s1">&#39;or&#39;</span><span class="p">)</span>
+                <span class="c1"># Fill list of current way with node coordinates</span>
+                <span class="n">poly_line_way</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">node_idx</span><span class="p">)</span>
+
+        <span class="n">prog_bar</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">way_iter</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">every</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">/</span><span class="si">{}</span><span class="s1"> road segments&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">way_iter</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_roads</span><span class="p">))</span>
+
+        <span class="n">img_pil_draw</span><span class="o">.</span><span class="n">line</span><span class="p">(</span><span class="n">poly_line_way</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="mi">255</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">)</span>
+        <span class="c1"># img_pil_draw.polygon(poly_line_way, fill=255)</span>
+
+        <span class="n">way_iter</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="n">img_np</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">img_pil</span><span class="o">.</span><span class="n">getdata</span><span class="p">())</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">img_pil</span><span class="o">.</span><span class="n">size</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">img_pil</span><span class="o">.</span><span class="n">size</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">img_np</span></div>
+
+
+
+<div class="viewcode-block" id="saveMask">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.sarvey_mask.saveMask">[docs]</a>
+<span class="k">def</span> <span class="nf">saveMask</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">work_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">atr</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">out_file_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Save the mask to &#39;maskRoads.h5&#39;.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    work_dir: str</span>
+<span class="sd">        Working directory.</span>
+<span class="sd">    mask: np.ndarray</span>
+<span class="sd">        Mask image.</span>
+<span class="sd">    atr: dict</span>
+<span class="sd">        Metadata data, e.g. from the geometryRadar.h5 file.</span>
+<span class="sd">    out_file_name: str</span>
+<span class="sd">        Output file name.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># create the right attributes</span>
+    <span class="n">ds_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+    <span class="n">ds_dict</span><span class="p">[</span><span class="s1">&#39;mask&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;float32&#39;</span><span class="p">)</span>
+    <span class="n">atr</span><span class="p">[</span><span class="s2">&quot;FILE_TYPE&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;mask&quot;</span>
+
+    <span class="n">writefile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">datasetDict</span><span class="o">=</span><span class="n">ds_dict</span><span class="p">,</span> <span class="n">out_file</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">work_dir</span><span class="p">,</span> <span class="n">out_file_name</span><span class="p">),</span> <span class="n">metadata</span><span class="o">=</span><span class="n">atr</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="createMask">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.sarvey_mask.createMask">[docs]</a>
+<span class="k">def</span> <span class="nf">createMask</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">input_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">width</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">work_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">out_file_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">geom_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+               <span class="n">logger</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a mask for the radar image from a shapefile containing lines or polygons.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    input_file: str</span>
+<span class="sd">        Path to input file.</span>
+<span class="sd">    width: int</span>
+<span class="sd">        Width of the mask in pixel. Applied to the lines only.</span>
+<span class="sd">    work_dir: str</span>
+<span class="sd">        Working directory.</span>
+<span class="sd">    out_file_name: str</span>
+<span class="sd">        Output file name.</span>
+<span class="sd">    geom_file: str</span>
+<span class="sd">        Path to geometryRadar.h5 file.</span>
+<span class="sd">    logger: logging.Logger</span>
+<span class="sd">        Logging handler.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Start creating mask file based on openstreetmap data.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># get bounding box</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">coord</span><span class="p">,</span> <span class="n">atr</span> <span class="o">=</span> <span class="n">getSpatialExtend</span><span class="p">(</span><span class="n">geom_file</span><span class="o">=</span><span class="n">geom_file</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
+
+    <span class="c1"># create search tree</span>
+    <span class="n">csearch</span> <span class="o">=</span> <span class="n">CoordinateSearch</span><span class="p">()</span>
+    <span class="n">csearch</span><span class="o">.</span><span class="n">createSearchTree</span><span class="p">(</span><span class="n">coord</span><span class="o">=</span><span class="n">coord</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Read from input file: </span><span class="si">{</span><span class="n">input_file</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">gdf_infra</span> <span class="o">=</span> <span class="n">gpd</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">input_file</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">gdf_infra</span><span class="o">.</span><span class="n">geometry</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">geom_type</span> <span class="o">==</span> <span class="s2">&quot;LineString&quot;</span><span class="p">:</span>
+        <span class="n">mask_img</span> <span class="o">=</span> <span class="n">convertToRadarCoord</span><span class="p">(</span><span class="n">gdf_infra</span><span class="o">=</span><span class="n">gdf_infra</span><span class="p">,</span> <span class="n">csearch</span><span class="o">=</span><span class="n">csearch</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">gdf_infra</span><span class="o">.</span><span class="n">geometry</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">geom_type</span> <span class="o">==</span> <span class="s2">&quot;Polygon&quot;</span><span class="p">:</span>
+        <span class="n">mask_img</span> <span class="o">=</span> <span class="n">convertToRadarCoordPolygon</span><span class="p">(</span><span class="n">gdf_infra</span><span class="o">=</span><span class="n">gdf_infra</span><span class="p">,</span> <span class="n">csearch</span><span class="o">=</span><span class="n">csearch</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Geometry type is </span><span class="si">{</span><span class="n">gdf_infra</span><span class="o">.</span><span class="n">geometry</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">geom_type</span><span class="si">}</span><span class="s2">.&quot;</span>
+                         <span class="sa">f</span><span class="s2">&quot;Only &#39;LineString&#39; and &#39;Polygon&#39; supported!&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span>
+
+    <span class="k">if</span> <span class="s1">&#39;.h5&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">out_file_name</span><span class="p">:</span>
+        <span class="n">out_file_name</span> <span class="o">+=</span> <span class="s2">&quot;.h5&quot;</span>
+    <span class="n">saveMask</span><span class="p">(</span><span class="n">work_dir</span><span class="o">=</span><span class="n">work_dir</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask_img</span><span class="p">,</span> <span class="n">atr</span><span class="o">=</span><span class="n">atr</span><span class="p">,</span> <span class="n">out_file_name</span><span class="o">=</span><span class="n">out_file_name</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Masking finished.&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="main">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.sarvey_mask.main">[docs]</a>
+<span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">iargs</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create mask from lines or polygons given in geographic coordinates (EPSG:4326). Input as shp or gpkg.&quot;&quot;&quot;</span>
+    <span class="c1"># check input</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">create_parser</span><span class="p">()</span>
+    <span class="n">inps</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="n">iargs</span><span class="p">)</span>
+
+    <span class="c1"># initiate logger</span>
+    <span class="n">logging_level</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLevelName</span><span class="p">(</span><span class="s1">&#39;DEBUG&#39;</span><span class="p">)</span>
+
+    <span class="n">log_format</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">Formatter</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%(asctime)s</span><span class="s1"> - </span><span class="si">%(levelname)s</span><span class="s1"> - </span><span class="si">%(message)s</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+    <span class="n">current_datetime</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">-%H-%M-%S&quot;</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">localtime</span><span class="p">())</span>
+    <span class="n">log_filename</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;sarvey_mask_</span><span class="si">{</span><span class="n">current_datetime</span><span class="si">}</span><span class="s2">.log&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">(),</span> <span class="s2">&quot;logfiles&quot;</span><span class="p">)):</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">(),</span> <span class="s2">&quot;logfiles&quot;</span><span class="p">))</span>
+    <span class="n">file_handler</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">FileHandler</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">(),</span> <span class="s2">&quot;logfiles&quot;</span><span class="p">,</span> <span class="n">log_filename</span><span class="p">))</span>
+    <span class="n">file_handler</span><span class="o">.</span><span class="n">setFormatter</span><span class="p">(</span><span class="n">log_format</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">file_handler</span><span class="p">)</span>
+
+    <span class="n">console_handler</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">StreamHandler</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">)</span>
+    <span class="n">console_handler</span><span class="o">.</span><span class="n">setFormatter</span><span class="p">(</span><span class="n">log_format</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">console_handler</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging_level</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">inps</span><span class="o">.</span><span class="n">work_dir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">work_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">work_dir</span> <span class="o">=</span> <span class="n">inps</span><span class="o">.</span><span class="n">work_dir</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">work_dir</span><span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s1">&#39;create output folder: &#39;</span> <span class="o">+</span> <span class="n">work_dir</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">work_dir</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s1">&#39;working directory: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">work_dir</span><span class="p">))</span>
+
+    <span class="n">input_file</span> <span class="o">=</span> <span class="n">join</span><span class="p">(</span><span class="n">work_dir</span><span class="p">,</span> <span class="n">inps</span><span class="o">.</span><span class="n">input_file</span><span class="p">)</span>
+    <span class="n">out_file_name</span> <span class="o">=</span> <span class="n">join</span><span class="p">(</span><span class="n">work_dir</span><span class="p">,</span> <span class="n">inps</span><span class="o">.</span><span class="n">out_file_name</span><span class="p">)</span>
+
+    <span class="n">createMask</span><span class="p">(</span>
+        <span class="n">input_file</span><span class="o">=</span><span class="n">input_file</span><span class="p">,</span>
+        <span class="n">width</span><span class="o">=</span><span class="n">inps</span><span class="o">.</span><span class="n">width</span><span class="p">,</span>
+        <span class="n">work_dir</span><span class="o">=</span><span class="n">work_dir</span><span class="p">,</span>
+        <span class="n">out_file_name</span><span class="o">=</span><span class="n">out_file_name</span><span class="p">,</span>
+        <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
+        <span class="n">geom_file</span><span class="o">=</span><span class="n">inps</span><span class="o">.</span><span class="n">geom_file</span>
+    <span class="p">)</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">SARvey 1.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">sarvey.sarvey_mask</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2024, IPI - Leibniz Universitaet Hannover.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.4.4.
+    </div>
+  </body>
+</html>

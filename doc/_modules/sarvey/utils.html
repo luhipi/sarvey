@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>sarvey.utils &#8212; SARvey 1.0.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=def86cc0" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=86cf1cd6" />
+    
+    <script src="../../_static/documentation_options.js?v=8d563738"></script>
+    <script src="../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">SARvey 1.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">sarvey.utils</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for sarvey.utils</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+
+<span class="c1"># SARvey - A multitemporal InSAR time series tool for the derivation of displacements.</span>
+<span class="c1">#</span>
+<span class="c1"># Copyright (C) 2021-2024 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)</span>
+<span class="c1">#</span>
+<span class="c1"># This software was developed together with FERN.Lab (fernlab@gfz-potsdam.de) in the context</span>
+<span class="c1"># of the SAR4Infra project with funds of the German Federal Ministry for Digital and</span>
+<span class="c1"># Transport and contributions from Landesamt fuer Vermessung und Geoinformation</span>
+<span class="c1"># Schleswig-Holstein and Landesbetrieb Strassenbau und Verkehr Schleswig-Holstein.</span>
+<span class="c1">#</span>
+<span class="c1"># This program is free software: you can redistribute it and/or modify it under</span>
+<span class="c1"># the terms of the GNU General Public License as published by the Free Software</span>
+<span class="c1"># Foundation, either version 3 of the License, or (at your option) any later</span>
+<span class="c1"># version.</span>
+<span class="c1">#</span>
+<span class="c1"># Important: This package uses PyMaxFlow. The core of PyMaxflows library is the C++</span>
+<span class="c1"># implementation by Vladimir Kolmogorov. It is also licensed under the GPL, but it REQUIRES that you</span>
+<span class="c1"># cite [BOYKOV04] (see LICENSE) in any resulting publication if you use this code for research purposes.</span>
+<span class="c1"># This requirement extends to SARvey.</span>
+<span class="c1">#</span>
+<span class="c1"># This program is distributed in the hope that it will be useful, but WITHOUT</span>
+<span class="c1"># ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS</span>
+<span class="c1"># FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more</span>
+<span class="c1"># details.</span>
+<span class="c1">#</span>
+<span class="c1"># You should have received a copy of the GNU Lesser General Public License along</span>
+<span class="c1"># with this program. If not, see &lt;https://www.gnu.org/licenses/&gt;.</span>
+
+<span class="sd">&quot;&quot;&quot;Utils module for SARvey.&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">multiprocessing</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">from</span> <span class="nn">os.path</span> <span class="kn">import</span> <span class="n">exists</span><span class="p">,</span> <span class="n">join</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy.sparse.linalg</span> <span class="kn">import</span> <span class="n">lsqr</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">logging</span> <span class="kn">import</span> <span class="n">Logger</span>
+
+<span class="kn">from</span> <span class="nn">mintpy.utils</span> <span class="kn">import</span> <span class="n">ptime</span>
+
+<span class="kn">from</span> <span class="nn">sarvey.objects</span> <span class="kn">import</span> <span class="n">Points</span><span class="p">,</span> <span class="n">NetworkParameter</span><span class="p">,</span> <span class="n">Network</span><span class="p">,</span> <span class="n">BaseStack</span><span class="p">,</span> <span class="n">AmplitudeImage</span>
+<span class="kn">from</span> <span class="nn">sarvey.ifg_network</span> <span class="kn">import</span> <span class="n">IfgNetwork</span>
+
+
+<div class="viewcode-block" id="convertBboxToBlock">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.utils.convertBboxToBlock">[docs]</a>
+<span class="k">def</span> <span class="nf">convertBboxToBlock</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">bbox</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;ConvertBboxToBlock. read box and write2hdf5_block block have different definitions.&quot;&quot;&quot;</span>
+    <span class="n">block</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bbox</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+        <span class="n">block</span> <span class="o">=</span> <span class="p">(</span><span class="n">bbox</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">bbox</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">bbox</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">bbox</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bbox</span><span class="p">)</span> <span class="o">==</span> <span class="mi">6</span><span class="p">:</span>
+        <span class="n">block</span> <span class="o">=</span> <span class="p">(</span><span class="n">bbox</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">bbox</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span> <span class="n">bbox</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">bbox</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span> <span class="n">bbox</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">bbox</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">block</span></div>
+
+
+
+<div class="viewcode-block" id="invertIfgNetwork">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.utils.invertIfgNetwork">[docs]</a>
+<span class="k">def</span> <span class="nf">invertIfgNetwork</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">phase</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">num_points</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">ifg_net_obj</span><span class="p">:</span> <span class="n">IfgNetwork</span><span class="p">,</span> <span class="n">num_cores</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">ref_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                     <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Wrap the ifg network inversion running in parallel.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    phase: np.ndarray</span>
+<span class="sd">        interferometric phases of the points.</span>
+<span class="sd">    num_points: int</span>
+<span class="sd">        number of points.</span>
+<span class="sd">    ifg_net_obj: IfgNetwork</span>
+<span class="sd">        instance of class IfgNetwork.</span>
+<span class="sd">    num_cores: int</span>
+<span class="sd">        number of cores to use for multiprocessing.</span>
+<span class="sd">    ref_idx: int</span>
+<span class="sd">        index of temporal reference date for interferogram network inversion.</span>
+<span class="sd">    logger: Logger</span>
+<span class="sd">        logging handler</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">        phase_ts: np.ndarray</span>
+<span class="sd">            inverted phase time series of the points.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;#&quot;</span> <span class="o">*</span> <span class="mi">10</span>
+    <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot; INVERT IFG NETWORK &quot;</span>
+    <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;#&quot;</span> <span class="o">*</span> <span class="mi">10</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="n">design_mat</span> <span class="o">=</span> <span class="n">ifg_net_obj</span><span class="o">.</span><span class="n">getDesignMatrix</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">num_cores</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">num_points</span><span class="p">),</span> <span class="n">num_points</span><span class="p">,</span> <span class="n">phase</span><span class="p">,</span> <span class="n">design_mat</span><span class="p">,</span> <span class="n">ifg_net_obj</span><span class="o">.</span><span class="n">num_images</span><span class="p">,</span> <span class="n">ref_idx</span><span class="p">)</span>
+        <span class="n">idx_range</span><span class="p">,</span> <span class="n">phase_ts</span> <span class="o">=</span> <span class="n">launchInvertIfgNetwork</span><span class="p">(</span><span class="n">parameters</span><span class="o">=</span><span class="n">args</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># use only 10 percent of the cores, because scipy.sparse.linalg.lsqr is already running in parallel</span>
+        <span class="n">num_cores</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">num_cores</span> <span class="o">/</span> <span class="mi">10</span><span class="p">))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;start parallel processing with </span><span class="si">{}</span><span class="s2"> cores.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">num_cores</span><span class="p">))</span>
+        <span class="n">pool</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">Pool</span><span class="p">(</span><span class="n">processes</span><span class="o">=</span><span class="n">num_cores</span><span class="p">)</span>
+
+        <span class="n">phase_ts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_points</span><span class="p">,</span> <span class="n">ifg_net_obj</span><span class="o">.</span><span class="n">num_images</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+        <span class="n">num_cores</span> <span class="o">=</span> <span class="n">num_points</span> <span class="k">if</span> <span class="n">num_cores</span> <span class="o">&gt;</span> <span class="n">num_points</span> <span class="k">else</span> <span class="n">num_cores</span>  <span class="c1"># avoids having more samples than cores</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">splitDatasetForParallelProcessing</span><span class="p">(</span><span class="n">num_samples</span><span class="o">=</span><span class="n">num_points</span><span class="p">,</span> <span class="n">num_cores</span><span class="o">=</span><span class="n">num_cores</span><span class="p">)</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="p">[(</span>
+            <span class="n">idx_range</span><span class="p">,</span>
+            <span class="n">idx_range</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">phase</span><span class="p">[</span><span class="n">idx_range</span><span class="p">,</span> <span class="p">:],</span>
+            <span class="n">design_mat</span><span class="p">,</span>
+            <span class="n">ifg_net_obj</span><span class="o">.</span><span class="n">num_images</span><span class="p">,</span>
+            <span class="n">ref_idx</span><span class="p">)</span> <span class="k">for</span> <span class="n">idx_range</span> <span class="ow">in</span> <span class="n">idx</span><span class="p">]</span>
+
+        <span class="n">results</span> <span class="o">=</span> <span class="n">pool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">launchInvertIfgNetwork</span><span class="p">,</span> <span class="n">iterable</span><span class="o">=</span><span class="n">args</span><span class="p">)</span>
+
+        <span class="c1"># retrieve results</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">phase_i</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+            <span class="n">phase_ts</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">phase_i</span>
+
+    <span class="n">m</span><span class="p">,</span> <span class="n">s</span> <span class="o">=</span> <span class="nb">divmod</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">,</span> <span class="mi">60</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s1">&#39;time used: </span><span class="si">{:02.0f}</span><span class="s1"> mins </span><span class="si">{:02.1f}</span><span class="s1"> secs.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">s</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">phase_ts</span></div>
+
+
+
+<div class="viewcode-block" id="launchInvertIfgNetwork">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.utils.launchInvertIfgNetwork">[docs]</a>
+<span class="k">def</span> <span class="nf">launchInvertIfgNetwork</span><span class="p">(</span><span class="n">parameters</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Launch the inversion of the interferogram network in parallel.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    parameters: tuple</span>
+<span class="sd">        parameters for inversion</span>
+
+<span class="sd">        Tuple contains:</span>
+<span class="sd">            idx_range: np.ndarray</span>
+<span class="sd">                range of point indices to be processed</span>
+<span class="sd">            num_points: int</span>
+<span class="sd">                number of points</span>
+<span class="sd">            phase: np.ndarray</span>
+<span class="sd">                interferometric phases of the points</span>
+<span class="sd">            design_mat: np.ndarray</span>
+<span class="sd">                design matrix</span>
+<span class="sd">            num_images: int</span>
+<span class="sd">                number of images</span>
+<span class="sd">            ref_idx: int</span>
+<span class="sd">                index of temporal reference date for interferogram network inversion</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">        idx_range: np.ndarray</span>
+<span class="sd">            range of indices of the points processed</span>
+<span class="sd">        phase_ts: np.ndarray</span>
+<span class="sd">            inverted phase time series</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Unpack the parameters</span>
+    <span class="p">(</span><span class="n">idx_range</span><span class="p">,</span> <span class="n">num_points</span><span class="p">,</span> <span class="n">phase</span><span class="p">,</span> <span class="n">design_mat</span><span class="p">,</span> <span class="n">num_images</span><span class="p">,</span> <span class="n">ref_idx</span><span class="p">)</span> <span class="o">=</span> <span class="n">parameters</span>
+
+    <span class="n">design_mat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">arr</span><span class="o">=</span><span class="n">design_mat</span><span class="p">,</span> <span class="n">obj</span><span class="o">=</span><span class="n">ref_idx</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># remove reference date</span>
+    <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">num_images</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">)</span>
+    <span class="n">idx</span><span class="p">[</span><span class="n">ref_idx</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">phase_ts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_points</span><span class="p">,</span> <span class="n">num_images</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+    <span class="n">prog_bar</span> <span class="o">=</span> <span class="n">ptime</span><span class="o">.</span><span class="n">progressBar</span><span class="p">(</span><span class="n">maxValue</span><span class="o">=</span><span class="n">num_points</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_points</span><span class="p">):</span>
+        <span class="n">phase_ts</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">lsqr</span><span class="p">(</span><span class="n">design_mat</span><span class="p">,</span> <span class="n">phase</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:])[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">prog_bar</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">every</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">num_points</span> <span class="o">/</span> <span class="mi">100</span><span class="p">),</span>
+                        <span class="n">suffix</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">/</span><span class="si">{}</span><span class="s1"> points&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_points</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">idx_range</span><span class="p">,</span> <span class="n">phase_ts</span></div>
+
+
+
+<div class="viewcode-block" id="predictPhase">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.utils.predictPhase">[docs]</a>
+<span class="k">def</span> <span class="nf">predictPhase</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">obj</span><span class="p">:</span> <span class="p">[</span><span class="n">NetworkParameter</span><span class="p">,</span> <span class="n">Points</span><span class="p">],</span> <span class="n">vel</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">demerr</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">ifg_space</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Predicts the phase time series based on the estimated parameters DEM error and mean velocity.</span>
+
+<span class="sd">    Can be used for both arc phase or point phase. Wrapper function for &#39;predictPhaseCore(...)&#39;</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    obj: Union[NetworkParameter, Points]</span>
+<span class="sd">        object of either &#39;networkParameter&#39; or &#39;points&#39;. If instance of &#39;points&#39; is given, &#39;vel&#39; and &#39;demerr&#39;</span>
+<span class="sd">        also need to be specified.</span>
+<span class="sd">    vel: np.ndarray</span>
+<span class="sd">        velocity for each sample (default: None)</span>
+<span class="sd">    demerr: np.ndarray</span>
+<span class="sd">        dem error for each sample (default: None).</span>
+<span class="sd">    ifg_space: bool</span>
+<span class="sd">        set to True if the phase shall be predicted in interferogram space. If False, phase will be predicted</span>
+<span class="sd">        in acquisition space. (default: True)</span>
+<span class="sd">    logger: Logger</span>
+<span class="sd">        Logging handler.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">        pred_phase_demerr: np.ndarray</span>
+<span class="sd">            predicted phase from DEM error</span>
+<span class="sd">        pred_phase_vel: np.ndarray</span>
+<span class="sd">            predicted phase from velocity</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        vel or demerr is none</span>
+<span class="sd">    TypeError</span>
+<span class="sd">        obj is of the wrong type</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">Points</span><span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">vel</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">demerr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Both &#39;vel&#39; and &#39;demerr&#39; are needed if &#39;obj&#39; is instance of class &#39;points&#39;!&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span>
+        <span class="n">pred_phase_demerr</span><span class="p">,</span> <span class="n">pred_phase_vel</span> <span class="o">=</span> <span class="n">predictPhaseCore</span><span class="p">(</span>
+            <span class="n">ifg_net_obj</span><span class="o">=</span><span class="n">obj</span><span class="o">.</span><span class="n">ifg_net_obj</span><span class="p">,</span>
+            <span class="n">wavelength</span><span class="o">=</span><span class="n">obj</span><span class="o">.</span><span class="n">wavelength</span><span class="p">,</span>
+            <span class="n">vel</span><span class="o">=</span><span class="n">vel</span><span class="p">,</span>
+            <span class="n">demerr</span><span class="o">=</span><span class="n">demerr</span><span class="p">,</span>
+            <span class="n">slant_range</span><span class="o">=</span><span class="n">obj</span><span class="o">.</span><span class="n">slant_range</span><span class="p">,</span>
+            <span class="n">loc_inc</span><span class="o">=</span><span class="n">obj</span><span class="o">.</span><span class="n">loc_inc</span><span class="p">,</span>
+            <span class="n">ifg_space</span><span class="o">=</span><span class="n">ifg_space</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">NetworkParameter</span><span class="p">):</span>
+        <span class="n">pred_phase_demerr</span><span class="p">,</span> <span class="n">pred_phase_vel</span> <span class="o">=</span> <span class="n">predictPhaseCore</span><span class="p">(</span>
+            <span class="n">ifg_net_obj</span><span class="o">=</span><span class="n">obj</span><span class="o">.</span><span class="n">ifg_net_obj</span><span class="p">,</span>
+            <span class="n">wavelength</span><span class="o">=</span><span class="n">obj</span><span class="o">.</span><span class="n">wavelength</span><span class="p">,</span>
+            <span class="n">vel</span><span class="o">=</span><span class="n">obj</span><span class="o">.</span><span class="n">vel</span><span class="p">,</span>
+            <span class="n">demerr</span><span class="o">=</span><span class="n">obj</span><span class="o">.</span><span class="n">demerr</span><span class="p">,</span>
+            <span class="n">slant_range</span><span class="o">=</span><span class="n">obj</span><span class="o">.</span><span class="n">slant_range</span><span class="p">,</span>
+            <span class="n">loc_inc</span><span class="o">=</span><span class="n">obj</span><span class="o">.</span><span class="n">loc_inc</span><span class="p">,</span>
+            <span class="n">ifg_space</span><span class="o">=</span><span class="n">ifg_space</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;&#39;obj&#39; must be instance of &#39;points&#39; or &#39;networkParameter&#39;!&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span>
+    <span class="k">return</span> <span class="n">pred_phase_demerr</span><span class="p">,</span> <span class="n">pred_phase_vel</span></div>
+
+
+
+<div class="viewcode-block" id="predictPhaseCore">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.utils.predictPhaseCore">[docs]</a>
+<span class="k">def</span> <span class="nf">predictPhaseCore</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">ifg_net_obj</span><span class="p">:</span> <span class="n">IfgNetwork</span><span class="p">,</span> <span class="n">wavelength</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">vel</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                     <span class="n">demerr</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">slant_range</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">loc_inc</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">ifg_space</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Predicts the phase time series based on the estimated parameters DEM error and mean velocity.</span>
+
+<span class="sd">    Can be used for both arc phase or point phase.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ifg_net_obj: IfgNetwork</span>
+<span class="sd">        instance of class ifgNetwork</span>
+<span class="sd">    wavelength: float</span>
+<span class="sd">        wavelength in [m]</span>
+<span class="sd">    vel: np.ndarray</span>
+<span class="sd">        velocity for each sample</span>
+<span class="sd">    demerr: np.ndarray</span>
+<span class="sd">        dem error for each sample</span>
+<span class="sd">    slant_range: np.ndarray</span>
+<span class="sd">        slant range distance for each sample</span>
+<span class="sd">    loc_inc: np.ndarray</span>
+<span class="sd">        local incidence angle for each sample</span>
+<span class="sd">    ifg_space: bool</span>
+<span class="sd">        set to True if the phase shall be predicted in interferogram space. If False, phase will be</span>
+<span class="sd">        predicted in acquisition space. (default: True)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">        pred_phase_demerr: np.ndarray</span>
+<span class="sd">            predicted phase from DEM error</span>
+<span class="sd">        pred_phase_vel: np.ndarray</span>
+<span class="sd">            predicted phase from velocity</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">factor</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="n">wavelength</span>
+
+    <span class="k">if</span> <span class="n">ifg_space</span><span class="p">:</span>
+        <span class="n">tbase</span> <span class="o">=</span> <span class="n">ifg_net_obj</span><span class="o">.</span><span class="n">tbase_ifg</span>
+        <span class="n">pbase</span> <span class="o">=</span> <span class="n">ifg_net_obj</span><span class="o">.</span><span class="n">pbase_ifg</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">tbase</span> <span class="o">=</span> <span class="n">ifg_net_obj</span><span class="o">.</span><span class="n">tbase</span>
+        <span class="n">pbase</span> <span class="o">=</span> <span class="n">ifg_net_obj</span><span class="o">.</span><span class="n">pbase</span>
+
+    <span class="c1"># compute phase due to DEM error</span>
+    <span class="n">pred_phase_demerr</span> <span class="o">=</span> <span class="n">factor</span> <span class="o">*</span> <span class="n">pbase</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span><span class="n">slant_range</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">loc_inc</span><span class="p">))[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:]</span> <span class="o">*</span> <span class="n">demerr</span>
+
+    <span class="c1"># compute phase due to velocity</span>
+    <span class="n">pred_phase_vel</span> <span class="o">=</span> <span class="n">factor</span> <span class="o">*</span> <span class="n">tbase</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span> <span class="o">*</span> <span class="n">vel</span>
+
+    <span class="k">return</span> <span class="n">pred_phase_demerr</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">pred_phase_vel</span><span class="o">.</span><span class="n">T</span></div>
+
+
+
+<div class="viewcode-block" id="predictPhaseSingle">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.utils.predictPhaseSingle">[docs]</a>
+<span class="k">def</span> <span class="nf">predictPhaseSingle</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">demerr</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">vel</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">slant_range</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">loc_inc</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+                       <span class="n">ifg_net_obj</span><span class="p">:</span> <span class="n">IfgNetwork</span><span class="p">,</span> <span class="n">wavelength</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">only_vel</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">ifg_space</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Predict the phase time series for only one point based on the estimated parameters DEM error and mean velocity.</span>
+
+<span class="sd">    Can be used for both arc phase or point phase.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    demerr: float</span>
+<span class="sd">        DEM error (scalar)</span>
+<span class="sd">    vel: float</span>
+<span class="sd">        mean velocity (scalar)</span>
+<span class="sd">    slant_range: float</span>
+<span class="sd">        slant range distance in [m] (scalar)</span>
+<span class="sd">    loc_inc: float</span>
+<span class="sd">        local incidence angle in [rad] (scalar)</span>
+<span class="sd">    ifg_net_obj: IfgNetwork</span>
+<span class="sd">        object of class IfgNetwork</span>
+<span class="sd">    wavelength: float</span>
+<span class="sd">        radar wavelength in [m]</span>
+<span class="sd">    only_vel: bool</span>
+<span class="sd">        set to True if only the mean velocity shall be predicted (default: False)</span>
+<span class="sd">    ifg_space: bool</span>
+<span class="sd">        set to True if the phase shall be predicted in interferogram space. If False, phase will be predicted in</span>
+<span class="sd">        acquisition space. (default: True)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">        pred_phase: np.ndarray</span>
+<span class="sd">            predicted phase</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">factor</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="n">wavelength</span>
+
+    <span class="k">if</span> <span class="n">ifg_space</span><span class="p">:</span>
+        <span class="n">tbase</span> <span class="o">=</span> <span class="n">ifg_net_obj</span><span class="o">.</span><span class="n">tbase_ifg</span>
+        <span class="n">pbase</span> <span class="o">=</span> <span class="n">ifg_net_obj</span><span class="o">.</span><span class="n">pbase_ifg</span>
+        <span class="n">num_time</span> <span class="o">=</span> <span class="n">ifg_net_obj</span><span class="o">.</span><span class="n">num_ifgs</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">tbase</span> <span class="o">=</span> <span class="n">ifg_net_obj</span><span class="o">.</span><span class="n">tbase</span>
+        <span class="n">pbase</span> <span class="o">=</span> <span class="n">ifg_net_obj</span><span class="o">.</span><span class="n">pbase</span>
+        <span class="n">num_time</span> <span class="o">=</span> <span class="n">ifg_net_obj</span><span class="o">.</span><span class="n">num_images</span>
+
+    <span class="k">if</span> <span class="n">only_vel</span><span class="p">:</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_time</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_time</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+    <span class="n">a</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">factor</span> <span class="o">*</span> <span class="n">tbase</span>
+
+    <span class="k">if</span> <span class="n">only_vel</span><span class="p">:</span>
+        <span class="n">pred_phase</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">vel</span><span class="p">]))</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">a</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">factor</span> <span class="o">*</span> <span class="n">pbase</span> <span class="o">/</span> <span class="p">(</span><span class="n">slant_range</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">loc_inc</span><span class="p">))</span>
+        <span class="n">pred_phase</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">vel</span><span class="p">,</span> <span class="n">demerr</span><span class="p">]))</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,))</span>
+
+    <span class="k">return</span> <span class="n">pred_phase</span></div>
+
+
+
+<div class="viewcode-block" id="estimateParameters">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.utils.estimateParameters">[docs]</a>
+<span class="k">def</span> <span class="nf">estimateParameters</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">obj</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Points</span><span class="p">,</span> <span class="n">Network</span><span class="p">],</span> <span class="n">estimate_ref_atmo</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">ifg_space</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Estimate the parameters either per point or per arc.</span>
+
+<span class="sd">    Parameters are velocity and DEM error (or additionally reference APS).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    obj: Union[Points, Network]</span>
+<span class="sd">        object of either network, networkParameter, points or pointsParameters</span>
+<span class="sd">    estimate_ref_atmo: bool</span>
+<span class="sd">        set to True if APS of reference date shall be estimated. corresponds to offset of linear</span>
+<span class="sd">        motion model (default: False).</span>
+<span class="sd">    ifg_space: bool</span>
+<span class="sd">        set to True if the phase shall be predicted in interferogram space. If False, phase will be</span>
+<span class="sd">        predicted in acquisition space. (default: True)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    vel: np.ndarray</span>
+<span class="sd">        velocity for each point</span>
+<span class="sd">    demerr: np.ndarray</span>
+<span class="sd">        dem error for each point</span>
+<span class="sd">    ref_atmo: np.ndarray</span>
+<span class="sd">        reference APS for each point</span>
+<span class="sd">    omega:</span>
+<span class="sd">        sum of squared residuals</span>
+<span class="sd">    v_hat:</span>
+<span class="sd">        residuals</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">num</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">phase</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># either number of points or number of arcs</span>
+
+    <span class="k">if</span> <span class="n">ifg_space</span><span class="p">:</span>
+        <span class="n">tbase</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">ifg_net_obj</span><span class="o">.</span><span class="n">tbase_ifg</span>
+        <span class="n">pbase</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">ifg_net_obj</span><span class="o">.</span><span class="n">pbase_ifg</span>
+        <span class="n">num_time</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">ifg_net_obj</span><span class="o">.</span><span class="n">num_ifgs</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">tbase</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">ifg_net_obj</span><span class="o">.</span><span class="n">tbase</span>
+        <span class="n">pbase</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">ifg_net_obj</span><span class="o">.</span><span class="n">pbase</span>
+        <span class="n">num_time</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">ifg_net_obj</span><span class="o">.</span><span class="n">num_images</span>
+
+    <span class="n">vel</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">demerr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">omega</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">coherence</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">v_hat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num</span><span class="p">,</span> <span class="n">num_time</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+    <span class="n">ref_atmo</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">estimate_ref_atmo</span><span class="p">:</span>
+        <span class="n">ref_atmo</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_time</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">a</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="n">obj</span><span class="o">.</span><span class="n">wavelength</span>  <span class="c1"># atmospheric delay at reference acquisition</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_time</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+
+    <span class="n">a</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="n">obj</span><span class="o">.</span><span class="n">wavelength</span> <span class="o">*</span> <span class="n">tbase</span>  <span class="c1"># velocity</span>
+
+    <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">num_points</span><span class="p">):</span>
+        <span class="n">obv_vec</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">phase</span><span class="p">[</span><span class="n">p</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="n">a</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="n">obj</span><span class="o">.</span><span class="n">wavelength</span> <span class="o">*</span> <span class="n">pbase</span> <span class="o">/</span> <span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">slant_range</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">loc_inc</span><span class="p">[</span><span class="n">p</span><span class="p">]))</span>  <span class="c1"># demerr</span>
+
+        <span class="n">x_hat</span><span class="p">,</span> <span class="n">omega</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">lstsq</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">obv_vec</span><span class="p">,</span> <span class="n">rcond</span><span class="o">=</span><span class="kc">None</span><span class="p">)[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">demerr</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="n">x_hat</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">vel</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="n">x_hat</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">estimate_ref_atmo</span><span class="p">:</span>
+            <span class="n">ref_atmo</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="n">x_hat</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">v_hat</span><span class="p">[</span><span class="n">p</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">obv_vec</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">x_hat</span><span class="p">)</span>
+        <span class="n">coherence</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">v_hat</span><span class="p">[</span><span class="n">p</span><span class="p">,</span> <span class="p">:])))</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">estimate_ref_atmo</span><span class="p">:</span>
+        <span class="n">ref_atmo</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">return</span> <span class="n">vel</span><span class="p">,</span> <span class="n">demerr</span><span class="p">,</span> <span class="n">ref_atmo</span><span class="p">,</span> <span class="n">coherence</span><span class="p">,</span> <span class="n">omega</span><span class="p">,</span> <span class="n">v_hat</span></div>
+
+
+
+<div class="viewcode-block" id="splitImageIntoBoxesRngAz">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.utils.splitImageIntoBoxesRngAz">[docs]</a>
+<span class="k">def</span> <span class="nf">splitImageIntoBoxesRngAz</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">length</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">width</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">num_box_az</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">num_box_rng</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Split the image into several boxes.</span>
+
+<span class="sd">    (adapted from mintpy.ifgram_inversion.split2boxes)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    num_box_rng: int</span>
+<span class="sd">        Number of boxes in range direction</span>
+<span class="sd">    num_box_az:</span>
+<span class="sd">        Number of boxes in azimuth direction</span>
+<span class="sd">    length: int</span>
+<span class="sd">        length of the image</span>
+<span class="sd">    width: int</span>
+<span class="sd">        width of the image</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    box_list: list</span>
+<span class="sd">        of tuple of 4 int (xmin, ymin, xmax, ymax)</span>
+<span class="sd">    num_box: int</span>
+<span class="sd">        number of boxes</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">y_step</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">rint</span><span class="p">((</span><span class="n">length</span> <span class="o">/</span> <span class="n">num_box_rng</span><span class="p">)</span> <span class="o">/</span> <span class="mi">10</span><span class="p">)</span> <span class="o">*</span> <span class="mi">10</span><span class="p">)</span>
+    <span class="n">x_step</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">rint</span><span class="p">((</span><span class="n">width</span> <span class="o">/</span> <span class="n">num_box_az</span><span class="p">)</span> <span class="o">/</span> <span class="mi">10</span><span class="p">)</span> <span class="o">*</span> <span class="mi">10</span><span class="p">)</span>
+
+    <span class="n">box_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">y0</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">y1</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">while</span> <span class="n">y1</span> <span class="o">!=</span> <span class="n">length</span><span class="p">:</span>
+        <span class="n">x0</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">x1</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="c1"># y1 = min([length, y0 + y_step])</span>
+        <span class="k">if</span> <span class="n">y0</span> <span class="o">+</span> <span class="n">y_step</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">rint</span><span class="p">(</span><span class="n">y_step</span> <span class="o">/</span> <span class="mi">2</span><span class="p">))</span> <span class="o">&gt;</span> <span class="n">length</span><span class="p">:</span>
+            <span class="n">y1</span> <span class="o">=</span> <span class="n">length</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">y1</span> <span class="o">=</span> <span class="n">y0</span> <span class="o">+</span> <span class="n">y_step</span>
+        <span class="k">while</span> <span class="n">x1</span> <span class="o">!=</span> <span class="n">width</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">x0</span> <span class="o">+</span> <span class="n">x_step</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">rint</span><span class="p">(</span><span class="n">x_step</span> <span class="o">/</span> <span class="mi">2</span><span class="p">))</span> <span class="o">&gt;</span> <span class="n">width</span><span class="p">:</span>
+                <span class="n">x1</span> <span class="o">=</span> <span class="n">width</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">x1</span> <span class="o">=</span> <span class="n">x0</span> <span class="o">+</span> <span class="n">x_step</span>
+            <span class="c1"># x1 = min([width, x0 + x_step])</span>
+            <span class="n">box</span> <span class="o">=</span> <span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="n">y0</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">)</span>
+            <span class="n">box_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">box</span><span class="p">)</span>
+            <span class="n">x0</span> <span class="o">=</span> <span class="n">x1</span>
+        <span class="n">y0</span> <span class="o">=</span> <span class="n">y1</span>
+
+    <span class="n">num_box</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">box_list</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">box_list</span><span class="p">,</span> <span class="n">num_box</span></div>
+
+
+
+<div class="viewcode-block" id="preparePatches">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.utils.preparePatches">[docs]</a>
+<span class="k">def</span> <span class="nf">preparePatches</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">num_patches</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">width</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">length</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create patches to subset the image stack for parallel processing to reduce memory usage.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    num_patches: int</span>
+<span class="sd">        number of patches to split the image into</span>
+<span class="sd">    width: int</span>
+<span class="sd">        width of the image</span>
+<span class="sd">    length: int</span>
+<span class="sd">        length of the image</span>
+<span class="sd">    logger: Logger</span>
+<span class="sd">        logging handler</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    box_list: list</span>
+<span class="sd">        tuples with the radar coordinates of the boxes</span>
+<span class="sd">    num_patches: int</span>
+<span class="sd">        number of actual patches created by the function</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">patch_size_lut</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+        <span class="mi">3</span><span class="p">:</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span>
+        <span class="mi">4</span><span class="p">:</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+        <span class="mi">6</span><span class="p">:</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span>
+        <span class="mi">8</span><span class="p">:</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span>
+        <span class="mi">10</span><span class="p">:</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span>
+        <span class="mi">12</span><span class="p">:</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span>
+        <span class="mi">15</span><span class="p">:</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span>
+        <span class="mi">28</span><span class="p">:</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">7</span><span class="p">),</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="n">num_patches</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">box_list</span> <span class="o">=</span> <span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">length</span><span class="p">))]</span>
+        <span class="n">num_patches</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">num_patches</span> <span class="o">=</span> <span class="n">num_patches</span>
+        <span class="k">if</span> <span class="n">num_patches</span> <span class="o">&gt;</span> <span class="nb">max</span><span class="p">(</span><span class="n">patch_size_lut</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="n">num_patches</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">patch_size_lut</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Number of patches is higher than expected. Reduce to </span><span class="si">{</span><span class="n">num_patches</span><span class="si">}</span><span class="s2"> boxes.&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">while</span> <span class="ow">not</span> <span class="p">(</span><span class="n">num_patches</span> <span class="ow">in</span> <span class="n">patch_size_lut</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+                <span class="n">num_patches</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">box_list</span><span class="p">,</span> <span class="n">num_patches</span> <span class="o">=</span> <span class="n">splitImageIntoBoxesRngAz</span><span class="p">(</span><span class="n">length</span><span class="o">=</span><span class="n">length</span><span class="p">,</span>
+                                                         <span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span>
+                                                         <span class="n">num_box_az</span><span class="o">=</span><span class="n">patch_size_lut</span><span class="p">[</span><span class="n">num_patches</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span>
+                                                         <span class="n">num_box_rng</span><span class="o">=</span><span class="n">patch_size_lut</span><span class="p">[</span><span class="n">num_patches</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Process </span><span class="si">{</span><span class="n">num_patches</span><span class="si">}</span><span class="s2"> patches &quot;</span> <span class="o">+</span>
+                    <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="n">patch_size_lut</span><span class="p">[</span><span class="n">num_patches</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2"> x </span><span class="si">{</span><span class="n">patch_size_lut</span><span class="p">[</span><span class="n">num_patches</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">).&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">box_list</span><span class="p">,</span> <span class="n">num_patches</span></div>
+
+
+
+<div class="viewcode-block" id="splitDatasetForParallelProcessing">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.utils.splitDatasetForParallelProcessing">[docs]</a>
+<span class="k">def</span> <span class="nf">splitDatasetForParallelProcessing</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">num_samples</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">num_cores</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Split the dataset into chunks of similar size for processing them in parallel.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    num_samples: int</span>
+<span class="sd">        number of samples to be split</span>
+<span class="sd">    num_cores: int</span>
+<span class="sd">        number of cores to split among</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    idx: list</span>
+<span class="sd">        list of sample ranges for each core</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">rest</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">num_samples</span><span class="p">,</span> <span class="n">num_cores</span><span class="p">)</span>
+    <span class="n">avg_num_samples_per_core</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">num_samples</span> <span class="o">-</span> <span class="n">rest</span><span class="p">)</span> <span class="o">/</span> <span class="n">num_cores</span><span class="p">)</span>
+    <span class="n">num_samples_per_core</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_cores</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int16</span><span class="p">)</span>
+    <span class="n">num_samples_per_core</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">avg_num_samples_per_core</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">rest</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">while</span> <span class="n">c</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">num_samples_per_core</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">c</span> <span class="o">-=</span> <span class="mi">1</span>
+
+    <span class="n">idx</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+    <span class="n">cur_idx</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_cores</span><span class="p">):</span>
+        <span class="n">idx</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">cur_idx</span><span class="p">,</span> <span class="n">cur_idx</span> <span class="o">+</span> <span class="n">num_samples_per_core</span><span class="p">[</span><span class="n">i</span><span class="p">]])</span>
+        <span class="n">cur_idx</span> <span class="o">+=</span> <span class="n">num_samples_per_core</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+    <span class="n">idx</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span><span class="p">,</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">idx</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">idx</span></div>
+
+
+
+<div class="viewcode-block" id="createSpatialGrid">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.utils.createSpatialGrid">[docs]</a>
+<span class="k">def</span> <span class="nf">createSpatialGrid</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">coord_utm_img</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">length</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">width</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">grid_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a spatial grid over the image.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    coord_utm_img: np.ndarray</span>
+<span class="sd">        coordinates of all image pixels in UTM</span>
+<span class="sd">    length: int</span>
+<span class="sd">        number of pixels in length of the image</span>
+<span class="sd">    width: int</span>
+<span class="sd">        number of pixels in width of the image</span>
+<span class="sd">    grid_size: int</span>
+<span class="sd">        size of the grid in [m]</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    box_list: list</span>
+<span class="sd">        of tuples with the radar coordinates of the boxes</span>
+<span class="sd">    num_box: int</span>
+<span class="sd">        actual number of boxes created by the function</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p0</span> <span class="o">=</span> <span class="n">coord_utm_img</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="n">p1</span> <span class="o">=</span> <span class="n">coord_utm_img</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">p2</span> <span class="o">=</span> <span class="n">coord_utm_img</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="n">dist_width</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">p0</span> <span class="o">-</span> <span class="n">p1</span><span class="p">)</span>
+    <span class="n">dist_length</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">p0</span> <span class="o">-</span> <span class="n">p2</span><span class="p">)</span>
+    <span class="n">num_box_az</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">dist_width</span> <span class="o">/</span> <span class="n">grid_size</span><span class="p">))</span>
+    <span class="n">num_box_rng</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">dist_length</span> <span class="o">/</span> <span class="n">grid_size</span><span class="p">))</span>
+
+    <span class="c1"># split image into different parts</span>
+    <span class="n">box_list</span><span class="p">,</span> <span class="n">num_box</span> <span class="o">=</span> <span class="n">splitImageIntoBoxesRngAz</span><span class="p">(</span><span class="n">length</span><span class="o">=</span><span class="n">length</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span>
+                                                 <span class="n">num_box_az</span><span class="o">=</span><span class="n">num_box_az</span><span class="p">,</span> <span class="n">num_box_rng</span><span class="o">=</span><span class="n">num_box_rng</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">box_list</span><span class="p">,</span> <span class="n">num_box</span></div>
+
+
+
+<div class="viewcode-block" id="selectBestPointsInGrid">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.utils.selectBestPointsInGrid">[docs]</a>
+<span class="k">def</span> <span class="nf">selectBestPointsInGrid</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">box_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">quality</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">sel_min</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Select the best point inside a grid.</span>
+
+<span class="sd">    If several pixel fullfil the criteria, the first one is selected.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    box_list: list</span>
+<span class="sd">        of tuples with the radar coordinates of the boxes</span>
+<span class="sd">    quality: np.ndarray</span>
+<span class="sd">        quality of the pixels</span>
+<span class="sd">    sel_min: bool</span>
+<span class="sd">        set to True if the minimum value shall be selected (default: True)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    cand_mask_sparse: np.ndarray</span>
+<span class="sd">        boolean mask of the selected pixels</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">cand_mask_sparse</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">quality</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">box</span> <span class="ow">in</span> <span class="n">box_list</span><span class="p">:</span>
+        <span class="n">qual_box</span> <span class="o">=</span> <span class="n">quality</span><span class="p">[</span><span class="n">box</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span><span class="n">box</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">box</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span><span class="n">box</span><span class="p">[</span><span class="mi">2</span><span class="p">]]</span>
+        <span class="k">if</span> <span class="n">sel_min</span><span class="p">:</span>
+            <span class="n">idx_box</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">qual_box</span><span class="p">)</span> <span class="o">==</span> <span class="n">qual_box</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">qual_box</span><span class="p">)</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">:</span>  <span class="c1"># no mininum value exists in this box</span>
+                <span class="k">continue</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># max</span>
+            <span class="n">idx_box</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">qual_box</span><span class="p">)</span> <span class="o">==</span> <span class="n">qual_box</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">idx_box</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>  <span class="c1"># more than one index might be found, due to quality(PS) = 1 in MiaplPy</span>
+            <span class="n">idx_box_tmp</span> <span class="o">=</span> <span class="p">[</span><span class="n">idx_box</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">idx_box</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]]</span>
+            <span class="n">idx_box</span> <span class="o">=</span> <span class="n">idx_box_tmp</span>
+        <span class="n">idx_img</span> <span class="o">=</span> <span class="p">(</span><span class="n">idx_box</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">box</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">idx_box</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">box</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">cand_mask_sparse</span><span class="p">[</span><span class="n">idx_img</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="n">cand_mask_sparse</span></div>
+
+
+
+<div class="viewcode-block" id="spatiotemporalConsistency">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.utils.spatiotemporalConsistency">[docs]</a>
+<span class="k">def</span> <span class="nf">spatiotemporalConsistency</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">coord_utm</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">phase</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">wavelength</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">min_dist</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">15</span><span class="p">,</span>
+                              <span class="n">max_dist</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="n">knn</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Spatiotemporal consistency proposed by Hanssen et al. (2008) and implemented in DePSI (van Leijen, 2014).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    coord_utm: np.ndarray</span>
+<span class="sd">        UTM coordinates of the points</span>
+<span class="sd">    phase: np.ndarray</span>
+<span class="sd">        phase time series of the points</span>
+<span class="sd">    wavelength: float</span>
+<span class="sd">        radar wavelength in [m]</span>
+<span class="sd">    min_dist: int</span>
+<span class="sd">        minimum distance to other points in [m] (default: 15)</span>
+<span class="sd">    max_dist: float</span>
+<span class="sd">        maximum distance to other points in [m] (default: np.inf)</span>
+<span class="sd">    knn: int</span>
+<span class="sd">        number of nearest neighbors to consider (default: 50)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    stc: np.ndarray</span>
+<span class="sd">        spatiotemporal consistency of the points</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">scipy.spatial</span> <span class="kn">import</span> <span class="n">KDTree</span>
+
+    <span class="n">num_samples</span><span class="p">,</span> <span class="n">num_time</span> <span class="o">=</span> <span class="n">phase</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">tree</span> <span class="o">=</span> <span class="n">KDTree</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">coord_utm</span><span class="p">)</span>
+
+    <span class="n">stc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_samples</span><span class="p">,),</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_samples</span><span class="p">):</span>
+        <span class="n">dist</span><span class="p">,</span> <span class="n">idx</span> <span class="o">=</span> <span class="n">tree</span><span class="o">.</span><span class="n">query</span><span class="p">([</span><span class="n">coord_utm</span><span class="p">[</span><span class="n">p</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">coord_utm</span><span class="p">[</span><span class="n">p</span><span class="p">,</span> <span class="mi">1</span><span class="p">]],</span> <span class="n">k</span><span class="o">=</span><span class="n">knn</span><span class="p">)</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">dist</span> <span class="o">&lt;</span> <span class="n">max_dist</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">dist</span> <span class="o">&gt;</span> <span class="n">min_dist</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">dist</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">rho</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">idx</span><span class="p">[</span><span class="n">mask</span><span class="p">]:</span>
+            <span class="n">diff</span> <span class="o">=</span> <span class="p">(</span><span class="n">phase</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">phase</span><span class="p">[</span><span class="n">p</span><span class="p">,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">-</span> <span class="p">(</span><span class="n">phase</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">-</span> <span class="n">phase</span><span class="p">[</span><span class="n">p</span><span class="p">,</span> <span class="mi">1</span><span class="p">:])</span>
+            <span class="n">rho</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">wavelength</span> <span class="o">/</span> <span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="n">num_time</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">diff</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">rho</span><span class="p">:</span>
+            <span class="n">stc</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">stc</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">rho</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">stc</span></div>
+
+
+
+<div class="viewcode-block" id="temporalAutoCorrelation">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.utils.temporalAutoCorrelation">[docs]</a>
+<span class="k">def</span> <span class="nf">temporalAutoCorrelation</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">residuals</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">lag</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the temporal autocorrelation for given time lag from the residuals.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    residuals: np.ndarray</span>
+<span class="sd">        residual phase time series (dim: num_points x num_time_steps)</span>
+<span class="sd">    lag: int</span>
+<span class="sd">        time lag used for computing the correlation</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    auto_corr: np.ndarray</span>
+<span class="sd">        auto-correlation of each point (dim: num_points x lag)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">num_points</span> <span class="o">=</span> <span class="n">residuals</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">auto_corr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_points</span><span class="p">,</span> <span class="n">lag</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">lag_num</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">lag</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_points</span><span class="p">):</span>
+            <span class="n">auto_corr</span><span class="p">[</span><span class="n">p</span><span class="p">,</span> <span class="n">lag_num</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">corrcoef</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">residuals</span><span class="p">[</span><span class="n">p</span><span class="p">,</span> <span class="p">:</span><span class="o">-</span><span class="n">lag_num</span><span class="p">],</span> <span class="n">residuals</span><span class="p">[</span><span class="n">p</span><span class="p">,</span> <span class="n">lag_num</span><span class="p">:]]))[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">auto_corr</span></div>
+
+
+
+<div class="viewcode-block" id="readPhasePatchwise">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.utils.readPhasePatchwise">[docs]</a>
+<span class="k">def</span> <span class="nf">readPhasePatchwise</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">stack_obj</span><span class="p">:</span> <span class="n">BaseStack</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">num_patches</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">cand_mask</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                       <span class="n">point_id_img</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                       <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Read the phase from a file in a patchwise manner to reduce memory usage.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    stack_obj: BaseStack</span>
+<span class="sd">        instance of class BaseStack</span>
+<span class="sd">    dataset_name: str</span>
+<span class="sd">        name of the dataset to read (e.g. &#39;ifgs&#39; or &#39;phase&#39;)</span>
+<span class="sd">    num_patches: int</span>
+<span class="sd">        number of patches to split the image into</span>
+<span class="sd">    cand_mask: np.ndarray</span>
+<span class="sd">        boolean mask of the selected pixels</span>
+<span class="sd">    point_id_img: np.ndarray</span>
+<span class="sd">        image with point IDs for each pixel</span>
+<span class="sd">    logger: Logger</span>
+<span class="sd">        logging handler</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    phase_points: np.ndarray</span>
+<span class="sd">        phase time series of the selected pixels</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">dataset_name</span> <span class="o">==</span> <span class="s2">&quot;ifgs&quot;</span><span class="p">:</span>
+        <span class="n">length</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">num_images</span> <span class="o">=</span> <span class="n">stack_obj</span><span class="o">.</span><span class="n">getShape</span><span class="p">(</span><span class="n">dataset_name</span><span class="o">=</span><span class="n">dataset_name</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">dataset_name</span> <span class="o">==</span> <span class="s2">&quot;phase&quot;</span><span class="p">:</span>  <span class="c1"># result from miaplpy</span>
+        <span class="n">num_images</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="n">width</span> <span class="o">=</span> <span class="n">stack_obj</span><span class="o">.</span><span class="n">getShape</span><span class="p">(</span><span class="n">dataset_name</span><span class="o">=</span><span class="n">dataset_name</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Reading &#39;</span><span class="si">{</span><span class="n">dataset_name</span><span class="si">}</span><span class="s2">&#39; is not supported.&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="k">if</span> <span class="n">num_patches</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">phase_img</span> <span class="o">=</span> <span class="n">stack_obj</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">dataset_name</span><span class="o">=</span><span class="n">dataset_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dataset_name</span> <span class="o">==</span> <span class="s2">&quot;phase&quot;</span><span class="p">:</span>  <span class="c1"># result from miaplpy</span>
+            <span class="n">phase_img</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">moveaxis</span><span class="p">(</span><span class="n">phase_img</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">phase_points</span> <span class="o">=</span> <span class="n">phase_img</span><span class="p">[</span><span class="n">cand_mask</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">phase_points</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">angle</span><span class="p">(</span><span class="n">phase_img</span><span class="p">[</span><span class="n">cand_mask</span><span class="p">,</span> <span class="p">:])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">box_list</span><span class="p">,</span> <span class="n">num_patches</span> <span class="o">=</span> <span class="n">preparePatches</span><span class="p">(</span><span class="n">num_patches</span><span class="o">=</span><span class="n">num_patches</span><span class="p">,</span>
+                                               <span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span>
+                                               <span class="n">length</span><span class="o">=</span><span class="n">length</span><span class="p">,</span>
+                                               <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
+        <span class="n">num_points</span> <span class="o">=</span> <span class="n">cand_mask</span><span class="p">[</span><span class="n">cand_mask</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">phase_points</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_points</span><span class="p">,</span> <span class="n">num_images</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">start_idx</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">point_id_order</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_patches</span><span class="p">):</span>
+            <span class="n">bbox</span> <span class="o">=</span> <span class="n">box_list</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">dataset_name</span> <span class="o">==</span> <span class="s2">&quot;phase&quot;</span><span class="p">:</span>  <span class="c1"># result from miaplpy</span>
+                <span class="c1"># slcStack has different order: starts with num_images. Adjust bbox (x0, y0, z0, x1, y1, z1)</span>
+                <span class="c1"># read whole slcStack and subset to time span outside this function.</span>
+                <span class="n">box</span> <span class="o">=</span> <span class="p">(</span><span class="n">bbox</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="n">bbox</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">bbox</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">num_images</span><span class="p">,</span> <span class="n">bbox</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+                <span class="n">phase_img</span> <span class="o">=</span> <span class="n">stack_obj</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">dataset_name</span><span class="o">=</span><span class="n">dataset_name</span><span class="p">,</span> <span class="n">box</span><span class="o">=</span><span class="n">box</span><span class="p">,</span> <span class="n">print_msg</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                <span class="n">phase_img</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">moveaxis</span><span class="p">(</span><span class="n">phase_img</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">phase_img</span> <span class="o">=</span> <span class="n">stack_obj</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">dataset_name</span><span class="o">=</span><span class="n">dataset_name</span><span class="p">,</span> <span class="n">box</span><span class="o">=</span><span class="n">bbox</span><span class="p">,</span> <span class="n">print_msg</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">cur_cand_mask</span> <span class="o">=</span> <span class="n">cand_mask</span><span class="p">[</span><span class="n">bbox</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span><span class="n">bbox</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">bbox</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span><span class="n">bbox</span><span class="p">[</span><span class="mi">2</span><span class="p">]]</span>
+
+            <span class="c1"># extract the wrapped phase for the selected pixels in the patch</span>
+            <span class="n">cur_num_points</span> <span class="o">=</span> <span class="n">cur_cand_mask</span><span class="p">[</span><span class="n">cur_cand_mask</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">stop_idx</span> <span class="o">=</span> <span class="n">start_idx</span> <span class="o">+</span> <span class="n">cur_num_points</span>
+            <span class="k">if</span> <span class="n">dataset_name</span> <span class="o">==</span> <span class="s2">&quot;phase&quot;</span><span class="p">:</span>
+                <span class="n">phase_points</span><span class="p">[</span><span class="n">start_idx</span><span class="p">:</span><span class="n">stop_idx</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">phase_img</span><span class="p">[</span><span class="n">cur_cand_mask</span><span class="p">,</span> <span class="p">:]</span>  <span class="c1"># miaplpy results are phases</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">phase_points</span><span class="p">[</span><span class="n">start_idx</span><span class="p">:</span><span class="n">stop_idx</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">angle</span><span class="p">(</span><span class="n">phase_img</span><span class="p">[</span><span class="n">cur_cand_mask</span><span class="p">,</span> <span class="p">:])</span>
+            <span class="n">start_idx</span> <span class="o">=</span> <span class="n">stop_idx</span>
+
+            <span class="c1"># store order of IDs to sort the points after loading all ifgs</span>
+            <span class="n">cur_point_id</span> <span class="o">=</span> <span class="n">point_id_img</span><span class="p">[</span><span class="n">bbox</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span><span class="n">bbox</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">bbox</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span><span class="n">bbox</span><span class="p">[</span><span class="mi">2</span><span class="p">]]</span>
+            <span class="n">cur_point_id</span> <span class="o">=</span> <span class="n">cur_point_id</span><span class="p">[</span><span class="n">cur_cand_mask</span><span class="p">]</span>
+            <span class="n">point_id_order</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cur_point_id</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\r\033</span><span class="s2">[KPatches read:</span><span class="se">\t</span><span class="s2"> </span><span class="si">{}</span><span class="s2">/</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_patches</span><span class="p">))</span>
+        <span class="c1"># reorder points to fit to the same structure for all datasets</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span><span class="n">point_id_order</span><span class="p">))</span>
+        <span class="n">phase_points</span> <span class="o">=</span> <span class="n">phase_points</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="p">:]</span>
+
+    <span class="k">return</span> <span class="n">phase_points</span></div>
+
+
+
+<div class="viewcode-block" id="detectValidAreas">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.utils.detectValidAreas">[docs]</a>
+<span class="k">def</span> <span class="nf">detectValidAreas</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">bmap_obj</span><span class="p">:</span> <span class="n">AmplitudeImage</span><span class="p">,</span> <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Detect valid areas based on amplitude image.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    bmap_obj: AmplitudeImage</span>
+<span class="sd">        instance of class AmplitudeImage</span>
+<span class="sd">    logger: Logger</span>
+<span class="sd">        logging handler</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    mask_valid_area: np.ndarray</span>
+<span class="sd">        boolean mask of the valid areas</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">bmap_obj</span><span class="o">.</span><span class="n">open</span><span class="p">()</span>
+    <span class="n">mask_valid_area</span> <span class="o">=</span> <span class="p">(</span><span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="n">bmap_obj</span><span class="o">.</span><span class="n">background_map</span> <span class="o">/</span> <span class="mi">10</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span>
+    <span class="n">num_invalid</span> <span class="o">=</span> <span class="n">mask_valid_area</span><span class="p">[</span><span class="o">~</span><span class="n">mask_valid_area</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">num_invalid</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Number of invalid pixels found in image: </span><span class="si">{</span><span class="n">num_invalid</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">mask_valid_area</span></div>
+
+
+
+<div class="viewcode-block" id="setReferenceToPeakOfHistogram">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.utils.setReferenceToPeakOfHistogram">[docs]</a>
+<span class="k">def</span> <span class="nf">setReferenceToPeakOfHistogram</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">phase</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">vel</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">num_bins</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Set reference phase value to peak of the velocity histogram.</span>
+
+<span class="sd">    It assumes that no velocity (i.e. stable area) is occuring most frequently.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    phase: np.ndarray</span>
+<span class="sd">        phase time series of the points</span>
+<span class="sd">    vel: np.ndarray</span>
+<span class="sd">        velocity of the points</span>
+<span class="sd">    num_bins: int</span>
+<span class="sd">        number of bins for the histogram (default: 100)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    phase: np.ndarray</span>
+<span class="sd">        phase time series adjusted by the new reference phase</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">phase</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">40</span><span class="p">:</span>  <span class="c1"># the method will not give meaningfull results if too few points are available</span>
+        <span class="n">num_bins</span> <span class="o">=</span> <span class="mi">10</span>
+
+    <span class="c1"># find most frequent velocity</span>
+    <span class="n">hist</span><span class="p">,</span> <span class="n">bin_edges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="n">vel</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="n">num_bins</span><span class="p">,</span> <span class="n">density</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">max_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">hist</span><span class="p">)</span>
+
+    <span class="c1"># find a set of points which have the most frequent velocity</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">vel</span> <span class="o">&gt;=</span> <span class="n">bin_edges</span><span class="p">[</span><span class="n">max_idx</span><span class="p">])</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">vel</span> <span class="o">&lt;</span> <span class="n">bin_edges</span><span class="p">[</span><span class="n">max_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+
+    <span class="c1"># determine reference phase from mean of the phase time series of the selected points</span>
+    <span class="n">ref_phase</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">phase</span><span class="p">[</span><span class="n">mask</span><span class="p">,</span> <span class="p">:],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># adjust the phases by the reference sarvey</span>
+    <span class="n">phase</span> <span class="o">-=</span> <span class="n">ref_phase</span>
+
+    <span class="k">return</span> <span class="n">phase</span></div>
+
+
+
+<div class="viewcode-block" id="checkIfRequiredFilesExist">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.utils.checkIfRequiredFilesExist">[docs]</a>
+<span class="k">def</span> <span class="nf">checkIfRequiredFilesExist</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">path_to_files</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">required_files</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Check if all required files exist from previous processing steps.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    path_to_files: str</span>
+<span class="sd">        path to the files</span>
+<span class="sd">    required_files: list</span>
+<span class="sd">        list of required files which are all checked</span>
+<span class="sd">    logger: Logger</span>
+<span class="sd">        logging handler</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    FileNotFoundError</span>
+<span class="sd">        if a required file is missing</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># loop over all required files and check if they exist, if not: raise error</span>
+    <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">required_files</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">exists</span><span class="p">(</span><span class="n">join</span><span class="p">(</span><span class="n">path_to_files</span><span class="p">,</span> <span class="n">file</span><span class="p">)):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;File from previous step(s) is missing: </span><span class="si">{</span><span class="n">file</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">FileNotFoundError</span></div>
+
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">SARvey 1.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">sarvey.utils</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2024, IPI - Leibniz Universitaet Hannover.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.4.4.
+    </div>
+  </body>
+</html>

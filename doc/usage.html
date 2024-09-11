@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Usage &#8212; SARvey 1.0.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="_static/classic.css?v=def86cc0" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=86cf1cd6" />
+    
+    <script src="_static/documentation_options.js?v=8d563738"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Preparation" href="preparation.html" />
+    <link rel="prev" title="Installation" href="installation.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="preparation.html" title="Preparation"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="installation.html" title="Installation"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">SARvey 1.0.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Usage</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="usage">
+<span id="id1"></span><h1>Usage<a class="headerlink" href="#usage" title="Link to this heading">¶</a></h1>
+<a class="reference internal image-reference" href="https://seafile.projekt.uni-hannover.de/f/39209355cabc4607bf0a/?dl=1"><img alt="SARvey workflow" class="align-center" src="https://seafile.projekt.uni-hannover.de/f/39209355cabc4607bf0a/?dl=1" style="width: 600px;" />
+</a>
+<p>Processing workflow for using the SARvey software to derive displacement time series. The minimal required processing
+steps and datasets are depicted in grey. All other steps are optional.</p>
+<section id="command-line-tools">
+<h2>Command-line tools<a class="headerlink" href="#command-line-tools" title="Link to this heading">¶</a></h2>
+<p>The following command-line tools are available and can be run directly in the terminal.</p>
+<dl>
+<dt><cite>sarvey</cite></dt><dd><p>A tool to derive displacements from the SLC stack with Multi-Temporal InSAR (MTI).
+A detailed description of the processing steps is given <a class="reference external" href="processing.html">here</a>.</p>
+</dd>
+<dt><cite>sarvey_plot</cite></dt><dd><p>A tool to plot the results from <cite>sarvey</cite> processing.</p>
+</dd>
+<dt><cite>sarvey_export</cite></dt><dd><p>A tool to export the results from <cite>sarvey</cite> processing to shapefile or geopackage.</p>
+</dd>
+<dt><cite>sarvey_mask</cite></dt><dd><p>A tool to create a mask from shapefile containing the area of interest, which can be used in <cite>sarvey</cite> processing.
+The tool reads from an input file, which is a shapefile or geopackage containing the geographic data.
+It supports both ‘LineString’ and ‘Polygon’ geometries.
+The tool first gets the spatial extent of the geographic data and searches the location of the polygon/line nodes in the image coordinates of the radar image.
+A buffer around the polygon/line is created specified by a width in pixel.
+The buffer is then used to create the mask.</p>
+<p>Here is an example of how to use the <cite>sarvey_mask</cite> tool:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sarvey_mask<span class="w"> </span>--input_file<span class="w"> </span>my_shapefile.shp<span class="w"> </span>--geom_file<span class="w"> </span>./inputs/geometryRadar.h5<span class="w"> </span>--out_file_name<span class="w"> </span>my_mask.h5<span class="w"> </span>--width<span class="w"> </span><span class="m">5</span>
+</pre></div>
+</div>
+</dd>
+<dt><cite>sarvey_osm</cite></dt><dd><p>A tool to download OpenStreetMap data for the area of interest specified by the spatial extend of the SLC stack.
+The tool first gets the spatial extent of the SAR image from the geometry file.
+It then uses this spatial extent to download the OpenStreetMap data for the corresponding area.
+The download of railway tracks, highways and bridges is supported.
+After downloading the data, the tool saves it to a shapefile.</p>
+<p>After downloading the OpenStreetMap data with <cite>sarvey_osm</cite>, you can use the <cite>sarvey_mask</cite> tool to create a mask from the shapefile.</p>
+<p>Here is an example of how to use the <cite>sarvey_osm</cite> tool:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sarvey_osm<span class="w"> </span>--geom<span class="w"> </span>./geometryRadar.h5<span class="w"> </span>--railway<span class="w">                       </span><span class="c1"># download railway</span>
+sarvey_osm<span class="w"> </span>--geom<span class="w"> </span>./geometryRadar.h5<span class="w"> </span>--highway<span class="w">                       </span><span class="c1"># download highway</span>
+sarvey_osm<span class="w"> </span>--geom<span class="w"> </span>./geometryRadar.h5<span class="w"> </span>--railway<span class="w"> </span>--bridge<span class="w">              </span><span class="c1"># download railway bridge</span>
+sarvey_osm<span class="w"> </span>--geom<span class="w"> </span>./geometryRadar.h5<span class="w"> </span>--railway<span class="w"> </span>-o<span class="w"> </span>mask_railway.shp<span class="w">   </span><span class="c1"># specify output path</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</section>
+<section id="usage-of-the-python-api">
+<h2>Usage of the Python API<a class="headerlink" href="#usage-of-the-python-api" title="Link to this heading">¶</a></h2>
+<p>To use SARvey in a project:</p>
+<blockquote>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">sarvey</span>
+</pre></div>
+</div>
+</div></blockquote>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="index.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">Usage</a><ul>
+<li><a class="reference internal" href="#command-line-tools">Command-line tools</a></li>
+<li><a class="reference internal" href="#usage-of-the-python-api">Usage of the Python API</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="installation.html"
+                          title="previous chapter">Installation</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="preparation.html"
+                          title="next chapter">Preparation</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/usage.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="preparation.html" title="Preparation"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="installation.html" title="Installation"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">SARvey 1.0.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Usage</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2024, IPI - Leibniz Universitaet Hannover.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.4.4.
+    </div>
+  </body>
+</html>

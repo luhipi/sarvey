@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Multitemporal InSAR processing workflow &#8212; SARvey 1.0.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="_static/classic.css?v=def86cc0" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=86cf1cd6" />
+    
+    <script src="_static/documentation_options.js?v=8d563738"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Demo Datasets" href="demo_datasets.html" />
+    <link rel="prev" title="Preparation" href="preparation.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="demo_datasets.html" title="Demo Datasets"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="preparation.html" title="Preparation"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">SARvey 1.0.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Multitemporal InSAR processing workflow</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="multitemporal-insar-processing-workflow">
+<span id="processing"></span><h1>Multitemporal InSAR processing workflow<a class="headerlink" href="#multitemporal-insar-processing-workflow" title="Link to this heading">¶</a></h1>
+<p>The <cite>sarvey</cite> command line interface executes the multitemporal InSAR processing workflow.
+The workflow is described in the paper</p>
+<blockquote>
+<div><p>Piter, A., Haghshenas Haghighi, M., Motagh, M.(2024). An in-depth study on Sentinel-1 InSAR for transport infrastructure monitoring. PFG - Journal of Photogrammetry, Remote Sensing and Geoinformation Science. (paper currently under review).</p>
+</div></blockquote>
+<p>All processing steps are described in detail in the following sections.
+Two processing strategies are provided with either one- or two-step unwrapping.
+The workflow should be decided based on the characteristics of the displacement (spatial extend, magnitude, temporal behaviour).
+The parameters of each step are handled via the <a class="reference internal" href="#configuration-file">configuration file</a> for which the parameters are named within the description of each step.</p>
+<section id="configuration-file">
+<h2>Configuration file<a class="headerlink" href="#configuration-file" title="Link to this heading">¶</a></h2>
+<p>The configuration file is a JSON file containing all the parameters required to run <cite>sarvey</cite>.
+This file can be generated using the <cite>sarvey</cite> command with the <strong>“-g”</strong> flag, where you can specify your desired filename.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sarvey<span class="w"> </span>-f<span class="w"> </span>config.json<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">0</span><span class="w"> </span>-g
+</pre></div>
+</div>
+<p>Note: The above command only generates a configuration file. Although step 0 is specified, it will not be executed.</p>
+<p>The configuration file has various sections, as detailed below:</p>
+<ul class="simple">
+<li><p>General</p></li>
+</ul>
+<blockquote>
+<div><p>This section includes top-level parameters such as the number of cores and the unwrapping method.
+It specifies the paths to the input and output data. The paths can be either absolute or relative.
+Further, it defines the logging level displayed in the command line and the directory path where log files will be stored.</p>
+</div></blockquote>
+<ul class="simple">
+<li><p>phase_linking</p></li>
+</ul>
+<blockquote>
+<div><p>This section specifies the Phase Linking parameters. By default, <cite>“use_phase_linking_results”: false</cite>.
+If you wish to perform DS analysis, change it to <cite>true</cite>. Note: If <cite>“use_phase_linking_results”: true</cite>, you must complete the corresponding step of MiaplPy as described in <a class="reference external" href="preparation.rst/#PhaseLinking">preparation</a>. In the configuration file, set <cite>inverted_path</cite> to the path of the inverted directory of MiaplPy data.</p>
+</div></blockquote>
+<ul class="simple">
+<li><p>preparation</p></li>
+</ul>
+<blockquote>
+<div><p>This section includes network parameters, such as the start and end dates, network type, and <cite>filter_window_size</cite>, which specifies the window size used to estimate the temporal coherence for each pixel.</p>
+</div></blockquote>
+<ul class="simple">
+<li><p>consistency_check</p></li>
+</ul>
+<blockquote>
+<div><p>This section contains parameters related to the first order points.</p>
+</div></blockquote>
+<ul class="simple">
+<li><p>unwrapping</p></li>
+</ul>
+<blockquote>
+<div><p>This section will specify parameters related to the unwrapping process.</p>
+</div></blockquote>
+<ul class="simple">
+<li><p>filtering</p></li>
+</ul>
+<blockquote>
+<div><p>This section defines the parameters for atmospheric estimation and filtering. Atmospheric filtering is enabled by default. To skip it, set <cite>“apply_aps_filtering”: false</cite>.</p>
+</div></blockquote>
+<ul class="simple">
+<li><p>densification</p></li>
+</ul>
+<blockquote>
+<div><p>This section includes the settings for second order points.</p>
+</div></blockquote>
+</section>
+<section id="processing-steps-for-two-step-unwrapping-workflow">
+<h2>Processing steps for two-step unwrapping workflow<a class="headerlink" href="#processing-steps-for-two-step-unwrapping-workflow" title="Link to this heading">¶</a></h2>
+<section id="step-0-preparation">
+<h3>Step 0: Preparation<a class="headerlink" href="#step-0-preparation" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><dl class="simple">
+<dt>Loading the resampled SLC data:</dt><dd><p>The resampled SLC (Single Look Complex) data is read from the inputs/slcStack.h5
+This data is complex-valued and contains both amplitude and phase information.
+The data is subsetted to the specified time span (via <strong>preparation:start_date</strong> and <strong>preparation:end_date</strong> in the config file).
+A description of how to prepare the data and make a spatial subset of the data is described in <a class="reference external" href="preparation.rst">data preparation in MiaplPy</a>.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Designing the interferogram network:</dt><dd><p>From the stack of SLC images, the interferogram network is designed.
+The network of interferograms is designed based on the temporal and perpendicular baselines of the SLC images.
+Different networks can be created (via <strong>preparation:ifg_network_type</strong> in the config file) and should be chosen based on the characteristics of the displacement (spatial extend, magnitude, temporal behaviour).
+Currently five types of networks are supported:</p>
+<ol class="loweralpha simple">
+<li><p>small baseline network (‘sb’) (Berardino et al. 2002),</p></li>
+<li><p>small temporal baseline network (‘stb’) (only consecutive images are used to form interferograms)</p></li>
+<li><p>small temporal baselines + yearly interferograms (‘stb_yearly’)</p></li>
+<li><p>delaunay network (‘delaunay’)</p></li>
+<li><p>star network (‘star’, single-reference network) (Ferretti et al. 2001)</p></li>
+</ol>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Generating a stack of interferograms:</dt><dd><p>The stack of interferograms is generated based on the specified interferogram network.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Estimating the temporal coherence:</dt><dd><p>The phase noise of each pixel is approximated by the estimation of the temporal phase coherence (Zhao and Mallorqui 2019).
+Thereby, a low-pass filter with a certain window size is used (<strong>preparation:filter_window_size</strong>).
+The temporal coherence is used to select the first- and second-order points in the later steps (<strong>consistency_check:coherence_p1</strong> and <strong>filtering:coherence_p2</strong>).</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Output of this step</dt><dd><ul>
+<li><p>background_map.h5</p></li>
+<li><p>ifg_stack.h5</p></li>
+<li><p>coordinates_utm.h5</p></li>
+<li><p>ifg_network.h5</p></li>
+<li><p>temporal_coherence.h5</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</section>
+<section id="step-1-consistency-check">
+<h3>Step 1: Consistency Check<a class="headerlink" href="#step-1-consistency-check" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><dl class="simple">
+<dt>Selecting candidates for first order points:</dt><dd><p>Candidates for the first-order points are selected based on the temporal coherence threshold (<strong>consistency_check:coherence_p1</strong>).
+However, not all points with a coherence above the threshold are selected, but only those which have the highest coherence within a grid cell of size <strong>consistency_check:grid_size</strong> (in [m]).
+A mask file can be specified (<strong>consistency_check:mask_p1_file</strong>) to limit the first-order points to the given area of interest.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Creating a spatial network:</dt><dd><p>After selecting the candidates for first order points, the method creates a spatial network to connect the first-order points.
+For each arc in the network, the double difference phase time series is calculated.
+A delaunay network ensures the connectivity in the spatial network and k-nearest neighbors (<strong>consistency_check:num_nearest_neighbours</strong>) can be used to increase the redundancy in the network.
+Arcs with a distance above a threshold (<strong>consistency_check:max_arc_length</strong>) are removed from the network to reduce the impact of the atmospheric effects.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Temporal unwrapping:</dt><dd><p>All arcs in the spatial network are temporally unwrapped based on a phase model consisting of DEM error difference and velocity difference between the two points of the arc.
+The temporal coherence derived from the model fit is maximized by searching within a search space of given bounds (<strong>consistency_check:velocity_bound</strong> and <strong>consistency_check:dem_error_bound</strong>).
+Within the bounds, the search space is discretized (<strong>consistency_check:num_optimization_samples</strong>).
+The final parameters for each arc are derived from a gradient descent refinement of the discrete search space result.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Performing a consistency check on the data:</dt><dd><p>During the atmospheric filtering in step 3, only high quality first-order points are supposed to be used.
+Therefore, outliers among the candidates are removed with a consistency check.
+The consistency check is based on the estimated temporal coherence of the temporal unwrapping of each arc.
+A point is assumed to be an outlier, if it is connected by many arcs having a low temporal coherence from temporal unwrapping.
+Arcs with a temporal coherence below a threshold are removed (<strong>consistency_check:arc_unwrapping_coherence</strong>).
+Similarly, points with mean coherence of all connected arcs are removed (specified by the same parameter <strong>consistency_check:arc_unwrapping_coherence</strong>).
+Moreover, points which are connected by a number of arcs less than a threshold (<strong>consistency_check:min_num_arc</strong>) are removed.
+Afterwards, the consistency within the spatial network is checked.
+For this purpose, the parameters (DEM error difference and velocity difference) of all arcs are integrated in the spatial network relative to an arbitrary reference point using least squares.
+The residuals of the integration are used to identify outliers.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Output of this step</dt><dd><ul>
+<li><p>point_network.h5</p></li>
+<li><p>point_network_parameter.h5</p></li>
+<li><p>p1_ifg_wr.h5</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</section>
+<section id="step-2-unwrapping">
+<h3>Step 2: Unwrapping<a class="headerlink" href="#step-2-unwrapping" title="Link to this heading">¶</a></h3>
+<p>Two unwrapping options (<strong>general:apply_temporal_unwrapping</strong>, also applies to step 4) are implemented and should be chosen based on the characteristics of the displacement (spatial extend, magnitude, temporal behaviour).</p>
+<ul class="simple">
+<li><dl class="simple">
+<dt>Output of this step</dt><dd><ul>
+<li><p>p1_ifg_unw.h5</p></li>
+<li><p>p1_ifg_ts.h5</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<section id="option-1-unwrapping-in-time-and-space">
+<h4>Option 1) Unwrapping in time and space<a class="headerlink" href="#option-1-unwrapping-in-time-and-space" title="Link to this heading">¶</a></h4>
+<ul class="simple">
+<li><dl class="simple">
+<dt>Integrating parameters from arcs to points:</dt><dd><p>The temporal unwrapping results of the spatial network from consistency check in step 1 are used in this step.
+The parameters of the arcs are integrated relative to an arbitrary reference point from the arcs to the points using least squares.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Removing phase contributions (mean velocity and DEM error):</dt><dd><p>After integrating the parameters, the phase contributions are removed from the wrapped interferometric phase of the first-order points.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Spatial unwrapping of the residuals:</dt><dd><p>The residuals in each interferogram are unwrapped in space using a sparse point network unwrapping method (<strong>general:spatial_unwrapping_method</strong>) (Bioucas-Dias and Valadao 2007, Boykov and Kolmogorov 2004).
+The spatial neighbourhood for unwrapping is defined by the arcs of the spatial network.
+There are two options (<strong>unwrapping:use_arcs_from_temporal_unwrapping</strong>).
+Either the spatial network from consistency check (step 2) can be used for unwrapping, i.e. the spatial network after removing arcs with a low temporal coherence from temporal unwrapping.
+Or, the spatial network is re-created with a delaunay network.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Restore phase contributions to the spatially unwrapped residual phase:</dt><dd><p>Finally, the phase contributions are added back to the spatially unwrapped residual phase of each point.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Adjust reference:</dt><dd><p>All restored unwrapped interferograms are referenced to the peak of velocity histogram derived from all points.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Inverting the interferogram network:</dt><dd><p>The interferogram network is inverted for each point to retrieve the displacement time series relative to the first acquisition.</p>
+</dd>
+</dl>
+</li>
+</ul>
+</section>
+<section id="option-2-unwrapping-in-space">
+<h4>Option 2) Unwrapping in space<a class="headerlink" href="#option-2-unwrapping-in-space" title="Link to this heading">¶</a></h4>
+<ul class="simple">
+<li><dl class="simple">
+<dt>Spatial unwrapping:</dt><dd><p>The interferograms are unwrapped independently in space with a sparse point network unwrapping method (<strong>general:spatial_unwrapping_method</strong>) (Bioucas-Dias and Valadao 2007, Boykov and Kolmogorov 2004).
+The spatial neighbourhood for unwrapping is defined by the arcs of the spatial network.
+There are two options (<strong>unwrapping:use_arcs_from_temporal_unwrapping</strong>).
+Either the spatial network from consistency check (step 2) can be used for unwrapping, i.e. the spatial network after removing arcs with a low temporal coherence from temporal unwrapping.
+Or, the spatial network is re-created with a delaunay network.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Adjust reference:</dt><dd><p>All unwrapped interferograms are referenced to the peak of velocity histogram derived from all points.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Inverting the interferogram network:</dt><dd><p>The interferogram network is inverted for each point to retrieve the displacement time series relative to the first acquisition.</p>
+</dd>
+</dl>
+</li>
+</ul>
+</section>
+</section>
+<section id="step-3-filtering">
+<h3>Step 3: Filtering<a class="headerlink" href="#step-3-filtering" title="Link to this heading">¶</a></h3>
+<p>In this step, the atmospheric phase screen (APS) is estimated from the displacement time series of the first-order points.
+Afterwards, the APS is interpolated to the location of the second-order points.
+The filtering can be skipped by setting <strong>filtering:apply_aps_filtering</strong> to True.
+However, the step 3 has to be executed as the second-order points are selected during this step.</p>
+<ul class="simple">
+<li><dl class="simple">
+<dt>Selecting pixels with no or linear displacement:</dt><dd><p>Among the first-order points, the points with no or merely linear displacement are selected (<strong>filtering:use_moving_points</strong>).
+It is assumed that for these points, the phase consists only of atmospheric effect and noise after removing the mean velocity and DEM error.
+Points with a non-linear displacement behaviour are removed by a threshold on the temporal autocorrelation of the displacement time series (<strong>filtering:max_temporal_autocorrelation</strong>) (Crosetto et al. 2018).
+A regular grid (<strong>filtering:grid_size</strong> in [m]) is applied to select the first-order points with the lowest temporal autocorrelation to reduce the computational complexity during filtering.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Selecting second-order points:</dt><dd><p>Second-order points are selected based on a temporal coherence threshold (<strong>filtering:coherence_p2</strong>) on the temporal phase coherence computed during step 0.
+A mask file can be specified (<strong>filtering:mask_p2_file</strong>) to limit the second-order points to the given area of interest.
+Second-order points can also be selected based on the results of phase-linking (set <strong>phase_linking:use_phase_linking_results</strong> to True) implemented in MiaplPy (Mirzaee et al. 2023).
+More information on Miaplpy and phase-linking can be found <a class="reference external" href="preparation">here</a>.
+The number of siblings (<strong>phase_linking:num_siblings</strong>) used during phase-linking within MiaplPy processing needs to be specified to identify the distributed scatterers (DS) among the pixels selected by MiaplPy.
+A mask file can be specified (<strong>phase_linking:mask_phase_linking_file</strong>) to limit the phase-linking to the given area of interest.
+MiaplPy also provides a selection of persistent scatterers (PS) which can be included as second-order points (set <strong>phase_linking:use_ps</strong> to True) and also specify the path to the maskPS.h5 (<strong>phase_linking:mask_ps_file</strong>) which is also an output of MiaplPy.
+In case the second-order points are selected among the results from MiaplPy, the filtered interferometric phase (MiaplPy result) is used for the respective points.
+The DS pixels from MiaplPy and the pixels selected with the temporal phase coherence from step 0 are both selected with the same coherence threshold (<strong>filtering:coherence_p2</strong>).</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Estimating the atmospheric phase screen (APS):</dt><dd><p>The estimation of the APS takes place in time-domain and not interferogram-domain to reduce the computational time.
+The phase contributions are removed from the first-order points which were selected for atmospheric filtering.
+Their residual time series contains atmospheric phase contributions and noise.
+As the APS is assumed to be spatially correlated, the residuals of all points are spatially filtered (<strong>filtering:interpolation_method</strong>) independently for each time step.
+After filtering, the estimated APS is interpolated to the location of the second-order points.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Output of this step</dt><dd><ul>
+<li><p>p1_ts_filt.h5</p></li>
+<li><p>p1_aps.h5</p></li>
+<li><p>p2_cohXX_aps.h5</p></li>
+<li><p>p2_cohXX_ifg_wr.h5</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<p>The placeholder XX depends on the threshold for the temporal coherence used for selecting the second-order points.
+For example, a threshold of 0.8 would result in p2_coh80_aps.h5 and p2_coh80_ifg_wr.h5.</p>
+</section>
+<section id="step-4-densification">
+<h3>Step 4: Densification<a class="headerlink" href="#step-4-densification" title="Link to this heading">¶</a></h3>
+<p>Two unwrapping options (<strong>general:apply_temporal_unwrapping</strong>, also applies to step 2) are implemented and should be chosen based on the characteristics of the displacement (spatial extend, magnitude, temporal behaviour).</p>
+<ul class="simple">
+<li><dl class="simple">
+<dt>Output of this step</dt><dd><ul>
+<li><p>p2_cohXX_ifg_unw.h5</p></li>
+<li><p>p2_cohXX_ts.h5</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<p>The placeholder XX depends on the threshold for the temporal coherence used for selecting the second-order points during filtering in step 3.
+For example, a threshold of 0.8 would result in p2_coh80_ifg_unw.h5 and p2_coh80_ts.h5.</p>
+<section id="id1">
+<h4>Option 1: Unwrapping in time and space<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h4>
+<ul class="simple">
+<li><dl class="simple">
+<dt>Removing APS from interferograms</dt><dd><p>The wrapped interferograms are corrected for the interpolated APS for both the first and second order points.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Densify network:</dt><dd><p>The parameters (DEM error and velocity) of each second-order point are estimated independently from the other second-order points.
+The parameters are estimated by temporal unwrapping with respect to the closest first-order points (<strong>densification:num_connections_to_p1</strong>, <strong>densification:max_distance_to_p1</strong>) with a phase model consisting of DEM error and velocity (<strong>densification:velocity_bound</strong> and <strong>densification:dem_error_bound</strong>, <strong>densification:num_optimization_samples</strong>).
+The densification is similar to the approach described by Van Leijen (2014), but jointly maximizes the temporal coherence to find the parameters that fit best to all arcs connecting the second-order point to the first-order points.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Remove outliers:</dt><dd><p>Second-order points which could not be temporally unwrapped with respect to the closest first-order points are removed.
+For this purpose, a threshold on the joint temporal coherence considering the residuals of all arcs connecting the respective second-order point to the closest first-order points is applied (<strong>densification:arc_unwrapping_coherence</strong>).
+First-order points receive a joint temporal coherence value of 1.0 to avoid them being removed from the final set of points.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Removing phase contributions (mean velocity and DEM error):</dt><dd><p>After estimating the parameters of the second-order points, the phase contributions are removed from the wrapped interferometric phase of the first-order points.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Spatial unwrapping of the residuals:</dt><dd><p>The residuals in each interferogram are unwrapped in space using a sparse point network unwrapping method (<strong>general:spatial_unwrapping_method</strong>) (Bioucas-Dias and Valadao 2007, Boykov and Kolmogorov 2004).
+The spatial neighbourhood for unwrapping is defined by spatial network including both first- and second-order points.
+It is created with a delaunay network.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Restore phase contributions to the spatially unwrapped residual phase:</dt><dd><p>Finally, the phase contributions are added back to the spatially unwrapped residual phase of each point.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Adjust reference:</dt><dd><p>All restored unwrapped interferograms are referenced to the peak of velocity histogram derived from all points.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Inverting the interferogram network:</dt><dd><p>The interferogram network is inverted for each point to retrieve the displacement time series relative to the first acquisition.</p>
+</dd>
+</dl>
+</li>
+</ul>
+</section>
+<section id="id2">
+<h4>Option 2: Unwrapping in space<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h4>
+<ul class="simple">
+<li><dl class="simple">
+<dt>Removing APS from interferograms</dt><dd><p>The wrapped interferograms are corrected for the interpolated APS for both the first and second order points.</p>
+</dd>
+</dl>
+</li>
+</ul>
+<p>Afterwards, the processing is the same as in the spatial unwrapping during step 2.</p>
+</section>
+</section>
+</section>
+<section id="handling-big-datasets">
+<h2>Handling big datasets<a class="headerlink" href="#handling-big-datasets" title="Link to this heading">¶</a></h2>
+<p>The processing of large datasets can be computationally expensive and time-consuming.
+Especially the estimation of the temporal phase coherence in step 0 is a bottleneck, also in terms of memory consumption.
+Therefore, it is recommended to set <strong>general:num_cores</strong> for parallel processing.
+By setting <strong>general:num_patches</strong> the data is split into spatial patches and processed subsequently to fit into memory.</p>
+</section>
+<section id="processing-steps-for-one-step-unwrapping-workflow">
+<h2>Processing steps for one-step unwrapping workflow<a class="headerlink" href="#processing-steps-for-one-step-unwrapping-workflow" title="Link to this heading">¶</a></h2>
+<p>The one-step unwrapping workflow is an alternative to the two-step unwrapping workflow.
+The steps are similar to the workflow described above, but is only executed until step 2.
+This workflow is meant for processing small areas where the atmospheric filtering is not required as the reference point will be selected close to the area of interest.
+The idea behind the one-step unwrapping workflow is to apply the consistency check based on the temporal unwrapping (step 1) to all pixels, without differentiating between first and second order points.
+This can yield better unwrapping results compared to the two-step unwrapping in case DEM error and/or velocity highly vary in space.
+For this purpose, the pixels are selected without gridding (set <strong>preparation:grid_size</strong> to Zero, i.e. all pixels above the specified coherence threshold are selected as final points.
+Since the densification step is not performed, you should reduce the coherence threshold (<strong>consistency_check:coherence_p1</strong>) to select the desired number of points.</p>
+</section>
+<section id="literature">
+<h2>Literature<a class="headerlink" href="#literature" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Piter, A., Haghshenas Haghighi, M., Motagh, M.(2024). An in-depth study on Sentinel-1 InSAR for transport infrastructure monitoring. PFG - Journal of Photogrammetry, Remote Sensing and Geoinformation Science. (paper currently under review).</p></li>
+<li><p>Zhao F, Mallorqui JJ (2019). A Temporal Phase Coherence Estimation Algorithm and Its Application on DInSAR Pixel Selection. IEEE Transactions on Geoscience and Remote Sensing 57(11):8350–8361, DOI 10.1109/TGRS.2019.2920536</p></li>
+<li><p>Ferretti A, Prati C, Rocca F (2001). Permanent scatterers in SAR interferometry. IEEE Transactions on Geoscience and Remote Sensing 39(1):8–20</p></li>
+<li><p>Berardino P, Fornaro G, Lanari R, Sansosti E (2002). A new algorithm for surface deformation monitoring based on small baseline differential SAR interferograms. IEEE Transactions on Geoscience and Remote Sensing 40(11):2375–2383</p></li>
+<li><p>Bioucas-Dias JM, Valadao G (2007). Phase Unwrapping via Graph Cuts. IEEE Transactions on Image Processing 16(3):698–709, DOI 10.1109/TIP.2006.888351</p></li>
+<li><p>Mirzaee S, Amelung F, Fattahi H (2023). Non-linear phase linking using joined distributed and persistent scatterers. Computers &amp; Geosciences 171:105291, DOI 10.1016/j.cageo.2022.105291</p></li>
+<li><p>Crosetto M, Devanthéry N, Monserrat O, Barra A, Cuevas-González M, Mróz M, Botey-Bassols J, Vázquez-Suné E, Crippa B (2018). A persistent scatterer interferometry procedure based on stable areas to filter the atmospheric component. Remote Sensing 10(11):1780</p></li>
+<li><p>Van Leijen FJ (2014). Persistent scatterer interferometry based on geodetic estimation theory. PhD thesis</p></li>
+<li><p>Boykov Y, Kolmogorov V (2004) An experimental comparison of min-cut/max- flow algorithms for energy minimization in vision. IEEE Transactions on Pattern Analysis and Machine Intelligence 26(9):1124–1137, DOI 10.1109/TPAMI.2004.60</p></li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="index.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">Multitemporal InSAR processing workflow</a><ul>
+<li><a class="reference internal" href="#configuration-file">Configuration file</a></li>
+<li><a class="reference internal" href="#processing-steps-for-two-step-unwrapping-workflow">Processing steps for two-step unwrapping workflow</a><ul>
+<li><a class="reference internal" href="#step-0-preparation">Step 0: Preparation</a></li>
+<li><a class="reference internal" href="#step-1-consistency-check">Step 1: Consistency Check</a></li>
+<li><a class="reference internal" href="#step-2-unwrapping">Step 2: Unwrapping</a><ul>
+<li><a class="reference internal" href="#option-1-unwrapping-in-time-and-space">Option 1) Unwrapping in time and space</a></li>
+<li><a class="reference internal" href="#option-2-unwrapping-in-space">Option 2) Unwrapping in space</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#step-3-filtering">Step 3: Filtering</a></li>
+<li><a class="reference internal" href="#step-4-densification">Step 4: Densification</a><ul>
+<li><a class="reference internal" href="#id1">Option 1: Unwrapping in time and space</a></li>
+<li><a class="reference internal" href="#id2">Option 2: Unwrapping in space</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#handling-big-datasets">Handling big datasets</a></li>
+<li><a class="reference internal" href="#processing-steps-for-one-step-unwrapping-workflow">Processing steps for one-step unwrapping workflow</a></li>
+<li><a class="reference internal" href="#literature">Literature</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="preparation.html"
+                          title="previous chapter">Preparation</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="demo_datasets.html"
+                          title="next chapter">Demo Datasets</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/processing.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="demo_datasets.html" title="Demo Datasets"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="preparation.html" title="Preparation"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">SARvey 1.0.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Multitemporal InSAR processing workflow</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2024, IPI - Leibniz Universitaet Hannover.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.4.4.
+    </div>
+  </body>
+</html>

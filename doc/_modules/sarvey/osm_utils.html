@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>sarvey.osm_utils &#8212; SARvey 1.0.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=def86cc0" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=86cf1cd6" />
+    
+    <script src="../../_static/documentation_options.js?v=8d563738"></script>
+    <script src="../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">SARvey 1.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">sarvey.osm_utils</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for sarvey.osm_utils</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+
+<span class="c1"># SARvey - A multitemporal InSAR time series tool for the derivation of displacements.</span>
+<span class="c1">#</span>
+<span class="c1"># Copyright (C) 2021-2024 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)</span>
+<span class="c1">#</span>
+<span class="c1"># This software was developed together with FERN.Lab (fernlab@gfz-potsdam.de) in the context</span>
+<span class="c1"># of the SAR4Infra project with funds of the German Federal Ministry for Digital and</span>
+<span class="c1"># Transport and contributions from Landesamt fuer Vermessung und Geoinformation</span>
+<span class="c1"># Schleswig-Holstein and Landesbetrieb Strassenbau und Verkehr Schleswig-Holstein.</span>
+<span class="c1">#</span>
+<span class="c1"># This program is free software: you can redistribute it and/or modify it under</span>
+<span class="c1"># the terms of the GNU General Public License as published by the Free Software</span>
+<span class="c1"># Foundation, either version 3 of the License, or (at your option) any later</span>
+<span class="c1"># version.</span>
+<span class="c1">#</span>
+<span class="c1"># Important: This package uses PyMaxFlow. The core of PyMaxflows library is the C++</span>
+<span class="c1"># implementation by Vladimir Kolmogorov. It is also licensed under the GPL, but it REQUIRES that you</span>
+<span class="c1"># cite [BOYKOV04] (see LICENSE) in any resulting publication if you use this code for research purposes.</span>
+<span class="c1"># This requirement extends to SARvey.</span>
+<span class="c1">#</span>
+<span class="c1"># This program is distributed in the hope that it will be useful, but WITHOUT</span>
+<span class="c1"># ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS</span>
+<span class="c1"># FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more</span>
+<span class="c1"># details.</span>
+<span class="c1">#</span>
+<span class="c1"># You should have received a copy of the GNU Lesser General Public License along</span>
+<span class="c1"># with this program. If not, see &lt;https://www.gnu.org/licenses/&gt;.</span>
+
+<span class="sd">&quot;&quot;&quot;Osm utils module for SARvey.&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">overpy</span>
+<span class="kn">from</span> <span class="nn">logging</span> <span class="kn">import</span> <span class="n">Logger</span>
+<span class="kn">from</span> <span class="nn">shapely</span> <span class="kn">import</span> <span class="n">Point</span>
+
+<span class="kn">from</span> <span class="nn">mintpy.utils</span> <span class="kn">import</span> <span class="n">readfile</span><span class="p">,</span> <span class="n">utils</span> <span class="k">as</span> <span class="n">ut</span>
+
+
+<div class="viewcode-block" id="getSpatialExtend">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.osm_utils.getSpatialExtend">[docs]</a>
+<span class="k">def</span> <span class="nf">getSpatialExtend</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">geom_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get spatial extend of the radar image.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    geom_file: str</span>
+<span class="sd">        path of geometryRadar.h5 file</span>
+<span class="sd">    logger: Logger</span>
+<span class="sd">        Logging handler.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ll_corner_wgs: list</span>
+<span class="sd">        list of coordinates of the lower-left corner of the radar image in WGS84 coordinates.</span>
+<span class="sd">    ur_corner_wgs: list</span>
+<span class="sd">        list of coordinates of the upper-right corner of the radar image in WGS84 coordinates.</span>
+<span class="sd">    coord: np.ndarray</span>
+<span class="sd">        coordinates of all pixels in the radar image in WGS84.</span>
+<span class="sd">    atr: dict</span>
+<span class="sd">        metadata dictionary from geometryRadar.h5.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s1">&#39;read spatial extend from geometryRadar.h5&#39;</span><span class="p">)</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">atr</span> <span class="o">=</span> <span class="n">readfile</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">geom_file</span><span class="p">)</span>
+    <span class="n">coord</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">coordinate</span><span class="p">(</span><span class="n">atr</span><span class="p">,</span> <span class="n">lookup_file</span><span class="o">=</span><span class="n">geom_file</span><span class="p">)</span>
+    <span class="n">lat</span><span class="p">,</span> <span class="n">atr</span> <span class="o">=</span> <span class="n">readfile</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">geom_file</span><span class="p">,</span> <span class="n">datasetName</span><span class="o">=</span><span class="s1">&#39;latitude&#39;</span><span class="p">)</span>
+    <span class="n">lon</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">readfile</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">geom_file</span><span class="p">,</span> <span class="n">datasetName</span><span class="o">=</span><span class="s1">&#39;longitude&#39;</span><span class="p">)</span>
+
+    <span class="c1"># radar image is flipped up-down</span>
+    <span class="c1"># unclear: check if bounding box fits. Otherwise, change to max and min values of lat and lon</span>
+    <span class="n">ll_bbox</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">lat</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">lon</span><span class="p">)]</span>
+    <span class="n">ur_bbox</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">lat</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">lon</span><span class="p">)]</span>
+
+    <span class="n">img_ext</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">Point</span><span class="p">(</span><span class="n">lon</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">lat</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]),</span>
+        <span class="n">Point</span><span class="p">(</span><span class="n">lon</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">lat</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]),</span>
+        <span class="n">Point</span><span class="p">(</span><span class="n">lon</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">lat</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]),</span>
+        <span class="n">Point</span><span class="p">(</span><span class="n">lon</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">lat</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="p">]</span>
+    <span class="k">return</span> <span class="n">ll_bbox</span><span class="p">,</span> <span class="n">ur_bbox</span><span class="p">,</span> <span class="n">img_ext</span><span class="p">,</span> <span class="n">coord</span><span class="p">,</span> <span class="n">atr</span></div>
+
+
+
+<div class="viewcode-block" id="runOsmQuery">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.osm_utils.runOsmQuery">[docs]</a>
+<span class="k">def</span> <span class="nf">runOsmQuery</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">ll_corner_wgs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">ur_corner_wgs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">type_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span>
+                <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">overpy</span><span class="o">.</span><span class="n">Result</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Query OSM database for transport infrastructure within the spatial extent of the radar image.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ll_corner_wgs: np.ndarray</span>
+<span class="sd">        coordinates of the lower-left corner of the radar image in WGS84 coordinates.</span>
+<span class="sd">    ur_corner_wgs: np.ndarray</span>
+<span class="sd">        coordinates of the upper-right corner of the radar image in WGS84 coordinates.</span>
+<span class="sd">    type_list: list</span>
+<span class="sd">        List of street types that shall be queried at the OSM database.</span>
+<span class="sd">    logger: Logger</span>
+<span class="sd">        Logging handler.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">        result: overpy.Result</span>
+<span class="sd">            results of the overpy query to OSM database.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Initialize overpass connection</span>
+    <span class="n">api</span> <span class="o">=</span> <span class="n">overpy</span><span class="o">.</span><span class="n">Overpass</span><span class="p">()</span>
+
+    <span class="c1"># Request data from API</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s1">&#39;querying OSM database for infra types...&#39;</span><span class="p">)</span>
+    <span class="c1"># query_cmd = &quot;way({},{},{},{}) [&quot;&quot;highway=motorway_link&quot;&quot;]; (._;&gt;;); out body;&quot;</span>
+
+    <span class="n">query_cmd</span> <span class="o">=</span> <span class="s2">&quot;[bbox: </span><span class="si">{}</span><span class="s2">,</span><span class="si">{}</span><span class="s2">,</span><span class="si">{}</span><span class="s2">,</span><span class="si">{}</span><span class="s2">];(&quot;</span>
+    <span class="k">for</span> <span class="n">infra_type</span> <span class="ow">in</span> <span class="n">type_list</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1"> - </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">infra_type</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">infra_type</span> <span class="o">==</span> <span class="s1">&#39;rail&#39;</span><span class="p">:</span>
+            <span class="n">query_cmd</span> <span class="o">+=</span> <span class="s2">&quot;way[railway=</span><span class="si">{}</span><span class="s2">];&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">infra_type</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">query_cmd</span> <span class="o">+=</span> <span class="s2">&quot;way[highway=</span><span class="si">{}</span><span class="s2">];&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">infra_type</span><span class="p">)</span>
+
+    <span class="n">query_cmd</span> <span class="o">+=</span> <span class="s2">&quot;);(._; &gt;;); out body;&quot;</span>  <span class="c1"># skel</span>
+
+    <span class="n">cmd</span> <span class="o">=</span> <span class="n">query_cmd</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ll_corner_wgs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ll_corner_wgs</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                           <span class="n">ur_corner_wgs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ur_corner_wgs</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="n">cmd</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">api</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">ways</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s1">&#39;Empty OSM query results. No roads or railway tracks found.&#39;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s1">&#39;...done.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">result</span></div>
+
+
+
+<div class="viewcode-block" id="runOsmQueryBridge">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.osm_utils.runOsmQueryBridge">[docs]</a>
+<span class="k">def</span> <span class="nf">runOsmQueryBridge</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">ll_corner_wgs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">ur_corner_wgs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">bridge_highway</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+                      <span class="n">bridge_railway</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">overpy</span><span class="o">.</span><span class="n">Result</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Query OSM database for bridges of transport infrastructure within the spatial extent of the radar image.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ll_corner_wgs: np.ndarray</span>
+<span class="sd">        coordinates of the lower-left corner of the radar image in WGS84 coordinates.</span>
+<span class="sd">    ur_corner_wgs: np.ndarray</span>
+<span class="sd">        coordinates of the upper-right corner of the radar image in WGS84 coordinates.</span>
+<span class="sd">    bridge_highway: bool</span>
+<span class="sd">        Set true to query highway bridges.</span>
+<span class="sd">    bridge_railway: bool</span>
+<span class="sd">        Set true to query railway bridges.</span>
+<span class="sd">    logger: Logger</span>
+<span class="sd">        Logging handler.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">        result: overpy.Result</span>
+<span class="sd">            results of the overpy query to OSM database.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Initialize overpass connection</span>
+    <span class="n">api</span> <span class="o">=</span> <span class="n">overpy</span><span class="o">.</span><span class="n">Overpass</span><span class="p">()</span>
+
+    <span class="c1"># Request data from API</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s1">&#39;querying OSM database for infra types...&#39;</span><span class="p">)</span>
+    <span class="c1"># query_cmd = &quot;way({},{},{},{}) [&quot;&quot;highway=motorway_link&quot;&quot;]; (._;&gt;;); out body;&quot;</span>
+
+    <span class="n">query_cmd</span> <span class="o">=</span> <span class="s2">&quot;[bbox: </span><span class="si">{}</span><span class="s2">,</span><span class="si">{}</span><span class="s2">,</span><span class="si">{}</span><span class="s2">,</span><span class="si">{}</span><span class="s2">];(&quot;</span>
+
+    <span class="k">if</span> <span class="n">bridge_highway</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1"> - bridge_highway&#39;</span><span class="p">)</span>
+        <span class="n">query_cmd</span> <span class="o">+=</span> <span class="s1">&#39;way[highway~&quot;^(motorway|motorway_link|trunk|trunk_link)$&quot;][bridge];&#39;</span>
+
+    <span class="k">if</span> <span class="n">bridge_railway</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1"> - bridge_railway&#39;</span><span class="p">)</span>
+        <span class="n">query_cmd</span> <span class="o">+=</span> <span class="s1">&#39;way[railway=rail][bridge];&#39;</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">bridge_highway</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">bridge_railway</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1"> - all bridges&#39;</span><span class="p">)</span>
+        <span class="n">query_cmd</span> <span class="o">+=</span> <span class="s1">&#39;way[bridge];&#39;</span>
+
+    <span class="n">query_cmd</span> <span class="o">+=</span> <span class="s2">&quot;);(._; &gt;;); out body;&quot;</span>  <span class="c1"># skel</span>
+
+    <span class="n">cmd</span> <span class="o">=</span> <span class="n">query_cmd</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ll_corner_wgs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ll_corner_wgs</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                           <span class="n">ur_corner_wgs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ur_corner_wgs</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="n">cmd</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">api</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">ways</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s1">&#39;Empty OSM query results. No bridges found.&#39;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s1">&#39;...done.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">result</span></div>
+
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">SARvey 1.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">sarvey.osm_utils</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2024, IPI - Leibniz Universitaet Hannover.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.4.4.
+    </div>
+  </body>
+</html>

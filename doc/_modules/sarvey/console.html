@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>sarvey.console &#8212; SARvey 1.0.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=def86cc0" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=86cf1cd6" />
+    
+    <script src="../../_static/documentation_options.js?v=8d563738"></script>
+    <script src="../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">SARvey 1.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">sarvey.console</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for sarvey.console</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+
+<span class="c1"># SARvey - A multitemporal InSAR time series tool for the derivation of displacements.</span>
+<span class="c1">#</span>
+<span class="c1"># Copyright (C) 2021-2024 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)</span>
+<span class="c1">#</span>
+<span class="c1"># This software was developed together with FERN.Lab (fernlab@gfz-potsdam.de) in the context</span>
+<span class="c1"># of the SAR4Infra project with funds of the German Federal Ministry for Digital and</span>
+<span class="c1"># Transport and contributions from Landesamt fuer Vermessung und Geoinformation</span>
+<span class="c1"># Schleswig-Holstein and Landesbetrieb Strassenbau und Verkehr Schleswig-Holstein.</span>
+<span class="c1">#</span>
+<span class="c1"># This program is free software: you can redistribute it and/or modify it under</span>
+<span class="c1"># the terms of the GNU General Public License as published by the Free Software</span>
+<span class="c1"># Foundation, either version 3 of the License, or (at your option) any later</span>
+<span class="c1"># version.</span>
+<span class="c1">#</span>
+<span class="c1"># Important: This package uses PyMaxFlow. The core of PyMaxflows library is the C++</span>
+<span class="c1"># implementation by Vladimir Kolmogorov. It is also licensed under the GPL, but it REQUIRES that you</span>
+<span class="c1"># cite [BOYKOV04] (see LICENSE) in any resulting publication if you use this code for research purposes.</span>
+<span class="c1"># This requirement extends to SARvey.</span>
+<span class="c1">#</span>
+<span class="c1"># This program is distributed in the hope that it will be useful, but WITHOUT</span>
+<span class="c1"># ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS</span>
+<span class="c1"># FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more</span>
+<span class="c1"># details.</span>
+<span class="c1">#</span>
+<span class="c1"># You should have received a copy of the GNU Lesser General Public License along</span>
+<span class="c1"># with this program. If not, see &lt;https://www.gnu.org/licenses/&gt;.</span>
+
+<span class="sd">&quot;&quot;&quot;Console module for SARvey.&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">sarvey</span> <span class="kn">import</span> <span class="n">version</span>
+<span class="kn">from</span> <span class="nn">logging</span> <span class="kn">import</span> <span class="n">Logger</span>
+
+
+<div class="viewcode-block" id="printStep">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.console.printStep">[docs]</a>
+<span class="k">def</span> <span class="nf">printStep</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">step_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Print the current step to console.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    step: int</span>
+<span class="sd">        current step number</span>
+<span class="sd">    step_dict: dict</span>
+<span class="sd">        dictionary with step numbers and names</span>
+<span class="sd">    logger: Logger</span>
+<span class="sd">        Logging handler</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;    ---------------------------------------------------------------------------------&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;                         STEP </span><span class="si">{</span><span class="n">step</span><span class="si">}</span><span class="s2">:     </span><span class="si">{</span><span class="n">step_dict</span><span class="p">[</span><span class="n">step</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;    ---------------------------------------------------------------------------------&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="printCurrentConfig">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.console.printCurrentConfig">[docs]</a>
+<span class="k">def</span> <span class="nf">printCurrentConfig</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">config_section</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">config_section_default</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Print the current parameters and their default values from the config file to console.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    config_section: dict</span>
+<span class="sd">        Section of the configuration class which contains the selected parameters.</span>
+<span class="sd">    config_section_default: dict</span>
+<span class="sd">        Config section with default values.</span>
+<span class="sd">    logger: Logger</span>
+<span class="sd">        Logging handler.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">shift</span> <span class="o">=</span> <span class="s2">&quot;    &quot;</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="n">shift</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="si">{:&gt;35}</span><span class="s2"> </span><span class="si">{:&gt;15}</span><span class="s2">      </span><span class="si">{:&gt;10}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;Parameter&quot;</span><span class="p">,</span> <span class="s2">&quot;value&quot;</span><span class="p">,</span> <span class="s2">&quot;default&quot;</span><span class="p">))</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="n">shift</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="si">{:&gt;35}</span><span class="s2"> </span><span class="si">{:&gt;15}</span><span class="s2">      </span><span class="si">{:&gt;10}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;_________&quot;</span><span class="p">,</span> <span class="s2">&quot;_____&quot;</span><span class="p">,</span> <span class="s2">&quot;_______&quot;</span><span class="p">))</span>
+
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">config_section</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">default</span> <span class="o">=</span> <span class="n">config_section_default</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="n">default</span> <span class="o">=</span> <span class="s2">&quot;None&quot;</span> <span class="k">if</span> <span class="n">default</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">default</span>
+        <span class="n">default</span> <span class="o">=</span> <span class="s2">&quot;True&quot;</span> <span class="k">if</span> <span class="n">default</span> <span class="ow">is</span> <span class="kc">True</span> <span class="k">else</span> <span class="n">default</span>
+        <span class="n">default</span> <span class="o">=</span> <span class="s2">&quot;False&quot;</span> <span class="k">if</span> <span class="n">default</span> <span class="ow">is</span> <span class="kc">False</span> <span class="k">else</span> <span class="n">default</span>
+
+        <span class="n">value</span> <span class="o">=</span> <span class="n">config_section</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="s2">&quot;None&quot;</span> <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">value</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="s2">&quot;True&quot;</span> <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">True</span> <span class="k">else</span> <span class="n">value</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="s2">&quot;False&quot;</span> <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">False</span> <span class="k">else</span> <span class="n">value</span>
+        <span class="k">if</span> <span class="n">default</span> <span class="o">==</span> <span class="n">value</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="n">shift</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="si">{:&gt;35}</span><span class="s2"> </span><span class="si">{:&gt;15}</span><span class="s2">      </span><span class="si">{:&gt;10}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">default</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="n">shift</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="si">{:&gt;35}</span><span class="s2"> </span><span class="si">{:&gt;15}</span><span class="s2"> &lt;--- </span><span class="si">{:&gt;10}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">default</span><span class="p">))</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="showLogoSARvey">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.console.showLogoSARvey">[docs]</a>
+<span class="k">def</span> <span class="nf">showLogoSARvey</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;ShowLogoSARvey.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    logger: Logger</span>
+<span class="sd">        logging handler</span>
+<span class="sd">    step: str</span>
+<span class="sd">        Name of the step or script which is shown on the logo.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># generate_from: http://patorjk.com/software/taag/  - font: Big, style: default</span>
+    <span class="c1"># and https://textik.com/</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;SARvey version: </span><span class="si">{</span><span class="n">version</span><span class="o">.</span><span class="n">__version__</span><span class="si">}</span><span class="s2"> - </span><span class="si">{</span><span class="n">version</span><span class="o">.</span><span class="n">__versionalias__</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">version</span><span class="o">.</span><span class="n">__versiondate__</span><span class="si">}</span><span class="s2">, &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;Run: </span><span class="si">{</span><span class="n">step</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">new_logo</span> <span class="o">=</span> <span class="sa">rf</span><span class="s2">&quot;&quot;&quot;                                .            _____         _____</span>
+<span class="s2">                      +------  / \  ------  / ____|  /\   |  __ \</span>
+<span class="s2">                      |       /  /         | (___   /  \  | |__) |_   _____ _   _</span>
+<span class="s2">                      |      /  /           \___ \ / /\ \ |  _  /\ \ / / _ \ | | |</span>
+<span class="s2">                      |   /\\  /  /         ____) / ____ \| | \ \ \ V /  __/ |_| |</span>
+<span class="s2">                      |  /  \\/  /         |_____/_/    \_\_|  \_\ \_/ \___|\__, |</span>
+<span class="s2">                      | /    \  /                                            __/ |</span>
+<span class="s2">                      | \    / /               v</span><span class="si">{</span><span class="n">version</span><span class="o">.</span><span class="n">__version__</span><span class="si">:</span><span class="s2">&lt;5</span><span class="si">}</span><span class="s2"> - </span><span class="si">{</span><span class="n">version</span><span class="o">.</span><span class="n">__versionalias__</span><span class="si">:</span><span class="s2">&lt;18</span><span class="si">}</span><span class="s2">  |___/</span>
+<span class="s2">                        \\  / /...             </span><span class="si">{</span><span class="n">version</span><span class="o">.</span><span class="n">__versiondate__</span><span class="si">:</span><span class="s2">&lt;20</span><span class="si">}</span><span class="s2">              |</span>
+<span class="s2">                       / \\/ /    :...                                           |</span>
+<span class="s2">                      /  /  /         :...     </span><span class="si">{</span><span class="n">step</span><span class="si">:</span><span class="s2"> &lt;20</span><span class="si">}</span><span class="s2">              |</span>
+<span class="s2">                     /  /  /              :...                                   |</span>
+<span class="s2">                    /  /       _______        :...                      _________|</span>
+<span class="s2">                     \/               \______     :...     ____________/         |</span>
+<span class="s2">                      +--------------------  \________:___/  --------------------+</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">new_logo</span><span class="p">)</span></div>
+
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">SARvey 1.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">sarvey.console</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2024, IPI - Leibniz Universitaet Hannover.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.4.4.
+    </div>
+  </body>
+</html>

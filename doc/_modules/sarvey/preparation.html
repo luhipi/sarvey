@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>sarvey.preparation &#8212; SARvey 1.0.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=def86cc0" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=86cf1cd6" />
+    
+    <script src="../../_static/documentation_options.js?v=8d563738"></script>
+    <script src="../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">SARvey 1.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">sarvey.preparation</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for sarvey.preparation</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+
+<span class="c1"># SARvey - A multitemporal InSAR time series tool for the derivation of displacements.</span>
+<span class="c1">#</span>
+<span class="c1"># Copyright (C) 2021-2024 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)</span>
+<span class="c1">#</span>
+<span class="c1"># This software was developed together with FERN.Lab (fernlab@gfz-potsdam.de) in the context</span>
+<span class="c1"># of the SAR4Infra project with funds of the German Federal Ministry for Digital and</span>
+<span class="c1"># Transport and contributions from Landesamt fuer Vermessung und Geoinformation</span>
+<span class="c1"># Schleswig-Holstein and Landesbetrieb Strassenbau und Verkehr Schleswig-Holstein.</span>
+<span class="c1">#</span>
+<span class="c1"># This program is free software: you can redistribute it and/or modify it under</span>
+<span class="c1"># the terms of the GNU General Public License as published by the Free Software</span>
+<span class="c1"># Foundation, either version 3 of the License, or (at your option) any later</span>
+<span class="c1"># version.</span>
+<span class="c1">#</span>
+<span class="c1"># Important: This package uses PyMaxFlow. The core of PyMaxflows library is the C++</span>
+<span class="c1"># implementation by Vladimir Kolmogorov. It is also licensed under the GPL, but it REQUIRES that you</span>
+<span class="c1"># cite [BOYKOV04] (see LICENSE) in any resulting publication if you use this code for research purposes.</span>
+<span class="c1"># This requirement extends to SARvey.</span>
+<span class="c1">#</span>
+<span class="c1"># This program is distributed in the hope that it will be useful, but WITHOUT</span>
+<span class="c1"># ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS</span>
+<span class="c1"># FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more</span>
+<span class="c1"># details.</span>
+<span class="c1">#</span>
+<span class="c1"># You should have received a copy of the GNU Lesser General Public License along</span>
+<span class="c1"># with this program. If not, see &lt;https://www.gnu.org/licenses/&gt;.</span>
+
+<span class="sd">&quot;&quot;&quot;Preparation module for SARvey.&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">logging</span> <span class="kn">import</span> <span class="n">Logger</span>
+<span class="kn">from</span> <span class="nn">os.path</span> <span class="kn">import</span> <span class="n">join</span>
+
+<span class="kn">import</span> <span class="nn">mintpy.utils.readfile</span> <span class="k">as</span> <span class="nn">readfile</span>
+
+<span class="kn">from</span> <span class="nn">sarvey</span> <span class="kn">import</span> <span class="n">viewer</span>
+<span class="kn">import</span> <span class="nn">sarvey.utils</span> <span class="k">as</span> <span class="nn">ut</span>
+<span class="kn">from</span> <span class="nn">sarvey.objects</span> <span class="kn">import</span> <span class="n">CoordinatesUTM</span><span class="p">,</span> <span class="n">AmplitudeImage</span><span class="p">,</span> <span class="n">BaseStack</span><span class="p">,</span> <span class="n">Points</span>
+<span class="kn">from</span> <span class="nn">sarvey.triangulation</span> <span class="kn">import</span> <span class="n">PointNetworkTriangulation</span>
+
+
+<div class="viewcode-block" id="createTimeMaskFromDates">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.preparation.createTimeMaskFromDates">[docs]</a>
+<span class="k">def</span> <span class="nf">createTimeMaskFromDates</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">start_date</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">stop_date</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">date_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a mask with selected dates within given time frame.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    start_date: str</span>
+<span class="sd">        Start date.</span>
+<span class="sd">    stop_date: str</span>
+<span class="sd">        Stop date.</span>
+<span class="sd">    date_list: list</span>
+<span class="sd">        all avaiable dates in the slcStack.h5.</span>
+<span class="sd">    logger: Logger</span>
+<span class="sd">        Logging handler.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    time_mask: np.ndarray</span>
+<span class="sd">        mask with True for selected dates.</span>
+<span class="sd">    num_slc: int</span>
+<span class="sd">        number of selected images.</span>
+<span class="sd">    result_date_list: list</span>
+<span class="sd">        list of selected dates.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">time_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">date_list</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">)</span>
+    <span class="n">date_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="p">(</span><span class="n">year</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">d</span><span class="p">[:</span><span class="mi">4</span><span class="p">]),</span> <span class="n">month</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="mi">4</span><span class="p">:</span><span class="mi">6</span><span class="p">]),</span> <span class="n">day</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="mi">6</span><span class="p">:]))</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">date_list</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">start_date</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">stop_date</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># use all images.</span>
+        <span class="n">result_date_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">date</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span> <span class="k">for</span> <span class="n">date</span> <span class="ow">in</span> <span class="n">date_list</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">time_mask</span><span class="p">,</span> <span class="n">time_mask</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">result_date_list</span>
+
+    <span class="k">if</span> <span class="n">start_date</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">start_date</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">date_list</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">start_date</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">fromisoformat</span><span class="p">(</span><span class="n">start_date</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">stop_date</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">stop_date</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">date_list</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">stop_date</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">fromisoformat</span><span class="p">(</span><span class="n">stop_date</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">start_date</span> <span class="o">&gt;=</span> <span class="n">stop_date</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Choose start date &lt; stop date!&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span>
+
+    <span class="k">if</span> <span class="n">stop_date</span> <span class="o">&lt;</span> <span class="nb">min</span><span class="p">(</span><span class="n">date_list</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Stop date is before the first acquired image. Choose a later stop date!&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span>
+
+    <span class="k">if</span> <span class="n">start_date</span> <span class="o">&gt;</span> <span class="nb">max</span><span class="p">(</span><span class="n">date_list</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Start date is after the last acquired image. Choose an earlier start date!&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span>
+
+    <span class="n">shift</span> <span class="o">=</span> <span class="s2">&quot;    &quot;</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="n">shift</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="si">{:&gt;10}</span><span class="s2"> </span><span class="si">{:&gt;10}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;   Date   &quot;</span><span class="p">,</span> <span class="s2">&quot;Selected&quot;</span><span class="p">))</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="n">shift</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="si">{:&gt;10}</span><span class="s2"> </span><span class="si">{:&gt;10}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;__________&quot;</span><span class="p">,</span> <span class="s2">&quot;________&quot;</span><span class="p">))</span>
+
+    <span class="n">result_date_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">date</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">date_list</span><span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">date</span> <span class="o">&lt;</span> <span class="n">start_date</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">date</span> <span class="o">&gt;</span> <span class="n">stop_date</span><span class="p">):</span>
+            <span class="n">time_mask</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">result_date_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">date</span><span class="o">.</span><span class="n">isoformat</span><span class="p">())</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="s2">&quot;      x&quot;</span> <span class="k">if</span> <span class="n">time_mask</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="n">shift</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="si">{:&gt;10}</span><span class="s2"> </span><span class="si">{:&gt;3}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">date</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span> <span class="n">val</span><span class="p">))</span>
+
+    <span class="n">num_slc</span> <span class="o">=</span> <span class="n">time_mask</span><span class="p">[</span><span class="n">time_mask</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">time_mask</span><span class="p">,</span> <span class="n">num_slc</span><span class="p">,</span> <span class="n">result_date_list</span></div>
+
+
+
+<div class="viewcode-block" id="readSlcFromMiaplpy">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.preparation.readSlcFromMiaplpy">[docs]</a>
+<span class="k">def</span> <span class="nf">readSlcFromMiaplpy</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">box</span><span class="p">:</span> <span class="nb">tuple</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Read SLC data from phase-linking results of Miaplpy.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    path: str</span>
+<span class="sd">        Path to the phase_series.h5 file.</span>
+<span class="sd">    box: tuple</span>
+<span class="sd">        Bounding Box to read from.</span>
+<span class="sd">    logger: Logger</span>
+<span class="sd">        Logging handler.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    slc: np.ndarray</span>
+<span class="sd">        slc stack created from phase-linking results.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;read phase from MiaplPy results...&quot;</span><span class="p">)</span>
+    <span class="n">phase</span> <span class="o">=</span> <span class="n">readfile</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">datasetName</span><span class="o">=</span><span class="s1">&#39;phase&#39;</span><span class="p">,</span> <span class="n">box</span><span class="o">=</span><span class="n">box</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;read amplitude from MiaplPy results...&quot;</span><span class="p">)</span>
+    <span class="n">amp</span> <span class="o">=</span> <span class="n">readfile</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">datasetName</span><span class="o">=</span><span class="s1">&#39;amplitude&#39;</span><span class="p">,</span> <span class="n">box</span><span class="o">=</span><span class="n">box</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;combine phase and amplitude to slc...&quot;</span><span class="p">)</span>
+    <span class="n">slc</span> <span class="o">=</span> <span class="n">amp</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">phase</span> <span class="o">*</span> <span class="mi">1</span><span class="n">j</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">slc</span></div>
+
+
+
+<div class="viewcode-block" id="readCoherenceFromMiaplpy">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.preparation.readCoherenceFromMiaplpy">[docs]</a>
+<span class="k">def</span> <span class="nf">readCoherenceFromMiaplpy</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">box</span><span class="p">:</span> <span class="nb">tuple</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Read the coherence image from phase-linking of MiaplPy.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    path: str</span>
+<span class="sd">        Path to phase_series.h5 file.</span>
+<span class="sd">    box: tuple</span>
+<span class="sd">        Bounding Box to read from.</span>
+<span class="sd">    logger: Logger</span>
+<span class="sd">        Logging handler.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    temp_coh: np.ndarray</span>
+<span class="sd">        temporal coherence image from phase-linking results of MiaplPy.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;read quality from MiaplPy results...&quot;</span><span class="p">)</span>
+    <span class="n">temp_coh</span> <span class="o">=</span> <span class="n">readfile</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">datasetName</span><span class="o">=</span><span class="s1">&#39;temporalCoherence&#39;</span><span class="p">,</span> <span class="n">box</span><span class="o">=</span><span class="n">box</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
+    <span class="k">return</span> <span class="n">temp_coh</span></div>
+
+
+
+<div class="viewcode-block" id="selectPixels">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.preparation.selectPixels">[docs]</a>
+<span class="k">def</span> <span class="nf">selectPixels</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">selection_method</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">thrsh</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+                 <span class="n">grid_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">bool_plot</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Select pixels based on temporal coherence.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    path: str</span>
+<span class="sd">        Path to the directory with the temporal_coherence.h5 file.</span>
+<span class="sd">    selection_method: str</span>
+<span class="sd">        Pixel selection method. Currently, only &quot;temp_coh&quot; is implemented.</span>
+<span class="sd">    thrsh: float</span>
+<span class="sd">        Threshold for pixel selection.</span>
+<span class="sd">    grid_size: int</span>
+<span class="sd">        Grid size for sparse pixel selection.</span>
+<span class="sd">    bool_plot: bool</span>
+<span class="sd">        Plot the selected pixels.</span>
+<span class="sd">    logger: Logger</span>
+<span class="sd">        Logging handler.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    cand_mask: np.ndarray</span>
+<span class="sd">        Mask with selected pixels.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">quality</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">grid_min_val</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">cand_mask</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">unit</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">cmap</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="c1"># compute candidates</span>
+    <span class="k">if</span> <span class="n">selection_method</span> <span class="o">==</span> <span class="s2">&quot;temp_coh&quot;</span><span class="p">:</span>
+        <span class="n">temp_coh_obj</span> <span class="o">=</span> <span class="n">BaseStack</span><span class="p">(</span><span class="n">file</span><span class="o">=</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;temporal_coherence.h5&quot;</span><span class="p">),</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
+        <span class="n">quality</span> <span class="o">=</span> <span class="n">temp_coh_obj</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">dataset_name</span><span class="o">=</span><span class="s2">&quot;temp_coh&quot;</span><span class="p">)</span>
+        <span class="n">cand_mask</span> <span class="o">=</span> <span class="n">quality</span> <span class="o">&gt;=</span> <span class="n">thrsh</span>
+        <span class="n">grid_min_val</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">unit</span> <span class="o">=</span> <span class="s2">&quot;Temporal</span><span class="se">\n</span><span class="s2">Coherence [ ]&quot;</span>
+        <span class="n">cmap</span> <span class="o">=</span> <span class="s2">&quot;autumn&quot;</span>
+
+    <span class="k">if</span> <span class="n">selection_method</span> <span class="o">==</span> <span class="s2">&quot;miaplpy&quot;</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;This part is not developed yet. MiaplPy data is read in another way.&quot;</span><span class="p">)</span>
+        <span class="c1"># pl_coherence = readCoherenceFromMiaplpy(path=join(path, &#39;inverted&#39;, &#39;phase_series.h5&#39;), box=None,</span>
+        <span class="c1"># logger=logger)</span>
+        <span class="c1"># cand_mask = pl_coherence &gt;= thrsh</span>
+        <span class="c1"># quality = pl_coherence</span>
+        <span class="c1"># grid_min_val = False</span>
+        <span class="c1"># unit = &quot;Phase-Linking\nCoherence [ ]&quot;</span>
+        <span class="c1"># cmap = &quot;autumn&quot;</span>
+
+    <span class="k">if</span> <span class="n">grid_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># -&gt; sparse pixel selection</span>
+        <span class="n">coord_utm_obj</span> <span class="o">=</span> <span class="n">CoordinatesUTM</span><span class="p">(</span><span class="n">file_path</span><span class="o">=</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;coordinates_utm.h5&quot;</span><span class="p">),</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
+        <span class="n">coord_utm_obj</span><span class="o">.</span><span class="n">open</span><span class="p">()</span>
+        <span class="n">box_list</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">createSpatialGrid</span><span class="p">(</span><span class="n">coord_utm_img</span><span class="o">=</span><span class="n">coord_utm_obj</span><span class="o">.</span><span class="n">coord_utm</span><span class="p">,</span>
+                                        <span class="n">length</span><span class="o">=</span><span class="n">coord_utm_obj</span><span class="o">.</span><span class="n">coord_utm</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                                        <span class="n">width</span><span class="o">=</span><span class="n">coord_utm_obj</span><span class="o">.</span><span class="n">coord_utm</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                                        <span class="n">grid_size</span><span class="o">=</span><span class="n">grid_size</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">cand_mask_sparse</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">selectBestPointsInGrid</span><span class="p">(</span><span class="n">box_list</span><span class="o">=</span><span class="n">box_list</span><span class="p">,</span> <span class="n">quality</span><span class="o">=</span><span class="n">quality</span><span class="p">,</span> <span class="n">sel_min</span><span class="o">=</span><span class="n">grid_min_val</span><span class="p">)</span>
+        <span class="n">cand_mask</span> <span class="o">&amp;=</span> <span class="n">cand_mask_sparse</span>
+
+    <span class="k">if</span> <span class="n">bool_plot</span><span class="p">:</span>
+        <span class="n">coord_xy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">cand_mask</span><span class="p">))</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span>
+        <span class="n">bmap_obj</span> <span class="o">=</span> <span class="n">AmplitudeImage</span><span class="p">(</span><span class="n">file_path</span><span class="o">=</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;background_map.h5&quot;</span><span class="p">))</span>
+        <span class="n">viewer</span><span class="o">.</span><span class="n">plotScatter</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">quality</span><span class="p">[</span><span class="n">cand_mask</span><span class="p">],</span> <span class="n">coord</span><span class="o">=</span><span class="n">coord_xy</span><span class="p">,</span> <span class="n">bmap_obj</span><span class="o">=</span><span class="n">bmap_obj</span><span class="p">,</span> <span class="n">ttl</span><span class="o">=</span><span class="s2">&quot;Selected pixels&quot;</span><span class="p">,</span>
+                           <span class="n">unit</span><span class="o">=</span><span class="n">unit</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">cmap</span><span class="p">,</span> <span class="n">vmin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
+        <span class="c1"># if grid_size is not None:</span>
+        <span class="c1">#     psViewer.plotGridFromBoxList(box_list, ax=ax, edgecolor=&quot;k&quot;, linewidth=0.2)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">gcf</span><span class="p">()</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;pic&quot;</span><span class="p">,</span> <span class="s2">&quot;selected_pixels_</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">.png&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">selection_method</span><span class="p">,</span> <span class="n">thrsh</span><span class="p">)),</span>
+                          <span class="n">dpi</span><span class="o">=</span><span class="mi">300</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">plt</span><span class="o">.</span><span class="n">gcf</span><span class="p">())</span>
+
+    <span class="k">return</span> <span class="n">cand_mask</span></div>
+
+
+
+<div class="viewcode-block" id="createArcsBetweenPoints">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.preparation.createArcsBetweenPoints">[docs]</a>
+<span class="k">def</span> <span class="nf">createArcsBetweenPoints</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">point_obj</span><span class="p">:</span> <span class="n">Points</span><span class="p">,</span> <span class="n">knn</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">max_arc_length</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span>
+                            <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a spatial network of arcs to triangulate the points.</span>
+
+<span class="sd">    All points are triangulated with a Delaunay triangulation. If knn is given, the triangulation is done with the k</span>
+<span class="sd">    nearest neighbors. Too long arcs are removed from the network. If, afterward, the network is not connected, a</span>
+<span class="sd">    delaunay triangulation is performed again to ensure connectivity in the network.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    point_obj: Points</span>
+<span class="sd">        Point object.</span>
+<span class="sd">    knn: int</span>
+<span class="sd">        Number of nearest neighbors to consider (default: None).</span>
+<span class="sd">    max_arc_length: float</span>
+<span class="sd">        Maximum length of an arc. Longer arcs will be removed. Default: np.inf.</span>
+<span class="sd">    logger: Logger</span>
+<span class="sd">        Logging handler.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    arcs: np.ndarray</span>
+<span class="sd">        Arcs of the triangulation containing the indices of the points for each arc.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">triang_obj</span> <span class="o">=</span> <span class="n">PointNetworkTriangulation</span><span class="p">(</span><span class="n">coord_xy</span><span class="o">=</span><span class="n">point_obj</span><span class="o">.</span><span class="n">coord_xy</span><span class="p">,</span> <span class="n">coord_utmxy</span><span class="o">=</span><span class="n">point_obj</span><span class="o">.</span><span class="n">coord_utm</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">knn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">triang_obj</span><span class="o">.</span><span class="n">triangulateKnn</span><span class="p">(</span><span class="n">k</span><span class="o">=</span><span class="n">knn</span><span class="p">)</span>
+
+    <span class="n">triang_obj</span><span class="o">.</span><span class="n">triangulateGlobal</span><span class="p">()</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;remove arcs with length &gt; </span><span class="si">{}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">max_arc_length</span><span class="p">))</span>
+    <span class="n">triang_obj</span><span class="o">.</span><span class="n">removeLongArcs</span><span class="p">(</span><span class="n">max_dist</span><span class="o">=</span><span class="n">max_arc_length</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">triang_obj</span><span class="o">.</span><span class="n">isConnected</span><span class="p">():</span>
+        <span class="n">triang_obj</span><span class="o">.</span><span class="n">triangulateGlobal</span><span class="p">()</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;retrieve arcs from adjacency matrix.&quot;</span><span class="p">)</span>
+    <span class="n">arcs</span> <span class="o">=</span> <span class="n">triang_obj</span><span class="o">.</span><span class="n">getArcsFromAdjMat</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">arcs</span></div>
+
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">SARvey 1.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">sarvey.preparation</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2024, IPI - Leibniz Universitaet Hannover.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.4.4.
+    </div>
+  </body>
+</html>

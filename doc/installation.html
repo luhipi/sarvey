@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Installation &#8212; SARvey 1.0.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="_static/classic.css?v=def86cc0" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=86cf1cd6" />
+    
+    <script src="_static/documentation_options.js?v=8d563738"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Usage" href="usage.html" />
+    <link rel="prev" title="SARvey - survey with SAR" href="readme.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="usage.html" title="Usage"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="readme.html" title="SARvey - survey with SAR"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">SARvey 1.0.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Installation</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="installation">
+<span id="id1"></span><h1>Installation<a class="headerlink" href="#installation" title="Link to this heading">¶</a></h1>
+<dl class="simple">
+<dt>SARvey is a cross-platform python-based software and can be installed on</dt><dd><ul class="simple">
+<li><p><a class="reference internal" href="#linux">Linux</a></p></li>
+<li><p><a class="reference internal" href="#macos-arm-apple-silicon-m2">MacOS ARM (Apple Silicon M2)</a></p></li>
+<li><p><a class="reference internal" href="#windows-using-wsl">Windows using WSL</a></p></li>
+</ul>
+</dd>
+</dl>
+<section id="linux">
+<h2>Linux<a class="headerlink" href="#linux" title="Link to this heading">¶</a></h2>
+<p>On Linux, SARvey can be installed <a class="reference internal" href="#using-mamba-recommended">Using Mamba (recommended)</a> or <a class="reference internal" href="#using-anaconda-or-miniconda">Using Anaconda or Miniconda</a>.</p>
+<section id="using-mamba-recommended">
+<h3>Using Mamba (recommended)<a class="headerlink" href="#using-mamba-recommended" title="Link to this heading">¶</a></h3>
+<p>Using <a class="reference external" href="https://github.com/mamba-org/mamba">mamba</a> (latest version recommended), <strong>SARvey</strong> is installed as follows:</p>
+<ol class="arabic">
+<li><p>Clone the SARvey source code and install SARvey and all dependencies from the environment_sarvey.yml file:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>git@gitlab.projekt.uni-hannover.de:ipi-sar4infra/timeseries.git
+<span class="nb">cd</span><span class="w"> </span>timeseries
+</pre></div>
+</div>
+</li>
+<li><p>Create virtual environment for <strong>SARvey</strong> (optional but recommended):</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>conda-merge
+wget<span class="w"> </span>https://raw.githubusercontent.com/insarlab/MiaplPy/main/conda-env.yml
+conda-merge<span class="w"> </span>conda-env.yml<span class="w"> </span>tests/CI_docker/context/environment_sarvey.yml<span class="w"> </span>&gt;<span class="w"> </span>env.yml
+mamba<span class="w"> </span>env<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>sarvey<span class="w"> </span>-f<span class="w"> </span>env.yml
+rm<span class="w"> </span>env.yml<span class="w"> </span>conda-env.yml
+mamba<span class="w"> </span>activate<span class="w"> </span>sarvey
+pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/insarlab/MiaplPy.git
+pip<span class="w"> </span>install<span class="w"> </span>.
+</pre></div>
+</div>
+</li>
+</ol>
+<p>This is the preferred method to install <strong>SARvey</strong>, as it always installs the most recent stable release and
+automatically resolves all the dependencies.</p>
+</section>
+<section id="using-anaconda-or-miniconda">
+<h3>Using Anaconda or Miniconda<a class="headerlink" href="#using-anaconda-or-miniconda" title="Link to this heading">¶</a></h3>
+<p>Using <a class="reference external" href="https://conda.io/docs">conda</a> (latest version recommended), <strong>SARvey</strong> is installed as follows:</p>
+<ol class="arabic">
+<li><p>Then clone the <strong>SARvey</strong> source code and install <strong>SARvey</strong> and all dependencies from the environment_sarvey.yml file:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>git@gitlab.projekt.uni-hannover.de:ipi-sar4infra/timeseries.git
+<span class="nb">cd</span><span class="w"> </span>timeseries
+</pre></div>
+</div>
+</li>
+</ol>
+<ol class="arabic">
+<li><p>Create virtual environment for <strong>SARvey</strong> (optional but recommended):</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>conda-merge
+wget<span class="w"> </span>https://raw.githubusercontent.com/insarlab/MiaplPy/main/conda-env.yml
+conda-merge<span class="w"> </span>conda-env.yml<span class="w"> </span>tests/CI_docker/context/environment_sarvey.yml<span class="w"> </span>&gt;<span class="w"> </span>env.yml
+conda<span class="w"> </span>env<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>sarvey<span class="w"> </span>-f<span class="w"> </span>env.yml
+rm<span class="w"> </span>env.yml<span class="w"> </span>conda-env.yml
+conda<span class="w"> </span>activate<span class="w"> </span>sarvey
+pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/insarlab/MiaplPy.git
+pip<span class="w"> </span>install<span class="w"> </span>.
+</pre></div>
+</div>
+</li>
+</ol>
+</section>
+</section>
+<section id="macos-arm-apple-silicon-m2">
+<h2>MacOS ARM (Apple Silicon M2)<a class="headerlink" href="#macos-arm-apple-silicon-m2" title="Link to this heading">¶</a></h2>
+<p>This guide provides instructions for installing SARvey on MacOS ARM M2 using <a class="reference external" href="https://conda.io/docs">conda</a>.
+If you do not have Conda, install <a class="reference external" href="https://docs.conda.io/projects/conda/en/latest/user-guide/install/macos.html">Conda for Mac</a>.
+Using <a class="reference external" href="https://conda.io/docs">conda</a> (latest version recommended), SARvey is installed as follows:</p>
+<ol class="arabic" start="0">
+<li><p><strong>Create a directory for the SARvey package and navigate to it in the terminal. You can choose any other directory if you prefer.</strong></p>
+<blockquote>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mkdir<span class="w"> </span>-p<span class="w"> </span>~/software/sarvey
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+<li><p><strong>Install MiaplPy before installing SARvey in the same environment where you want to install SARvey.</strong></p>
+<blockquote>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>~/software/sarvey
+git<span class="w"> </span>clone<span class="w"> </span>https://github.com/insarlab/MiaplPy.git
+<span class="nb">cd</span><span class="w"> </span>MiaplPy
+</pre></div>
+</div>
+<p>1.1 Open <cite>conda-env.yml</cite> in an editor of your choice and comment out the line <cite>isce2</cite>. Alternatively, you can run the following command:.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sed<span class="w"> </span>-i<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span><span class="s1">&#39;/isce2/s/^/# /&#39;</span><span class="w"> </span>conda-env.yml
+</pre></div>
+</div>
+<p>1.2 Install the package using Conda.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>env<span class="w"> </span>update<span class="w"> </span>--name<span class="w"> </span>sarvey<span class="w"> </span>--file<span class="w"> </span>conda-env.yml
+conda<span class="w"> </span>activate<span class="w"> </span>sarvey
+python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>.
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+<li><p><strong>Install SARvey</strong></p>
+<p>2.1 Download the source code of the SARvey package.</p>
+<blockquote>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>~/software/sarvey
+git<span class="w"> </span>clone<span class="w"> </span>git@gitlab.projekt.uni-hannover.de:ipi-sar4infra/timeseries.git
+<span class="nb">cd</span><span class="w"> </span>timeseries
+</pre></div>
+</div>
+</div></blockquote>
+<p>2.2 Open <cite>tests/CI_docker/context/environment_sarvey.yml</cite> in an editor of your choice and comment out the lines <cite>isce2</cite> and <cite>gcc_linux-64</cite>. Alternatively, you can run the following commands.</p>
+<blockquote>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sed<span class="w"> </span>-i<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span><span class="s1">&#39;/isce2/s/^/# /&#39;</span><span class="w"> </span>tests/CI_docker/context/environment_sarvey.yml
+sed<span class="w"> </span>-i<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span><span class="s1">&#39;/gcc_linux-64/s/^/# /&#39;</span><span class="w"> </span>tests/CI_docker/context/environment_sarvey.yml
+</pre></div>
+</div>
+<p>Note: As of the time of creation of this document, <cite>isce2</cite> for MacOS ARM64 is not available in Conda repositories. Therefore, it is skipped, but it should not cause any problems for running SARvey. Also, <cite>gcc_linux-64</cite> is not required on ARM64.</p>
+</div></blockquote>
+<p>2.3 Install Timeseries using the same environment that you used to install MiaplPy.</p>
+<blockquote>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>env<span class="w"> </span>update<span class="w"> </span>--name<span class="w"> </span>sarvey<span class="w"> </span>-f<span class="w"> </span>tests/CI_docker/context/environment_sarvey.yml
+conda<span class="w"> </span>activate<span class="w"> </span>sarvey
+pip<span class="w"> </span>install<span class="w"> </span>.
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+<li><p><strong>Set up the PATH for MiaplPy and SARvey.</strong></p>
+<p>3.1 Run the following commands to set up the path in <cite>~/source_sarvey.sh</cite>.</p>
+<blockquote>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">echo</span><span class="w"> </span><span class="s1">&#39;export miaplpy_path=~/software/sarvey/MiaplPy/src/&#39;</span><span class="w"> </span>&gt;<span class="w"> </span>~/source_sarvey.sh
+<span class="nb">echo</span><span class="w"> </span><span class="s1">&#39;export PYTHONPATH=${PYTHONPATH:+$PYTHONPATH:}$miaplpy_path&#39;</span><span class="w"> </span>&gt;&gt;<span class="w"> </span>~/source_sarvey.sh
+<span class="nb">echo</span><span class="w"> </span><span class="s1">&#39;export timeseries_path=~/software/sarvey/timeseries&#39;</span><span class="w"> </span>&gt;&gt;<span class="w"> </span>~/source_sarvey.sh
+<span class="nb">echo</span><span class="w"> </span><span class="s1">&#39;export PATH=${PATH}:$timeseries_path:$timeseries_path/sarvey&#39;</span><span class="w"> </span>&gt;&gt;<span class="w"> </span>~/source_sarvey.sh
+<span class="nb">echo</span><span class="w"> </span><span class="s1">&#39;export PYTHONPATH=${PYTHONPATH:+$PYTHONPATH:}:$timeseries_path&#39;</span><span class="w"> </span>&gt;&gt;<span class="w"> </span>~/source_sarvey.sh
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+<li><p><strong>Test the installation</strong></p>
+<p>4.1. Open a new terminal and activate the software.</p>
+<blockquote>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>activate<span class="w"> </span>sarvey
+<span class="nb">source</span><span class="w"> </span>~/source_sarvey.sh
+</pre></div>
+</div>
+</div></blockquote>
+<p>4.2. Run the following commands. If the help messages of SARvey and MiaplPy are shown, the installation is correctly done.</p>
+<blockquote>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sarvey<span class="w"> </span>-h
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+</ol>
+</section>
+<section id="windows-using-wsl">
+<h2>Windows using WSL<a class="headerlink" href="#windows-using-wsl" title="Link to this heading">¶</a></h2>
+<p>On Windows, SARvey is tested on Windows Subsystem for Linux (<a class="reference external" href="https://learn.microsoft.com/en-us/windows/wsl/">WSL</a>) version 2. Please follow the <a class="reference internal" href="#linux">Linux</a> installation.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Timeseries has been tested with Python 3.6+., i.e., should be fully compatible to all Python versions from 3.6 onwards.</p>
+</div>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="index.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">Installation</a><ul>
+<li><a class="reference internal" href="#linux">Linux</a><ul>
+<li><a class="reference internal" href="#using-mamba-recommended">Using Mamba (recommended)</a></li>
+<li><a class="reference internal" href="#using-anaconda-or-miniconda">Using Anaconda or Miniconda</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#macos-arm-apple-silicon-m2">MacOS ARM (Apple Silicon M2)</a></li>
+<li><a class="reference internal" href="#windows-using-wsl">Windows using WSL</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="readme.html"
+                          title="previous chapter">SARvey - survey with SAR</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="usage.html"
+                          title="next chapter">Usage</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/installation.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="usage.html" title="Usage"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="readme.html" title="SARvey - survey with SAR"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">SARvey 1.0.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Installation</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2024, IPI - Leibniz Universitaet Hannover.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.4.4.
+    </div>
+  </body>
+</html>

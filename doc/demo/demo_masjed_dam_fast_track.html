@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Fast Track Guide for Masjed Soleyman Dam &#8212; SARvey 1.0.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=def86cc0" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=86cf1cd6" />
+    
+    <script src="../_static/documentation_options.js?v=8d563738"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Python API reference" href="../modules.html" />
+    <link rel="prev" title="Detailed Guide for Masjed Soleyman Dam" href="demo_masjed_dam_detailed_guide.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../modules.html" title="Python API reference"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="demo_masjed_dam_detailed_guide.html" title="Detailed Guide for Masjed Soleyman Dam"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">SARvey 1.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../demo_datasets.html" >Demo Datasets</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="demo_masjed_dam.html" accesskey="U">Masjed Soleyman dam</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Fast Track Guide for Masjed Soleyman Dam</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="fast-track-guide-for-masjed-soleyman-dam">
+<span id="demo-masjed-dam-fast-track"></span><h1>Fast Track Guide for Masjed Soleyman Dam<a class="headerlink" href="#fast-track-guide-for-masjed-soleyman-dam" title="Link to this heading">¶</a></h1>
+<p>If you are an advanced user, you can proceed with this fast track tutorial. If you prefer a more detailed, step-by-step guide, please refer to the <a class="reference internal" href="demo_masjed_dam_detailed_guide.html#demo-masjed-dam-detailed-guide"><span class="std std-ref">detailed guide</span></a> for this example.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>These instructions are based on SARvey version 1.0.0 (Strawberry Pie). Newer versions may differ slightly.</p>
+</div>
+<section id="download-the-data">
+<h2>Download the Data<a class="headerlink" href="#download-the-data" title="Link to this heading">¶</a></h2>
+<p>In this tutorial, a processed stack of data is provided. If you wish to generate data for other areas, please refer to the <a class="reference internal" href="../preparation.html#preparation"><span class="std std-ref">Preparation</span></a> section.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>wget<span class="w"> </span>https://zenodo.org/records/12189041/files/SARvey_input_data_Masjed_Soleyman_dam_S1_dsc_2015_2018.zip
+unzip<span class="w"> </span>SARvey_input_data_Masjed_Soleyman_dam_S1_dsc_2015_2018.zip
+<span class="nb">cd</span><span class="w"> </span>SARvey_input_data_Masjed_Soleyman_dam_S1_dsc_2015_2018
+</pre></div>
+</div>
+</section>
+<section id="activate-sarvey-environment">
+<h2>Activate SARvey environment<a class="headerlink" href="#activate-sarvey-environment" title="Link to this heading">¶</a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>activate<span class="w"> </span>sarvey
+</pre></div>
+</div>
+</section>
+<section id="create-a-config-file">
+<h2>Create a Config File<a class="headerlink" href="#create-a-config-file" title="Link to this heading">¶</a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sarvey<span class="w"> </span>-f<span class="w"> </span>config.json<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">0</span><span class="w"> </span>-g
+</pre></div>
+</div>
+<p>Specify parameters in the config file. Set a reasonable value for <strong>num_cores</strong>.</p>
+</section>
+<section id="run-sarvey">
+<h2>Run <strong>SARvey</strong><a class="headerlink" href="#run-sarvey" title="Link to this heading">¶</a></h2>
+<p>You can run each step individually or a range of steps by specifying the first and last step.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sarvey<span class="w"> </span>-f<span class="w"> </span>config.json<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">4</span>
+</pre></div>
+</div>
+</section>
+<section id="check-outputs">
+<h2>Check Outputs<a class="headerlink" href="#check-outputs" title="Link to this heading">¶</a></h2>
+<p>First, check the output snapshots in the <cite>outputs/pics</cite> directory. You can also use <strong>`sarvey_plot`</strong> to plot various products to assess the quality of the results and decide how to adjust parameters.  Modify the parameters in the config file and rerun the corresponding steps of <cite>sarvey</cite> to improve the results. For instance, changing <strong>`coherence_p2`</strong> from 0.8 to 0.7 and rerunning steps 3 and 4 can increase the density of the final set of points. However, be cautious that reducing the value too much may include noisy points of low quality in the analysis, potentially leading to poor final results. You can check the details of all parameters using the -p flag in <cite>sarvey</cite> and decide how to tune them. For more explanations, please refer to <a class="reference internal" href="../processing.html#processing"><span class="std std-ref">Multitemporal InSAR processing workflow</span></a></p>
+</section>
+<section id="plot-time-series-results">
+<h2>Plot Time Series Results<a class="headerlink" href="#plot-time-series-results" title="Link to this heading">¶</a></h2>
+<p>The final products, including the time series, are stored in the coh**_ts.h5 file. The file is named based on the coherence_p2 parameter you used. Plot the time series using the following command:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sarvey_plot<span class="w"> </span>outputs/p2_coh80_ts.h5<span class="w"> </span>-t
+</pre></div>
+</div>
+<p>You can visualize velocity and DEM error estimation of second-order points. You can also visualize amplitude, DEM, or temporal coherence as the background. Right-click on any point to see its time series.</p>
+</section>
+<section id="export-to-gis-format">
+<h2>Export to GIS Format<a class="headerlink" href="#export-to-gis-format" title="Link to this heading">¶</a></h2>
+<p>Export the data to Shapefiles using the following command.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sarvey_export<span class="w"> </span>outputs/p2_coh80_ts.h5<span class="w"> </span>-o<span class="w"> </span>outputs/shp/p2_coh80_ts.shp
+</pre></div>
+</div>
+<p>You can visualize the data in any GIS software. If you use QGIS, you can use the <a class="reference external" href="https://plugins.qgis.org/plugins/pstimeseries/">PS Time Series Viewer</a> plugin to draw the time series.</p>
+</section>
+<section id="validate-your-results">
+<h2>Validate Your Results<a class="headerlink" href="#validate-your-results" title="Link to this heading">¶</a></h2>
+<p>You can download a copy of the final SARvey products from <a class="reference external" href="https://doi.org/10.5281/zenodo.12189041">this link</a>. Use these files to compare your results and ensure everything worked correctly.</p>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="../index.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">Fast Track Guide for Masjed Soleyman Dam</a><ul>
+<li><a class="reference internal" href="#download-the-data">Download the Data</a></li>
+<li><a class="reference internal" href="#activate-sarvey-environment">Activate SARvey environment</a></li>
+<li><a class="reference internal" href="#create-a-config-file">Create a Config File</a></li>
+<li><a class="reference internal" href="#run-sarvey">Run <strong>SARvey</strong></a></li>
+<li><a class="reference internal" href="#check-outputs">Check Outputs</a></li>
+<li><a class="reference internal" href="#plot-time-series-results">Plot Time Series Results</a></li>
+<li><a class="reference internal" href="#export-to-gis-format">Export to GIS Format</a></li>
+<li><a class="reference internal" href="#validate-your-results">Validate Your Results</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="demo_masjed_dam_detailed_guide.html"
+                          title="previous chapter">Detailed Guide for Masjed Soleyman Dam</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="../modules.html"
+                          title="next chapter">Python API reference</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/demo/demo_masjed_dam_fast_track.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../modules.html" title="Python API reference"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="demo_masjed_dam_detailed_guide.html" title="Detailed Guide for Masjed Soleyman Dam"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">SARvey 1.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../demo_datasets.html" >Demo Datasets</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="demo_masjed_dam.html" >Masjed Soleyman dam</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Fast Track Guide for Masjed Soleyman Dam</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2024, IPI - Leibniz Universitaet Hannover.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.4.4.
+    </div>
+  </body>
+</html>

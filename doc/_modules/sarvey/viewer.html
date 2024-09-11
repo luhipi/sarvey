@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>sarvey.viewer &#8212; SARvey 1.0.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=def86cc0" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=86cf1cd6" />
+    
+    <script src="../../_static/documentation_options.js?v=8d563738"></script>
+    <script src="../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">SARvey 1.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">sarvey.viewer</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for sarvey.viewer</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+
+<span class="c1"># SARvey - A multitemporal InSAR time series tool for the derivation of displacements.</span>
+<span class="c1">#</span>
+<span class="c1"># Copyright (C) 2021-2024 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)</span>
+<span class="c1">#</span>
+<span class="c1"># This software was developed together with FERN.Lab (fernlab@gfz-potsdam.de) in the context</span>
+<span class="c1"># of the SAR4Infra project with funds of the German Federal Ministry for Digital and</span>
+<span class="c1"># Transport and contributions from Landesamt fuer Vermessung und Geoinformation</span>
+<span class="c1"># Schleswig-Holstein and Landesbetrieb Strassenbau und Verkehr Schleswig-Holstein.</span>
+<span class="c1">#</span>
+<span class="c1"># This program is free software: you can redistribute it and/or modify it under</span>
+<span class="c1"># the terms of the GNU General Public License as published by the Free Software</span>
+<span class="c1"># Foundation, either version 3 of the License, or (at your option) any later</span>
+<span class="c1"># version.</span>
+<span class="c1">#</span>
+<span class="c1"># Important: This package uses PyMaxFlow. The core of PyMaxflows library is the C++</span>
+<span class="c1"># implementation by Vladimir Kolmogorov. It is also licensed under the GPL, but it REQUIRES that you</span>
+<span class="c1"># cite [BOYKOV04] (see LICENSE) in any resulting publication if you use this code for research purposes.</span>
+<span class="c1"># This requirement extends to SARvey.</span>
+<span class="c1">#</span>
+<span class="c1"># This program is distributed in the hope that it will be useful, but WITHOUT</span>
+<span class="c1"># ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS</span>
+<span class="c1"># FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more</span>
+<span class="c1"># details.</span>
+<span class="c1">#</span>
+<span class="c1"># You should have received a copy of the GNU Lesser General Public License along</span>
+<span class="c1"># with this program. If not, see &lt;https://www.gnu.org/licenses/&gt;.</span>
+
+<span class="sd">&quot;&quot;&quot;Viewer Module for SARvey.&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span>
+<span class="kn">from</span> <span class="nn">logging</span> <span class="kn">import</span> <span class="n">Logger</span>
+<span class="kn">import</span> <span class="nn">matplotlib.cm</span> <span class="k">as</span> <span class="nn">cm</span>
+<span class="kn">import</span> <span class="nn">matplotlib.patches</span> <span class="k">as</span> <span class="nn">patches</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">colormaps</span><span class="p">,</span> <span class="n">widgets</span>
+<span class="kn">from</span> <span class="nn">matplotlib.backend_bases</span> <span class="kn">import</span> <span class="n">MouseButton</span>
+<span class="kn">from</span> <span class="nn">matplotlib.colors</span> <span class="kn">import</span> <span class="n">Normalize</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy.spatial</span> <span class="kn">import</span> <span class="n">KDTree</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+
+<span class="kn">from</span> <span class="nn">mintpy.objects.colors</span> <span class="kn">import</span> <span class="n">ColormapExt</span>
+<span class="kn">from</span> <span class="nn">mintpy.utils</span> <span class="kn">import</span> <span class="n">readfile</span>
+<span class="kn">from</span> <span class="nn">mintpy.utils.plot</span> <span class="kn">import</span> <span class="n">auto_flip_direction</span>
+
+<span class="kn">from</span> <span class="nn">sarvey.objects</span> <span class="kn">import</span> <span class="n">AmplitudeImage</span><span class="p">,</span> <span class="n">Points</span><span class="p">,</span> <span class="n">BaseStack</span>
+<span class="kn">import</span> <span class="nn">sarvey.utils</span> <span class="k">as</span> <span class="nn">ut</span>
+
+
+<div class="viewcode-block" id="plotIfgs">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.viewer.plotIfgs">[docs]</a>
+<span class="k">def</span> <span class="nf">plotIfgs</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">phase</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">coord</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">spatial_ref_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">ttl</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">cmap</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;cmy&quot;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Plot one interferogram per subplot.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    phase: np.ndarray</span>
+<span class="sd">        phase per point and ifg, e.g. wrapped or unwrapped phase (dim: no. psPoints x no. ifgs)</span>
+<span class="sd">    coord: np.ndarray</span>
+<span class="sd">        coordinates of the psPoints, e.g. pixel or lat lon (dim: no. psPoints x 2)</span>
+<span class="sd">    spatial_ref_idx: int</span>
+<span class="sd">        index of the spatial reference point (default: None)</span>
+<span class="sd">    ttl: str</span>
+<span class="sd">        title for the figure (default: None)</span>
+<span class="sd">    cmap: str</span>
+<span class="sd">        colormap, use &quot;cmy&quot; for wrapped phase data (default) or &quot;?&quot; for unwrapped or residual phase</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">cmap</span> <span class="o">==</span> <span class="s2">&quot;cmy&quot;</span><span class="p">:</span>
+        <span class="n">cmap</span> <span class="o">=</span> <span class="n">ColormapExt</span><span class="p">(</span><span class="s1">&#39;cmy&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">colormap</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">cmap</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="n">cmap</span><span class="p">)</span>
+
+    <span class="n">num_ifgs</span> <span class="o">=</span> <span class="n">phase</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">min_val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">phase</span><span class="p">)</span>
+    <span class="n">max_val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">phase</span><span class="p">)</span>
+    <span class="n">fig</span><span class="p">,</span> <span class="n">axs</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">num_ifgs</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+                            <span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">num_ifgs</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+    <span class="n">sc</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">ax</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">axs</span><span class="o">.</span><span class="n">flat</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">num_ifgs</span><span class="p">:</span>
+            <span class="n">sc</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">coord</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">coord</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">c</span><span class="o">=</span><span class="n">phase</span><span class="p">[:,</span> <span class="n">i</span><span class="p">],</span>
+                            <span class="n">vmin</span><span class="o">=</span><span class="n">min_val</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="n">max_val</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">cmap</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">([])</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">([])</span>
+            <span class="k">if</span> <span class="n">spatial_ref_idx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">coord</span><span class="p">[</span><span class="n">spatial_ref_idx</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+                        <span class="n">coord</span><span class="p">[</span><span class="n">spatial_ref_idx</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;k*&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">i</span> <span class="o">==</span> <span class="n">num_ifgs</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">sc</span><span class="p">,</span> <span class="n">cax</span><span class="o">=</span><span class="n">ax</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">ttl</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="n">ttl</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="plotScatter">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.viewer.plotScatter">[docs]</a>
+<span class="k">def</span> <span class="nf">plotScatter</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">coord</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">bmap_obj</span><span class="p">:</span> <span class="n">AmplitudeImage</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">ttl</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">unit</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">s</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">5.0</span><span class="p">,</span> <span class="n">cmap</span><span class="p">:</span> <span class="n">colormaps</span> <span class="o">=</span> <span class="n">colormaps</span><span class="p">[</span><span class="s2">&quot;jet_r&quot;</span><span class="p">],</span> <span class="n">symmetric</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Plot a scatter map for given value.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    value: np.ndarray</span>
+<span class="sd">        value to be plotted per point giving the colour of the point (dim: no. points x 1)</span>
+<span class="sd">    coord: np.ndarray</span>
+<span class="sd">        coordinates of the points, e.g. radar or lat lon (dim: no. points x 2). If bmapObj is given,</span>
+<span class="sd">        the coordinates must be radar coordinates!</span>
+<span class="sd">    bmap_obj: AmplitudeImage</span>
+<span class="sd">        instance of amplitudeImage for plotting background image (default: None)</span>
+<span class="sd">    ttl: str</span>
+<span class="sd">        title for the figure (default: None)</span>
+<span class="sd">    unit: str</span>
+<span class="sd">        unit as title for the colorbar axis (default: None)</span>
+<span class="sd">    s: float</span>
+<span class="sd">        size of the scatter points (default: 5.0)</span>
+<span class="sd">    cmap: str</span>
+<span class="sd">        colormap (default: &quot;jet_r&quot;)</span>
+<span class="sd">    symmetric: bool</span>
+<span class="sd">        plot symmetric colormap extend, i.e. abs(vmin) == abs(vmax) (default: False)</span>
+<span class="sd">    logger: Logger</span>
+<span class="sd">        logging Handler</span>
+<span class="sd">    kwargs: Any</span>
+<span class="sd">        additional keyword arguments for scatter plot</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    fig: plt.Figure</span>
+<span class="sd">        current figure,</span>
+<span class="sd">    ax: plt.Axes</span>
+<span class="sd">        current axis</span>
+<span class="sd">    cb: plt.colorbar</span>
+<span class="sd">        current colorbar</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">bmap_obj</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">bmap_obj</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
+        <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">gcf</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">symmetric</span><span class="p">:</span>
+        <span class="n">v_range</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">ravel</span><span class="p">()))</span>
+        <span class="n">sc</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">coord</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">coord</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">c</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="n">s</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="n">cmap</span><span class="p">),</span>
+                        <span class="n">vmin</span><span class="o">=-</span><span class="n">v_range</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="n">v_range</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">sc</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">coord</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">coord</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">c</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="n">s</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="n">cmap</span><span class="p">),</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">cb</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">sc</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mf">0.03</span><span class="p">,</span> <span class="n">shrink</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+    <span class="n">cb</span><span class="o">.</span><span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">unit</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">ttl</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">cb</span></div>
+
+
+
+<div class="viewcode-block" id="plotColoredPointNetwork">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.viewer.plotColoredPointNetwork">[docs]</a>
+<span class="k">def</span> <span class="nf">plotColoredPointNetwork</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">arcs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">val</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">ax</span><span class="p">:</span> <span class="n">plt</span><span class="o">.</span><span class="n">Axes</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                            <span class="n">linewidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">cmap_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;seismic&quot;</span><span class="p">,</span> <span class="n">clim</span><span class="p">:</span> <span class="nb">tuple</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Plot a network of points with colored arcs.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    x: np.ndarray</span>
+<span class="sd">        x-coordinates of the points (dim: no. points x 1)</span>
+<span class="sd">    y: np.ndarray</span>
+<span class="sd">        y-coordinates of the points (dim: no. points x 1)</span>
+<span class="sd">    arcs: np.ndarray</span>
+<span class="sd">        indices of the points to be connected (dim: no. arcs x 2)</span>
+<span class="sd">    val: np.ndarray</span>
+<span class="sd">        values for the color of the arcs (dim: no. arcs x 1)</span>
+<span class="sd">    ax: plt.Axes</span>
+<span class="sd">        axis for plotting (default: None)</span>
+<span class="sd">    linewidth: float</span>
+<span class="sd">        line width of the arcs (default: 2)</span>
+<span class="sd">    cmap_name: str</span>
+<span class="sd">        name of the colormap (default: &quot;seismic&quot;)</span>
+<span class="sd">    clim: tuple</span>
+<span class="sd">        color limits for the colormap (default: None)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ax: plt.Axes</span>
+<span class="sd">        current axis</span>
+<span class="sd">    cbar: plt.colorbar</span>
+<span class="sd">        current colorbar</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">ax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">[</span><span class="mi">15</span><span class="p">,</span> <span class="mi">5</span><span class="p">])</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">fig</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">get_figure</span><span class="p">()</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mf">3.5</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">clim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">norm</span> <span class="o">=</span> <span class="n">Normalize</span><span class="p">(</span><span class="n">vmin</span><span class="o">=</span><span class="nb">min</span><span class="p">(</span><span class="n">val</span><span class="p">),</span> <span class="n">vmax</span><span class="o">=</span><span class="nb">max</span><span class="p">(</span><span class="n">val</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">norm</span> <span class="o">=</span> <span class="n">Normalize</span><span class="p">(</span><span class="n">vmin</span><span class="o">=</span><span class="n">clim</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">vmax</span><span class="o">=</span><span class="n">clim</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="n">mapper</span> <span class="o">=</span> <span class="n">cm</span><span class="o">.</span><span class="n">ScalarMappable</span><span class="p">(</span><span class="n">norm</span><span class="o">=</span><span class="n">norm</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">cm</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="n">cmap_name</span><span class="p">))</span>
+    <span class="n">mapper_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">mapper</span><span class="o">.</span><span class="n">to_rgba</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">val</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">arcs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="n">x_val</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="n">arcs</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="mi">0</span><span class="p">]],</span> <span class="n">x</span><span class="p">[</span><span class="n">arcs</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="mi">1</span><span class="p">]]]</span>
+        <span class="n">y_val</span> <span class="o">=</span> <span class="p">[</span><span class="n">y</span><span class="p">[</span><span class="n">arcs</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="mi">0</span><span class="p">]],</span> <span class="n">y</span><span class="p">[</span><span class="n">arcs</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="mi">1</span><span class="p">]]]</span>
+
+        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x_val</span><span class="p">,</span> <span class="n">y_val</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="n">linewidth</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">mapper_list</span><span class="p">[</span><span class="n">m</span><span class="p">])</span>
+    <span class="n">cbar</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">mapper</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mf">0.03</span><span class="p">,</span> <span class="n">shrink</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">ax</span><span class="p">,</span> <span class="n">cbar</span></div>
+
+
+
+<div class="viewcode-block" id="plotGridFromBoxList">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.viewer.plotGridFromBoxList">[docs]</a>
+<span class="k">def</span> <span class="nf">plotGridFromBoxList</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">box_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">ax</span><span class="p">:</span> <span class="n">plt</span><span class="o">.</span><span class="n">Axes</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">edgecolor</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Plot a grid into an axis.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    box_list: list</span>
+<span class="sd">        boxes to be plotted. box_list can be created with &#39;splitImageIntoBoxesRngAz&#39; or &#39;splitImageIntoBoxes&#39;</span>
+<span class="sd">    ax: plt.Axes</span>
+<span class="sd">        axis for plotting (default: None)</span>
+<span class="sd">    edgecolor: str</span>
+<span class="sd">        edge color for the boxes (default: &quot;k&quot;)</span>
+<span class="sd">    linewidth: float</span>
+<span class="sd">        line width for the boxes (default: 1)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ax: plt.Axes</span>
+<span class="sd">        current axis</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">ax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">box</span> <span class="ow">in</span> <span class="n">box_list</span><span class="p">:</span>
+        <span class="n">rect</span> <span class="o">=</span> <span class="n">patches</span><span class="o">.</span><span class="n">Rectangle</span><span class="p">((</span><span class="n">box</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">box</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">box</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">box</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">box</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">-</span> <span class="n">box</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">linewidth</span><span class="o">=</span><span class="n">linewidth</span><span class="p">,</span>
+                                 <span class="n">edgecolor</span><span class="o">=</span><span class="n">edgecolor</span><span class="p">,</span> <span class="n">facecolor</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">add_patch</span><span class="p">(</span><span class="n">rect</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ax</span></div>
+
+
+
+<div class="viewcode-block" id="TimeSeriesViewer">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.viewer.TimeSeriesViewer">[docs]</a>
+<span class="k">class</span> <span class="nc">TimeSeriesViewer</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;TimeSeriesViewer.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">point_obj</span><span class="p">:</span> <span class="n">Points</span><span class="p">,</span> <span class="n">vel_scale</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;mm&quot;</span><span class="p">,</span> <span class="n">input_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Init.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sc</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">point_obj</span> <span class="o">=</span> <span class="n">point_obj</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ts_point_marker</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># for ts point marker</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ts_point_idx</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># index of ts_point</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ts_refpoint_marker</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># for reference point marker</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logger</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ts_refpoint_idx</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># index of reference point</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vel_scale</span> <span class="o">=</span> <span class="n">vel_scale</span>
+        <span class="n">scale_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;mm&quot;</span><span class="p">:</span> <span class="mi">1000</span><span class="p">,</span> <span class="s2">&quot;cm&quot;</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span> <span class="s2">&quot;dm&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span> <span class="s2">&quot;m&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">}</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">vel_scale</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">scale_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid argument: &#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">vel_scale</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scale</span> <span class="o">=</span> <span class="n">scale_dict</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">vel_scale</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tree</span> <span class="o">=</span> <span class="n">KDTree</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">point_obj</span><span class="o">.</span><span class="n">coord_xy</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">point_obj</span><span class="o">.</span><span class="n">ifg_net_obj</span><span class="o">.</span><span class="n">dates</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">times</span> <span class="o">=</span> <span class="p">[</span><span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">fromisoformat</span><span class="p">(</span><span class="n">date</span><span class="p">)</span> <span class="k">for</span> <span class="n">date</span> <span class="ow">in</span> <span class="n">point_obj</span><span class="o">.</span><span class="n">ifg_net_obj</span><span class="o">.</span><span class="n">dates</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># backwards compatible, if ifg_net_obj does not contain dates</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">times</span> <span class="o">=</span> <span class="n">point_obj</span><span class="o">.</span><span class="n">ifg_net_obj</span><span class="o">.</span><span class="n">tbase</span>
+
+        <span class="n">vel</span><span class="p">,</span> <span class="n">demerr</span><span class="p">,</span> <span class="n">ref_atmo</span><span class="p">,</span> <span class="n">coherence</span><span class="p">,</span> <span class="n">omega</span><span class="p">,</span> <span class="n">v_hat</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">estimateParameters</span><span class="p">(</span><span class="n">obj</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">point_obj</span><span class="p">,</span> <span class="n">ifg_space</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vel</span> <span class="o">=</span> <span class="n">vel</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">demerr</span> <span class="o">=</span> <span class="n">demerr</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ref_atmo</span> <span class="o">=</span> <span class="n">ref_atmo</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">bmap_obj</span> <span class="o">=</span> <span class="n">AmplitudeImage</span><span class="p">(</span><span class="n">file_path</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">point_obj</span><span class="o">.</span><span class="n">file_path</span><span class="p">),</span>
+                                                              <span class="s2">&quot;background_map.h5&quot;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bmap_obj</span><span class="o">.</span><span class="n">open</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">height</span> <span class="o">=</span> <span class="n">readfile</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">input_path</span><span class="p">,</span> <span class="s2">&quot;geometryRadar.h5&quot;</span><span class="p">),</span> <span class="n">datasetName</span><span class="o">=</span><span class="s1">&#39;height&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">temp_coh_obj</span> <span class="o">=</span> <span class="n">BaseStack</span><span class="p">(</span>
+            <span class="n">file</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">point_obj</span><span class="o">.</span><span class="n">file_path</span><span class="p">),</span> <span class="s2">&quot;temporal_coherence.h5&quot;</span><span class="p">),</span>
+            <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">temp_coh_img</span> <span class="o">=</span> <span class="n">temp_coh_obj</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">dataset_name</span><span class="o">=</span><span class="s2">&quot;temp_coh&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">font_size</span> <span class="o">=</span> <span class="mi">10</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">rc</span><span class="p">(</span><span class="s1">&#39;font&#39;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">font_size</span><span class="p">)</span>  <span class="c1"># controls default text size</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">rc</span><span class="p">(</span><span class="s1">&#39;axes&#39;</span><span class="p">,</span> <span class="n">titlesize</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">font_size</span><span class="p">)</span>  <span class="c1"># fontsize of the title</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">rc</span><span class="p">(</span><span class="s1">&#39;axes&#39;</span><span class="p">,</span> <span class="n">labelsize</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">font_size</span><span class="p">)</span>  <span class="c1"># fontsize of the x and y labels</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">rc</span><span class="p">(</span><span class="s1">&#39;xtick&#39;</span><span class="p">,</span> <span class="n">labelsize</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">font_size</span><span class="p">)</span>  <span class="c1"># fontsize of the x tick labels</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">rc</span><span class="p">(</span><span class="s1">&#39;ytick&#39;</span><span class="p">,</span> <span class="n">labelsize</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">font_size</span><span class="p">)</span>  <span class="c1"># fontsize of the y tick labels</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">rc</span><span class="p">(</span><span class="s1">&#39;legend&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">font_size</span><span class="p">)</span>  <span class="c1"># fontsize of the legend</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">initFigureMap</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initFigureTimeseries</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">plotMap</span><span class="p">(</span><span class="n">val</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">plotPointTimeseries</span><span class="p">(</span><span class="n">val</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>  <span class="c1"># just any point</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fig1</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">mpl_connect</span><span class="p">(</span><span class="s1">&#39;button_press_event&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">onClick</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+<div class="viewcode-block" id="TimeSeriesViewer.initFigureMap">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.viewer.TimeSeriesViewer.initFigureMap">[docs]</a>
+    <span class="k">def</span> <span class="nf">initFigureMap</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;InitFigureMap.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fig1</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ax_img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fig1</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">ax_cb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fig1</span><span class="o">.</span><span class="n">add_axes</span><span class="p">([</span><span class="mf">0.93</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.015</span><span class="p">,</span> <span class="mf">0.15</span><span class="p">])</span>  <span class="c1"># (left, bottom, width, height)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fig1</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sc</span><span class="p">,</span>
+                                     <span class="n">cax</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ax_cb</span><span class="p">,</span>
+                                     <span class="n">ax</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ax_img</span><span class="p">,</span>
+                                     <span class="n">pad</span><span class="o">=</span><span class="mf">0.03</span><span class="p">,</span>
+                                     <span class="n">shrink</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
+                                     <span class="n">aspect</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+                                     <span class="n">orientation</span><span class="o">=</span><span class="s1">&#39;vertical&#39;</span><span class="p">)</span>
+
+        <span class="c1"># add button to select reference point</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_reference_point</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ax_button</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fig1</span><span class="o">.</span><span class="n">add_axes</span><span class="p">([</span><span class="mf">0.125</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.08</span><span class="p">])</span>  <span class="c1"># (left, bottom, width, height)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">button_mask</span> <span class="o">=</span> <span class="n">widgets</span><span class="o">.</span><span class="n">Button</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ax_button</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Select</span><span class="se">\n</span><span class="s1">Reference&#39;</span><span class="p">,</span> <span class="n">image</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;1&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">button_mask</span><span class="o">.</span><span class="n">on_clicked</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">updateButtonStatus</span><span class="p">)</span>
+
+        <span class="c1"># add radiobutton to select parameter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ax_radio_par</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fig1</span><span class="o">.</span><span class="n">add_axes</span><span class="p">([</span><span class="mf">0.225</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.08</span><span class="p">])</span>  <span class="c1"># (left, bottom, width, height)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rb_par</span> <span class="o">=</span> <span class="n">widgets</span><span class="o">.</span><span class="n">RadioButtons</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ax_radio_par</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Velocity&#39;</span><span class="p">,</span> <span class="s1">&#39;DEM error&#39;</span><span class="p">,</span> <span class="s1">&#39;None&#39;</span><span class="p">],</span> <span class="n">active</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rb_par</span><span class="o">.</span><span class="n">on_clicked</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">plotMap</span><span class="p">)</span>
+
+        <span class="c1"># add radiobutton to select background image</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ax_radio_backgr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fig1</span><span class="o">.</span><span class="n">add_axes</span><span class="p">([</span><span class="mf">0.425</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.08</span><span class="p">])</span>  <span class="c1"># (left, bottom, width, height)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rb_backgr</span> <span class="o">=</span> <span class="n">widgets</span><span class="o">.</span><span class="n">RadioButtons</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ax_radio_backgr</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Amplitude&#39;</span><span class="p">,</span> <span class="s1">&#39;DEM&#39;</span><span class="p">,</span> <span class="s1">&#39;Coherence&#39;</span><span class="p">,</span> <span class="s1">&#39;None&#39;</span><span class="p">],</span>
+                                              <span class="n">active</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rb_backgr</span><span class="o">.</span><span class="n">on_clicked</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">plotMap</span><span class="p">)</span>
+
+        <span class="c1"># add info box with info about velocity and DEM error of selected pixel</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ax_info_box</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fig1</span><span class="o">.</span><span class="n">add_axes</span><span class="p">([</span><span class="mf">0.625</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.08</span><span class="p">])</span>  <span class="c1"># (left, bottom, width, height)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">text_obj_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ax_info_box</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ax_info_box</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">([],</span> <span class="p">[])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ax_info_box</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">([],</span> <span class="p">[])</span>
+
+        <span class="c1"># add variable for axis of slider controlling the visualized coherence background image</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ax_slide_coh</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sl_last_val</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sl_coh</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="TimeSeriesViewer.initFigureTimeseries">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.viewer.TimeSeriesViewer.initFigureTimeseries">[docs]</a>
+    <span class="k">def</span> <span class="nf">initFigureTimeseries</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;InitFigureTimeseries.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fig2</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ax_ts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fig2</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># add radiobutton for fitting linear model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ax_radio_fit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fig2</span><span class="o">.</span><span class="n">add_axes</span><span class="p">([</span><span class="mf">0.125</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.08</span><span class="p">])</span>  <span class="c1"># (left, bottom, width, height)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rb_fit</span> <span class="o">=</span> <span class="n">widgets</span><span class="o">.</span><span class="n">RadioButtons</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ax_radio_fit</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;None&#39;</span><span class="p">,</span> <span class="s1">&#39;Linear fit&#39;</span><span class="p">],</span> <span class="n">active</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># add radiobutton for selecting baseline type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ax_radio_baselines</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fig2</span><span class="o">.</span><span class="n">add_axes</span><span class="p">([</span><span class="mf">0.325</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.08</span><span class="p">])</span>  <span class="c1"># (left, bottom, width, height)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rb_baselines</span> <span class="o">=</span> <span class="n">widgets</span><span class="o">.</span><span class="n">RadioButtons</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ax_radio_baselines</span><span class="p">,</span>
+            <span class="n">labels</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Temporal baseline&#39;</span><span class="p">,</span> <span class="s1">&#39;Perpendicular baseline&#39;</span><span class="p">],</span>
+            <span class="n">active</span><span class="o">=</span><span class="mi">0</span>
+        <span class="p">)</span>
+
+        <span class="c1"># add check box for removing phase due to parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ax_cbox_par</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fig2</span><span class="o">.</span><span class="n">add_axes</span><span class="p">([</span><span class="mf">0.525</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.08</span><span class="p">])</span>  <span class="c1"># (left, bottom, width, height)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cbox_par</span> <span class="o">=</span> <span class="n">widgets</span><span class="o">.</span><span class="n">CheckButtons</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ax_cbox_par</span><span class="p">,</span>
+            <span class="p">[</span><span class="s2">&quot;Velocity&quot;</span><span class="p">,</span> <span class="s2">&quot;DEM error&quot;</span><span class="p">],</span>
+            <span class="n">actives</span><span class="o">=</span><span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rb_fit</span><span class="o">.</span><span class="n">on_clicked</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">plotPointTimeseries</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rb_baselines</span><span class="o">.</span><span class="n">on_clicked</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">plotPointTimeseries</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cbox_par</span><span class="o">.</span><span class="n">on_clicked</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">plotPointTimeseries</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="TimeSeriesViewer.plotMap">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.viewer.TimeSeriesViewer.plotMap">[docs]</a>
+    <span class="k">def</span> <span class="nf">plotMap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">:</span> <span class="nb">object</span><span class="p">):</span>  <span class="c1"># val seems to be unused, but its necessary for the function to work.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Plot velocity map and time series.&quot;&quot;&quot;</span>
+        <span class="n">flag_initial_plot</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">ax_img</span><span class="o">.</span><span class="n">get_xlim</span><span class="p">()</span>
+        <span class="n">ax_img_xlim</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">ax_img_ylim</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">flag_initial_plot</span><span class="p">:</span>
+            <span class="n">ax_img_xlim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ax_img</span><span class="o">.</span><span class="n">get_xlim</span><span class="p">()</span>
+            <span class="n">ax_img_ylim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ax_img</span><span class="o">.</span><span class="n">get_ylim</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">ax_img</span><span class="o">.</span><span class="n">cla</span><span class="p">()</span>
+
+        <span class="c1"># get selected background from radiobutton</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rb_backgr</span><span class="o">.</span><span class="n">value_selected</span> <span class="o">==</span> <span class="s2">&quot;Amplitude&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ax_img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bmap_obj</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ax_img</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ax_slide_coh</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">sl_last_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sl_coh</span><span class="o">.</span><span class="n">val</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ax_slide_coh</span><span class="o">.</span><span class="n">remove</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ax_slide_coh</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rb_backgr</span><span class="o">.</span><span class="n">value_selected</span> <span class="o">==</span> <span class="s2">&quot;DEM&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ax_img</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">height</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">ColormapExt</span><span class="p">(</span><span class="s1">&#39;DEM_print&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">colormap</span><span class="p">)</span>
+            <span class="n">meta</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;ORBIT_DIRECTION&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">bmap_obj</span><span class="o">.</span><span class="n">orbit_direction</span><span class="p">}</span>
+            <span class="n">auto_flip_direction</span><span class="p">(</span><span class="n">meta</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ax_img</span><span class="p">,</span> <span class="n">print_msg</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ax_img</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Range&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ax_img</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Azimuth&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ax_slide_coh</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">sl_last_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sl_coh</span><span class="o">.</span><span class="n">val</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ax_slide_coh</span><span class="o">.</span><span class="n">remove</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ax_slide_coh</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rb_backgr</span><span class="o">.</span><span class="n">value_selected</span> <span class="o">==</span> <span class="s2">&quot;Coherence&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ax_slide_coh</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># add slider to change value of coherence for background map</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ax_slide_coh</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fig1</span><span class="o">.</span><span class="n">add_axes</span><span class="p">([</span><span class="mf">0.425</span><span class="p">,</span> <span class="mf">0.85</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.03</span><span class="p">])</span>  <span class="c1"># (left, bottom, width, height)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">sl_coh</span> <span class="o">=</span> <span class="n">widgets</span><span class="o">.</span><span class="n">Slider</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ax_slide_coh</span><span class="p">,</span>
+                                             <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Coherence&#39;</span><span class="p">,</span>
+                                             <span class="n">valmin</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                                             <span class="n">valmax</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+                                             <span class="n">valinit</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sl_last_val</span><span class="p">,</span>
+                                             <span class="n">valfmt</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%.1f</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">ax_img</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">temp_coh_img</span><span class="p">,</span>
+                               <span class="n">cmap</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="s2">&quot;gray&quot;</span><span class="p">),</span>
+                               <span class="n">vmin</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sl_coh</span><span class="o">.</span><span class="n">val</span><span class="p">,</span> <span class="n">decimals</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+                               <span class="n">vmax</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">meta</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;ORBIT_DIRECTION&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">bmap_obj</span><span class="o">.</span><span class="n">orbit_direction</span><span class="p">}</span>
+            <span class="n">auto_flip_direction</span><span class="p">(</span><span class="n">meta</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ax_img</span><span class="p">,</span> <span class="n">print_msg</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ax_img</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Range&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ax_img</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Azimuth&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rb_backgr</span><span class="o">.</span><span class="n">value_selected</span> <span class="o">==</span> <span class="s2">&quot;None&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ax_img</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">height</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int8</span><span class="p">),</span> <span class="n">cmap</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="s2">&quot;gray&quot;</span><span class="p">),</span> <span class="n">vmin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">meta</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;ORBIT_DIRECTION&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">bmap_obj</span><span class="o">.</span><span class="n">orbit_direction</span><span class="p">}</span>
+            <span class="n">auto_flip_direction</span><span class="p">(</span><span class="n">meta</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ax_img</span><span class="p">,</span> <span class="n">print_msg</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ax_img</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Range&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ax_img</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Azimuth&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ax_slide_coh</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">sl_last_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sl_coh</span><span class="o">.</span><span class="n">val</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ax_slide_coh</span><span class="o">.</span><span class="n">remove</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ax_slide_coh</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="n">par</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">v_range</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">cb_ttl</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rb_par</span><span class="o">.</span><span class="n">value_selected</span> <span class="o">==</span> <span class="s2">&quot;Velocity&quot;</span><span class="p">:</span>  <span class="c1"># show velocity</span>
+            <span class="n">v_range</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vel</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span><span class="p">))</span>
+            <span class="n">par</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vel</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span>
+            <span class="n">cb_ttl</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;[</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">vel_scale</span><span class="si">}</span><span class="s2">/</span><span class="se">\n</span><span class="s2">year]&quot;</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">rb_par</span><span class="o">.</span><span class="n">value_selected</span> <span class="o">==</span> <span class="s2">&quot;DEM error&quot;</span><span class="p">:</span>  <span class="c1"># show demerr</span>
+            <span class="n">v_range</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">demerr</span><span class="p">))</span>
+            <span class="n">par</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">demerr</span>
+            <span class="n">cb_ttl</span> <span class="o">=</span> <span class="s2">&quot;[m]&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rb_par</span><span class="o">.</span><span class="n">value_selected</span> <span class="o">!=</span> <span class="s2">&quot;None&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ax_img</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">point_obj</span><span class="o">.</span><span class="n">coord_xy</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span>
+                                          <span class="bp">self</span><span class="o">.</span><span class="n">point_obj</span><span class="o">.</span><span class="n">coord_xy</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
+                                          <span class="n">c</span><span class="o">=</span><span class="n">par</span><span class="p">,</span>
+                                          <span class="n">s</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+                                          <span class="n">cmap</span><span class="o">=</span><span class="n">colormaps</span><span class="p">[</span><span class="s2">&quot;jet_r&quot;</span><span class="p">],</span>
+                                          <span class="n">vmin</span><span class="o">=-</span><span class="n">v_range</span><span class="p">,</span>
+                                          <span class="n">vmax</span><span class="o">=</span><span class="n">v_range</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">cb</span><span class="o">.</span><span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">cb_ttl</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">font_size</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fig1</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sc</span><span class="p">,</span> <span class="n">cax</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ax_cb</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ax_img</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mf">0.03</span><span class="p">,</span> <span class="n">shrink</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">aspect</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+                                     <span class="n">orientation</span><span class="o">=</span><span class="s1">&#39;vertical&#39;</span><span class="p">)</span>
+
+        <span class="c1"># add back location of selected sarvey point and current reference</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ts_refpoint_idx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># initial value is None</span>
+            <span class="n">y</span><span class="p">,</span> <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">point_obj</span><span class="o">.</span><span class="n">coord_xy</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ts_refpoint_idx</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ts_refpoint_marker</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ax_img</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;^&#39;</span><span class="p">,</span> <span class="n">facecolors</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span> <span class="n">edgecolors</span><span class="o">=</span><span class="s1">&#39;k&#39;</span><span class="p">)</span>
+
+        <span class="n">y</span><span class="p">,</span> <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">point_obj</span><span class="o">.</span><span class="n">coord_xy</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ts_point_idx</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ts_point_marker</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ax_img</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">facecolors</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span> <span class="n">edgecolors</span><span class="o">=</span><span class="s1">&#39;k&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">flag_initial_plot</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ax_img</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="n">ax_img_xlim</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ax_img</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="n">ax_img_ylim</span><span class="p">)</span>
+
+        <span class="n">plt</span><span class="o">.</span><span class="n">draw</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="TimeSeriesViewer.updateButtonStatus">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.viewer.TimeSeriesViewer.updateButtonStatus">[docs]</a>
+    <span class="k">def</span> <span class="nf">updateButtonStatus</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">:</span> <span class="nb">object</span><span class="p">):</span>  <span class="c1"># val seems to be unused, but its necessary for the function to work.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set to true.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">set_reference_point</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_reference_point</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">button_mask</span><span class="o">.</span><span class="n">color</span> <span class="o">=</span> <span class="s1">&#39;1&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_reference_point</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">button_mask</span><span class="o">.</span><span class="n">color</span> <span class="o">=</span> <span class="s1">&#39;0.5&#39;</span></div>
+
+
+<div class="viewcode-block" id="TimeSeriesViewer.onClick">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.viewer.TimeSeriesViewer.onClick">[docs]</a>
+    <span class="k">def</span> <span class="nf">onClick</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Event function to get y/x from button press.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">inaxes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">plt</span><span class="o">.</span><span class="n">fignum_exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fig2</span><span class="o">.</span><span class="n">number</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">initFigureTimeseries</span><span class="p">()</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">button</span> <span class="ow">is</span> <span class="n">MouseButton</span><span class="o">.</span><span class="n">RIGHT</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">inaxes</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">ax_img</span><span class="p">:</span>
+                <span class="n">y</span><span class="p">,</span> <span class="n">x</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">ydata</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">xdata</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span>
+                <span class="n">idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tree</span><span class="o">.</span><span class="n">query</span><span class="p">([</span><span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">])[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">y</span><span class="p">,</span> <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">point_obj</span><span class="o">.</span><span class="n">coord_xy</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="p">:]</span>
+
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">set_reference_point</span><span class="p">:</span>  <span class="c1"># update reference point</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ts_refpoint_idx</span> <span class="o">=</span> <span class="n">idx</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">updateReference</span><span class="p">()</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">updateButtonStatus</span><span class="p">(</span><span class="n">val</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+                    <span class="c1"># if self.ts_refpoint_marker is not None:  # initial value is None</span>
+                    <span class="c1">#     self.ts_refpoint_marker.remove()</span>
+                    <span class="c1"># self.ts_refpoint_marker = self.ax_img.scatter(x, y, marker=&#39;^&#39;, facecolors=&#39;none&#39;, edgecolors=&#39;k&#39;)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ts_point_idx</span> <span class="o">=</span> <span class="n">idx</span>
+
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ts_point_marker</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># initial value is None</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">ts_point_marker</span><span class="o">.</span><span class="n">remove</span><span class="p">()</span>
+                        <span class="n">y</span><span class="p">,</span> <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">point_obj</span><span class="o">.</span><span class="n">coord_xy</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ts_point_idx</span><span class="p">,</span> <span class="p">:]</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ts_point_marker</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ax_img</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">facecolors</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span> <span class="n">edgecolors</span><span class="o">=</span><span class="s1">&#39;k&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">plotPointTimeseries</span><span class="p">(</span><span class="n">val</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+        <span class="k">return</span></div>
+
+
+<div class="viewcode-block" id="TimeSeriesViewer.updateReference">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.viewer.TimeSeriesViewer.updateReference">[docs]</a>
+    <span class="k">def</span> <span class="nf">updateReference</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Change the phase of all points according to the new reference point.</span>
+
+<span class="sd">        Update the plot of the velocity and time series.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;changed reference to ID: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">point_obj</span><span class="o">.</span><span class="n">point_id</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ts_refpoint_idx</span><span class="p">]))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">point_obj</span><span class="o">.</span><span class="n">phase</span> <span class="o">-=</span> <span class="bp">self</span><span class="o">.</span><span class="n">point_obj</span><span class="o">.</span><span class="n">phase</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ts_refpoint_idx</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="n">vel</span><span class="p">,</span> <span class="n">demerr</span><span class="p">,</span> <span class="n">ref_atmo</span><span class="p">,</span> <span class="n">coherence</span><span class="p">,</span> <span class="n">omega</span><span class="p">,</span> <span class="n">v_hat</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">estimateParameters</span><span class="p">(</span><span class="n">obj</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">point_obj</span><span class="p">,</span> <span class="n">ifg_space</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vel</span> <span class="o">=</span> <span class="n">vel</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">demerr</span> <span class="o">=</span> <span class="n">demerr</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ref_atmo</span> <span class="o">=</span> <span class="n">ref_atmo</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">plotMap</span><span class="p">(</span><span class="n">val</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="TimeSeriesViewer.plotPointTimeseries">
+<a class="viewcode-back" href="../../sarvey.html#sarvey.viewer.TimeSeriesViewer.plotPointTimeseries">[docs]</a>
+    <span class="k">def</span> <span class="nf">plotPointTimeseries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">:</span> <span class="nb">object</span><span class="p">):</span>  <span class="c1"># val seems to be unused, but its necessary for the function to work.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Plot_point_timeseries.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ax_ts</span><span class="o">.</span><span class="n">cla</span><span class="p">()</span>
+
+        <span class="c1"># transform phase time series into meters</span>
+        <span class="n">resulting_ts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">point_obj</span><span class="o">.</span><span class="n">wavelength</span> <span class="o">/</span> <span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">point_obj</span><span class="o">.</span><span class="n">phase</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ts_point_idx</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="n">cbox_status</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cbox_par</span><span class="o">.</span><span class="n">get_status</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">cbox_status</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>  <span class="c1"># Displacement</span>
+            <span class="n">resulting_ts</span> <span class="o">=</span> <span class="n">resulting_ts</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">point_obj</span><span class="o">.</span><span class="n">ifg_net_obj</span><span class="o">.</span><span class="n">tbase</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">vel</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ts_point_idx</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">cbox_status</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>  <span class="c1"># DEM error</span>
+            <span class="n">phase_topo</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">point_obj</span><span class="o">.</span><span class="n">ifg_net_obj</span><span class="o">.</span><span class="n">pbase</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">point_obj</span><span class="o">.</span><span class="n">slant_range</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ts_point_idx</span><span class="p">]</span> <span class="o">*</span>
+                                                              <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">point_obj</span><span class="o">.</span><span class="n">loc_inc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ts_point_idx</span><span class="p">]))</span> <span class="o">*</span>
+                          <span class="bp">self</span><span class="o">.</span><span class="n">demerr</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ts_point_idx</span><span class="p">])</span>
+            <span class="n">resulting_ts</span> <span class="o">=</span> <span class="n">resulting_ts</span> <span class="o">-</span> <span class="n">phase_topo</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">ax_ts</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Displacement [</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">vel_scale</span><span class="si">}</span><span class="s2">]&quot;</span><span class="p">)</span>
+
+        <span class="c1"># add trend</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rb_fit</span><span class="o">.</span><span class="n">value_selected</span> <span class="o">==</span> <span class="s2">&quot;Linear fit&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rb_baselines</span><span class="o">.</span><span class="n">value_selected</span> <span class="o">==</span> <span class="s2">&quot;Temporal baseline&quot;</span><span class="p">:</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">point_obj</span><span class="o">.</span><span class="n">ifg_net_obj</span><span class="o">.</span><span class="n">tbase</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">vel</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ts_point_idx</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_atmo</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ts_point_idx</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ax_ts</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">,</span> <span class="n">line</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span><span class="p">,</span> <span class="s1">&#39;-k&#39;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">rb_baselines</span><span class="o">.</span><span class="n">value_selected</span> <span class="o">==</span> <span class="s2">&quot;Perpendicular baseline&quot;</span><span class="p">:</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">point_obj</span><span class="o">.</span><span class="n">ifg_net_obj</span><span class="o">.</span><span class="n">pbase</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">point_obj</span><span class="o">.</span><span class="n">slant_range</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ts_point_idx</span><span class="p">]</span> <span class="o">*</span>
+                                                            <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">point_obj</span><span class="o">.</span><span class="n">loc_inc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ts_point_idx</span><span class="p">]))</span> <span class="o">*</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">demerr</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ts_point_idx</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_atmo</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ts_point_idx</span><span class="p">])</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ax_ts</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">point_obj</span><span class="o">.</span><span class="n">ifg_net_obj</span><span class="o">.</span><span class="n">pbase</span><span class="p">,</span> <span class="n">line</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span><span class="p">,</span> <span class="s1">&#39;-k&#39;</span><span class="p">)</span>
+
+        <span class="c1"># set y-lim to [-20, 20] mm except if it exceeds this scale</span>
+        <span class="n">y_max</span> <span class="o">=</span> <span class="nb">max</span><span class="p">([</span><span class="mf">0.02</span><span class="p">,</span> <span class="n">resulting_ts</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">+</span> <span class="mf">0.005</span><span class="p">])</span>
+        <span class="n">y_min</span> <span class="o">=</span> <span class="nb">min</span><span class="p">([</span><span class="o">-</span><span class="mf">0.02</span><span class="p">,</span> <span class="n">resulting_ts</span><span class="o">.</span><span class="n">min</span><span class="p">()</span> <span class="o">-</span> <span class="mf">0.005</span><span class="p">])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">ax_ts</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="n">y_min</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span><span class="p">,</span> <span class="n">y_max</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rb_baselines</span><span class="o">.</span><span class="n">value_selected</span> <span class="o">==</span> <span class="s2">&quot;Temporal baseline&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ax_ts</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">,</span> <span class="n">resulting_ts</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ax_ts</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Time [years]&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rb_baselines</span><span class="o">.</span><span class="n">value_selected</span> <span class="o">==</span> <span class="s2">&quot;Perpendicular baseline&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ax_ts</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">point_obj</span><span class="o">.</span><span class="n">ifg_net_obj</span><span class="o">.</span><span class="n">pbase</span><span class="p">,</span> <span class="n">resulting_ts</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ax_ts</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Perpendicular Baseline [m]&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">text_obj_time</span><span class="o">.</span><span class="n">remove</span><span class="p">()</span>
+        <span class="n">point_info</span> <span class="o">=</span> <span class="s2">&quot;DEM error: </span><span class="si">{:.0f}</span><span class="s2"> m</span><span class="se">\n</span><span class="s2">Velocity: </span><span class="si">{:.0f}</span><span class="s2"> </span><span class="si">{:s}</span><span class="s2">/year&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">demerr</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ts_point_idx</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">vel</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ts_point_idx</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">vel_scale</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">text_obj_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ax_info_box</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">point_info</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">)</span>
+
+        <span class="c1"># update figure</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fig1</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">draw</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fig2</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">draw</span><span class="p">()</span></div>
+</div>
+
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">SARvey 1.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">sarvey.viewer</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2024, IPI - Leibniz Universitaet Hannover.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.4.4.
+    </div>
+  </body>
+</html>

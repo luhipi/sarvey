@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>SARvey - survey with SAR &#8212; SARvey 1.0.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="_static/classic.css?v=def86cc0" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=86cf1cd6" />
+    
+    <script src="_static/documentation_options.js?v=8d563738"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Installation" href="installation.html" />
+    <link rel="prev" title="SARvey documentation" href="index.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="installation.html" title="Installation"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="SARvey documentation"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">SARvey 1.0.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">SARvey - survey with SAR</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="sarvey-survey-with-sar">
+<h1>SARvey - survey with SAR<a class="headerlink" href="#sarvey-survey-with-sar" title="Link to this heading">¶</a></h1>
+<p>Open-source InSAR time series analysis software developed within the project SAR4Infra.
+<strong>SARvey</strong> aims to analyze InSAR displacement time series for engineering applications.</p>
+<section id="documentation">
+<h2>Documentation<a class="headerlink" href="#documentation" title="Link to this heading">¶</a></h2>
+<p>The documentation with installation instructions, processing steps, and examples with a demo dataset can be found at:
+<a class="reference external" href="https://ipi-sar4infra.projektpages.uni-h.de/timeseries/doc/">https://ipi-sar4infra.projektpages.uni-h.de/timeseries/doc/</a></p>
+</section>
+<section id="status">
+<h2>Status<a class="headerlink" href="#status" title="Link to this heading">¶</a></h2>
+<a class="reference external image-reference" href="https://gitlab.projekt.uni-hannover.de/ipi-sar4infra/timeseries/-/pipelines"><img alt="Pipelines" src="https://gitlab.projekt.uni-hannover.de/ipi-sar4infra/timeseries/badges/main/pipeline.svg" />
+</a>
+<a class="reference external image-reference" href="https://ipi-sar4infra.projektpages.uni-h.de/timeseries/coverage/"><img alt="Coverage" src="https://gitlab.projekt.uni-hannover.de/ipi-sar4infra/timeseries/badges/main/coverage.svg" />
+</a>
+<a class="reference external image-reference" href="https://ipi-sar4infra.projektpages.uni-h.de/timeseries/doc/"><img alt="Documentation" src="https://img.shields.io/static/v1?label=Documentation&amp;message=GitLab%20Pages&amp;color=orange" />
+</a>
+<a class="reference external image-reference" href="https://doi.org/10.5281/zenodo.12544131"><img alt="DOI" src="https://zenodo.org/badge/DOI/10.5281/zenodo.12544131.svg" />
+</a>
+<p>See also the latest <a class="reference external" href="https://ipi-sar4infra.projektpages.uni-h.de/timeseries/coverage/">coverage</a> report and the <a class="reference external" href="https://ipi-sar4infra.projektpages.uni-h.de/timeseries/test_reports/report.html">pytest</a> HTML report.</p>
+</section>
+<section id="license">
+<h2>License<a class="headerlink" href="#license" title="Link to this heading">¶</a></h2>
+<p><strong>SARvey</strong> is distributed under the GNU General Public License, version 3 (GPLv3).</p>
+<p>The following exceptions applies:</p>
+<p>This package uses PyMaxFlow. The core of PyMaxflows library is the C++ implementation by Vladimir Kolmogorov. It is also licensed under the GPL, but it REQUIRES that you cite [BOYKOV04] in any resulting publication if you use this code for research purposes.
+This requirement extends to <strong>SARvey</strong>.</p>
+<p>Please check out the details of the license <a class="reference external" href="LICENSE">here</a>.</p>
+</section>
+<section id="how-to-cite">
+<h2>How to cite<a class="headerlink" href="#how-to-cite" title="Link to this heading">¶</a></h2>
+<p>If you use <strong>SARvey</strong> in your research, please cite the following.</p>
+<ol class="arabic">
+<li><p>The paper describing the methodology:</p>
+<p>Piter, A., Haghshenas Haghighi, M., Motagh, M.(2024). An in-depth study on Sentinel-1 InSAR for transport infrastructure monitoring. PFG - Journal of Photogrammetry, Remote Sensing and Geoinformation Science. (paper currently under review).</p>
+</li>
+<li><p>The software itself. Please specify the version you use:</p>
+<p>Piter, A., Haghshenas Haghighi, M., FERN.Lab, &amp; Motagh, M. (2024). SARvey - survey with SAR [version]. Zenodo. <a class="reference external" href="https://doi.org/10.5281/zenodo.12544131">https://doi.org/10.5281/zenodo.12544131</a></p>
+</li>
+<li><p>If you use the PUMA method for unwrapping in your research, please cite the following publication as indicated in the license:</p>
+<p>An Experimental Comparison of Min-Cut/Max-Flow Algorithms for Energy Minimization in Vision. Yuri Boykov and Vladimir Kolmogorov. In IEEE Transactions on Pattern Analysis and Machine Intelligence (PAMI), September 2004. <a class="reference external" href="https://ieeexplore.ieee.org/document/1316848">Link to paper</a>.</p>
+</li>
+</ol>
+</section>
+<section id="processing-overview">
+<h2>Processing overview<a class="headerlink" href="#processing-overview" title="Link to this heading">¶</a></h2>
+<a class="reference internal image-reference" href="https://seafile.projekt.uni-hannover.de/f/006f702937cd4e618bcb/?dl=1"><img alt="SARvey workflow" class="align-center" src="https://seafile.projekt.uni-hannover.de/f/006f702937cd4e618bcb/?dl=1" style="width: 600px;" />
+</a>
+<p>Processing workflow for using the SARvey software to derive displacement time series.</p>
+<p>SARvey is a command-line-based software. The major steps for running SARvey are the following:</p>
+<ul>
+<li><p><strong>Installation</strong></p>
+<p>SARvey is a cross-platform python-based software and can be installed on Linux and MacOS. On Windows, SARvey is tested on Windows Subsystem for Linux (<a class="reference external" href="https://learn.microsoft.com/en-us/windows/wsl/">WSL</a>) version 2.
+Details of installation can be found in <a class="reference external" href="docs/installation.html">installation instruction</a>.</p>
+</li>
+<li><p><strong>Preprocessing</strong></p>
+<p>The software requires a coregistered stack of SLC and the related geometry information in the <a class="reference external" href="https://github.com/insarlab/MiaplPy">MiaplPy</a>  data format.
+The coregistered stack of SLC can be created using an InSAR processor. Currently <a class="reference external" href="https://github.com/insarlab/MiaplPy">MiaplPy</a> only supports <a class="reference external" href="https://github.com/isce-framework/isce2">ISCE</a>. Support for GAMMA and <a class="reference external" href="https://step.esa.int/main/toolboxes/snap">SNAP</a> is planned for future.
+After creating the coregistered stack of SLC, run the “load_data” step from <a class="reference external" href="https://github.com/insarlab/MiaplPy">Miaplpy</a> to create the “inputs” directory which contains “slcStack.h5” and “geometryRadar.h5”.
+Details are explained in the <a class="reference external" href="preparation.html">Preparation</a> section</p>
+</li>
+<li><p><strong>Time series analysis</strong></p>
+<p>Time series analysis is performed using <cite>sarvey</cite>. It consists of 5 steps (steps 0 to 4). The details of each step are explained in <a class="reference external" href="processing.html#processing-steps-for-two-step-unwrapping-workflow">processing steps</a>. The processing parameters are handled in a json config file. Visualization and export are handled by <cite>sarvey_plot</cite> and <cite>sarvey_export</cite> packages. Below are the major steps:</p>
+<ul>
+<li><p>Go to your working directory:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>path/to/working_dir/
+</pre></div>
+</div>
+</li>
+<li><p>Create a default config file using <strong>“-g”</strong> flag:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sarvey<span class="w"> </span>-f<span class="w"> </span>config.json<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">4</span><span class="w"> </span>-g
+</pre></div>
+</div>
+</li>
+<li><p>Modify <strong>config.json</strong> to change path to “inputs” directory. Modify other parameters as desired.</p></li>
+<li><p>Run all processing steps (steps 0 to 4):</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sarvey<span class="w"> </span>-f<span class="w"> </span>config.json<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">4</span>
+</pre></div>
+</div>
+<p>Different processing steps are explained <a class="reference external" href="processing.html">here</a>.</p>
+</li>
+<li><p>Plot the resulting displacement time series:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sarvey_plot<span class="w"> </span>outputs/p2_coh80_ts.h5<span class="w"> </span>-t
+</pre></div>
+</div>
+</li>
+<li><p>Export the results as <a class="reference external" href="https://doc.arcgis.com/en/arcgis-online/reference/shapefiles.htm">Shapefiles</a>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sarvey_export<span class="w"> </span>outputs/p2_coh80_ts.h5<span class="w"> </span>-o<span class="w"> </span>outputs/shp/p2_coh80.shp
+</pre></div>
+</div>
+</li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="feature-overview">
+<h2>Feature overview<a class="headerlink" href="#feature-overview" title="Link to this heading">¶</a></h2>
+<p><strong>SARvey</strong> has three main components for processing, visualization, and exporting data.</p>
+<ul class="simple">
+<li><p><cite>sarvey</cite> performs time series analysis.</p></li>
+<li><p><cite>sarvey_plot</cite> plots the outputs.</p></li>
+<li><p><cite>sarvey_export</cite> exports InSAR time series results from to GIS data formats. The GIS data format can be visualized for example in <a class="reference external" href="https://qgis.org/en/site/">QGIS</a>.</p></li>
+</ul>
+<p>It also has two components that facilitate transport infrastructure monitoring.</p>
+<ul class="simple">
+<li><p><cite>sarvey_mask</cite> creates mask from Shapefiles, e.g. for transport infrastructures.</p></li>
+<li><p><cite>sarvey_osm</cite> downloads transport infrastructure information from <a class="reference external" href="https://www.openstreetmap.org/">OSM</a> and store as Shapefiles.</p></li>
+</ul>
+<p>You can run each component in the command line with “-h” argument for more information about the usage. For example:</p>
+<blockquote>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sarvey<span class="w"> </span>-h
+</pre></div>
+</div>
+</div></blockquote>
+<p><strong>SARvey</strong> supports two processing schemes:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="processing.html#processing-steps-for-two-step-unwrapping-workflow">Two-step unwrapping</a> with atmospheric correction (default).</p></li>
+<li><p><a class="reference external" href="processing.html#processing-steps-for-one-step-unwrapping-workflow">One-step unwrapping</a> for a small area.</p></li>
+</ul>
+</section>
+<section id="history-changelog">
+<h2>History / Changelog<a class="headerlink" href="#history-changelog" title="Link to this heading">¶</a></h2>
+<p>You can find the protocol of recent changes in the <strong>SARvey</strong> package
+<a class="reference external" href="HISTORY.rst">here</a>.</p>
+<p>We follow the principle of semantic versioning.
+The version number is structured as follows: MAJOR.MINOR.PATCH.
+You can find a description of the versioning scheme <a class="reference external" href="https://semver.org/">here</a>.</p>
+</section>
+<section id="credits">
+<h2>Credits<a class="headerlink" href="#credits" title="Link to this heading">¶</a></h2>
+<p>This software was developed within the project SAR4Infra (2020-2024) with funds of the German Federal Ministry for Digital and Transport.
+The project consortium consists of
+the <a class="reference external" href="https://www.ipi.uni-hannover.de/en/">Institute of Photogrammetry and GeoInformation</a> at Leibniz University Hannover,
+<a class="reference external" href="https://fernlab.gfz-potsdam.de/">FERN.Lab</a> (innovation and technology transfer lab of the GFZ German Research Centre for Geosciences, Potsdam),
+<a class="reference external" href="https://www.schleswig-holstein.de/DE/landesregierung/ministerien-behoerden/LVERMGEOSH/lvermgeosh_node.html">Landesamt fuer Vermessung und Geoinformation Schleswig-Holstein</a>,
+and <a class="reference external" href="https://www.schleswig-holstein.de/DE/Landesregierung/LBVSH/lbvsh_node.html">Landesbetrieb Strassenbau und Verkehr Schleswig-Holstein</a>.
+The scientific and methodological development was carried out by Andreas Piter (<a class="reference external" href="mailto:piter&#37;&#52;&#48;ipi&#46;uni-hannover&#46;de">piter<span>&#64;</span>ipi<span>&#46;</span>uni-hannover<span>&#46;</span>de</a>), supervised by Mahmud H. Haghighi (<a class="reference external" href="mailto:mahmud&#37;&#52;&#48;ipi&#46;uni-hannover&#46;de">mahmud<span>&#64;</span>ipi<span>&#46;</span>uni-hannover<span>&#46;</span>de</a>) and Mahdi Motagh (<a class="reference external" href="mailto:motagh&#37;&#52;&#48;gfz-potsdam&#46;de">motagh<span>&#64;</span>gfz-potsdam<span>&#46;</span>de</a>).
+The <a class="reference external" href="https://fernlab.gfz-potsdam.de/">FERN.Lab</a> (<a class="reference external" href="mailto:fernlab&#37;&#52;&#48;gfz-potsdam&#46;de">fernlab<span>&#64;</span>gfz-potsdam<span>&#46;</span>de</a>) contributed to the development, documentation, continuous integration, and testing of the package.</p>
+<p>This package was created with <a class="reference external" href="https://github.com/audreyr/cookiecutter">Cookiecutter</a> and the <a class="reference external" href="https://github.com/fernlab/cookiecutter-pypackage">fernlab/cookiecutter-pypackage</a> project template.</p>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="index.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">SARvey - survey with SAR</a><ul>
+<li><a class="reference internal" href="#documentation">Documentation</a></li>
+<li><a class="reference internal" href="#status">Status</a></li>
+<li><a class="reference internal" href="#license">License</a></li>
+<li><a class="reference internal" href="#how-to-cite">How to cite</a></li>
+<li><a class="reference internal" href="#processing-overview">Processing overview</a></li>
+<li><a class="reference internal" href="#feature-overview">Feature overview</a></li>
+<li><a class="reference internal" href="#history-changelog">History / Changelog</a></li>
+<li><a class="reference internal" href="#credits">Credits</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="index.html"
+                          title="previous chapter">SARvey documentation</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="installation.html"
+                          title="next chapter">Installation</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/readme.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="installation.html" title="Installation"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="SARvey documentation"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">SARvey 1.0.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">SARvey - survey with SAR</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2024, IPI - Leibniz Universitaet Hannover.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.4.4.
+    </div>
+  </body>
+</html>
