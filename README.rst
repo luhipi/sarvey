@@ -10,21 +10,21 @@ Open-source InSAR time series analysis software developed within the project SAR
 Documentation
 -------------
 The documentation with installation instructions, processing steps, and examples with a demo dataset can be found at:
-https://ipi-sar4infra.projektpages.uni-h.de/timeseries/doc/
+https://luhipi.github.io/sarvey/docs/
 
 
 
 Status
 ------
 
-.. image:: https://gitlab.projekt.uni-hannover.de/ipi-sar4infra/timeseries/badges/main/pipeline.svg
-        :target: https://gitlab.projekt.uni-hannover.de/ipi-sar4infra/timeseries/-/pipelines
+.. image:: https://github.com/luhipi/sarvey/actions/workflows/ci.yml/badge.svg
+        :target: https://github.com/luhipi/sarvey/actions
         :alt: Pipelines
 .. image:: https://gitlab.projekt.uni-hannover.de/ipi-sar4infra/timeseries/badges/main/coverage.svg
         :target: https://ipi-sar4infra.projektpages.uni-h.de/timeseries/coverage/
         :alt: Coverage
-.. image:: https://img.shields.io/static/v1?label=Documentation&message=GitLab%20Pages&color=orange
-        :target: https://ipi-sar4infra.projektpages.uni-h.de/timeseries/doc/
+.. image:: https://img.shields.io/static/v1?label=Documentation&message=GitHub%20Pages&color=blue
+        :target: https://luhipi.github.io/sarvey/docs/
         :alt: Documentation
 .. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.12544131.svg
         :target: https://doi.org/10.5281/zenodo.12544131
@@ -188,8 +188,8 @@ This package was created with Cookiecutter_ and the `fernlab/cookiecutter-pypack
 
 .. _Cookiecutter: https://github.com/audreyr/cookiecutter
 .. _`fernlab/cookiecutter-pypackage`: https://github.com/fernlab/cookiecutter-pypackage
-.. _coverage: https://ipi-sar4infra.projektpages.uni-h.de/timeseries/coverage/
-.. _pytest: https://ipi-sar4infra.projektpages.uni-h.de/timeseries/test_reports/report.html
+.. _coverage: https://luhipi.github.io/sarvey/coverage/
+.. _pytest: https://luhipi.github.io/sarvey/test_reports/report.html
 .. _processing: docs/processing.html
 .. _`installation instruction`: docs/installation.html
 .. _MiaplPy: https://github.com/insarlab/MiaplPy
