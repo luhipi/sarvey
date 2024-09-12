@@ -325,7 +325,7 @@ Since the densification step is not performed, you should reduce the coherence t
 Literature
 ----------
 
-* Piter, A., Haghshenas Haghighi, M., Motagh, M.(2024). An in-depth study on Sentinel-1 InSAR for transport infrastructure monitoring. PFG - Journal of Photogrammetry, Remote Sensing and Geoinformation Science. (paper currently under review).
+* Piter, A., Haghshenas Haghighi, M., Motagh, M.(2024). Challenges and Opportunities of Sentinel-1 InSAR for Transport Infrastructure Monitoring. PFG - Journal of Photogrammetry, Remote Sensing and Geoinformation Science. (paper in press).
 
 * Zhao F, Mallorqui JJ (2019). A Temporal Phase Coherence Estimation Algorithm and Its Application on DInSAR Pixel Selection. IEEE Transactions on Geoscience and Remote Sensing 57(11):8350–8361, DOI 10.1109/TGRS.2019.2920536
 
