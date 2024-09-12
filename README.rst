@@ -50,7 +50,7 @@ If you use **SARvey** in your research, please cite the following.
 
 1. The paper describing the methodology:
 
-   Piter, A., Haghshenas Haghighi, M., Motagh, M.(2024). An in-depth study on Sentinel-1 InSAR for transport infrastructure monitoring. PFG - Journal of Photogrammetry, Remote Sensing and Geoinformation Science. (paper currently under review).
+   Piter, A., Haghshenas Haghighi, M., Motagh, M.(2024). Challenges and Opportunities of Sentinel-1 InSAR for Transport Infrastructure Monitoring. PFG - Journal of Photogrammetry, Remote Sensing and Geoinformation Science. (paper in press).
 
 2. The software itself. Please specify the version you use:
 
