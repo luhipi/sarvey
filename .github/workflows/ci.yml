@@ -172,7 +172,6 @@ jobs:
           python-version: '3.x'
 
       -   name: Install dependencies
-          if: false
           run: |
               source $HOME/miniconda/bin/activate
               mamba update -n base mamba conda
