@@ -91,7 +91,7 @@ SARvey is a command-line-based software. The major steps for running SARvey are 
 
 * **Time series analysis**
 
-  Time series analysis is performed using `sarvey`. It consists of 5 steps (steps 0 to 4). The details of each step are explained in `processing steps <_processing#processing-steps-for-two-step-unwrapping-workflow>`_. The processing parameters are handled in a json config file. Visualization and export are handled by `sarvey_plot` and `sarvey_export` packages. Below are the major steps:
+  Time series analysis is performed using `sarvey`. It consists of 5 steps (steps 0 to 4). The details of each step are explained in `processing steps`_. The processing parameters are handled in a json config file. Visualization and export are handled by `sarvey_plot` and `sarvey_export` packages. Below are the major steps:
 
   * Go to your working directory:
 
@@ -113,7 +113,7 @@ SARvey is a command-line-based software. The major steps for running SARvey are 
 
          sarvey -f config.json 0 4
 
-    Different processing steps are explained `here <_processing>`_.
+    Different processing steps are explained in `processing`_ section.
 
   * Plot the resulting displacement time series:
 
@@ -152,15 +152,15 @@ You can run each component in the command line with "-h" argument for more infor
 
 **SARvey** supports two processing schemes:
 
-* `Two-step unwrapping <_processing#processing-steps-for-two-step-unwrapping-workflow>`_ with atmospheric correction (default).
+* `Two-step unwrapping`_ with atmospheric correction (default).
 
-* `One-step unwrapping <_processing#processing-steps-for-one-step-unwrapping-workflow>`_ for a small area.
+* `One-step unwrapping`_ for a small area.
 
 History / Changelog
 -------------------
 
 You can find the protocol of recent changes in the **SARvey** package
-`here <HISTORY.rst>`__.
+`history`_.
 
 We follow the principle of semantic versioning.
 The version number is structured as follows: MAJOR.MINOR.PATCH.
@@ -187,8 +187,12 @@ This package was created with Cookiecutter_ and the `fernlab/cookiecutter-pypack
 .. _coverage: https://luhipi.github.io/sarvey/coverage/
 .. _pytest: https://luhipi.github.io/sarvey/test_reports/report.html
 .. _processing: https://luhipi.github.io/sarvey/docs/processing.html
+.. _`processing steps`: https://luhipi.github.io/sarvey/docs/processing.html#processing-steps-for-two-step-unwrapping-workflow
 .. _preparation: https://luhipi.github.io/sarvey/docs/preparation.html
+.. _`Two-step unwrapping`: https://luhipi.github.io/sarvey/docs/processing.html#processing-steps-for-two-step-unwrapping-workflow
+.. _`One-step unwrapping`: https://luhipi.github.io/sarvey/docs/processing.html#processing-steps-for-one-step-unwrapping-workflow
 .. _`installation instruction`: https://luhipi.github.io/sarvey/docs/installation.html
+.. _`history`: https://luhipi.github.io/sarvey/docs/history.html
 .. _MiaplPy: https://github.com/insarlab/MiaplPy
 .. _ISCE: https://github.com/isce-framework/isce2
 .. _SNAP: https://step.esa.int/main/toolboxes/snap
