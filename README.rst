@@ -20,9 +20,6 @@ Status
 .. image:: https://github.com/luhipi/sarvey/actions/workflows/ci.yml/badge.svg
         :target: https://github.com/luhipi/sarvey/actions
         :alt: Pipelines
-.. image:: https://gitlab.projekt.uni-hannover.de/ipi-sar4infra/timeseries/badges/main/coverage.svg
-        :target: https://ipi-sar4infra.projektpages.uni-h.de/timeseries/coverage/
-        :alt: Coverage
 .. image:: https://img.shields.io/static/v1?label=Documentation&message=GitHub%20Pages&color=blue
         :target: https://luhipi.github.io/sarvey/docs/
         :alt: Documentation
