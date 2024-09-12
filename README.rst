@@ -187,8 +187,8 @@ This package was created with Cookiecutter_ and the `fernlab/cookiecutter-pypack
 .. _`fernlab/cookiecutter-pypackage`: https://github.com/fernlab/cookiecutter-pypackage
 .. _coverage: https://luhipi.github.io/sarvey/coverage/
 .. _pytest: https://luhipi.github.io/sarvey/test_reports/report.html
-.. _processing: docs/processing.html
-.. _`installation instruction`: docs/installation.html
+.. _processing: https://luhipi.github.io/sarvey/docs/processing.html
+.. _`installation instruction`: https://luhipi.github.io/sarvey/docs/installation.html
 .. _MiaplPy: https://github.com/insarlab/MiaplPy
 .. _ISCE: https://github.com/isce-framework/isce2
 .. _SNAP: https://step.esa.int/main/toolboxes/snap
