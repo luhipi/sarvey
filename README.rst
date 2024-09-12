@@ -86,12 +86,12 @@ SARvey is a command-line-based software. The major steps for running SARvey are 
   The software requires a coregistered stack of SLC and the related geometry information in the MiaplPy_  data format.
   The coregistered stack of SLC can be created using an InSAR processor. Currently MiaplPy_ only supports ISCE_. Support for GAMMA and SNAP_ is planned for future.
   After creating the coregistered stack of SLC, run the "load_data" step from Miaplpy_ to create the "inputs" directory which contains "slcStack.h5" and "geometryRadar.h5".
-  Details are explained in the `Preparation <preparation.html>`_ section
+  Details are explained in the preparation_ section
 
 
 * **Time series analysis**
 
-  Time series analysis is performed using `sarvey`. It consists of 5 steps (steps 0 to 4). The details of each step are explained in `processing steps <processing.html#processing-steps-for-two-step-unwrapping-workflow>`_. The processing parameters are handled in a json config file. Visualization and export are handled by `sarvey_plot` and `sarvey_export` packages. Below are the major steps:
+  Time series analysis is performed using `sarvey`. It consists of 5 steps (steps 0 to 4). The details of each step are explained in `processing steps <_processing#processing-steps-for-two-step-unwrapping-workflow>`_. The processing parameters are handled in a json config file. Visualization and export are handled by `sarvey_plot` and `sarvey_export` packages. Below are the major steps:
 
   * Go to your working directory:
 
@@ -113,7 +113,7 @@ SARvey is a command-line-based software. The major steps for running SARvey are 
 
          sarvey -f config.json 0 4
 
-    Different processing steps are explained `here <processing.html>`_.
+    Different processing steps are explained `here <_processing>`_.
 
   * Plot the resulting displacement time series:
 
@@ -152,10 +152,9 @@ You can run each component in the command line with "-h" argument for more infor
 
 **SARvey** supports two processing schemes:
 
-* `Two-step unwrapping <processing.html#processing-steps-for-two-step-unwrapping-workflow>`_ with atmospheric correction (default).
+* `Two-step unwrapping <_processing#processing-steps-for-two-step-unwrapping-workflow>`_ with atmospheric correction (default).
 
-* `One-step unwrapping <processing.html#processing-steps-for-one-step-unwrapping-workflow>`_ for a small area.
-
+* `One-step unwrapping <_processing#processing-steps-for-one-step-unwrapping-workflow>`_ for a small area.
 
 History / Changelog
 -------------------
@@ -188,6 +187,7 @@ This package was created with Cookiecutter_ and the `fernlab/cookiecutter-pypack
 .. _coverage: https://luhipi.github.io/sarvey/coverage/
 .. _pytest: https://luhipi.github.io/sarvey/test_reports/report.html
 .. _processing: https://luhipi.github.io/sarvey/docs/processing.html
+.. _preparation: https://luhipi.github.io/sarvey/docs/preparation.html
 .. _`installation instruction`: https://luhipi.github.io/sarvey/docs/installation.html
 .. _MiaplPy: https://github.com/insarlab/MiaplPy
 .. _ISCE: https://github.com/isce-framework/isce2
