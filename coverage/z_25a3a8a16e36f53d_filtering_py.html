@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Coverage for sarvey/filtering.py: 60%</title>
+    <title>Coverage for sarvey/filtering.py: 55%</title>
     <link rel="icon" sizes="32x32" href="favicon_32_cb_58284776.png">
     <link rel="stylesheet" href="style_cb_8e611ae1.css" type="text/css">
     <script src="coverage_html_cb_6fb7b396.js" defer></script>
@@ -12,7 +12,7 @@
     <div class="content">
         <h1>
             <span class="text">Coverage for </span><b>sarvey/filtering.py</b>:
-            <span class="pc_cov">60%</span>
+            <span class="pc_cov">55%</span>
         </h1>
         <aside id="help_panel_wrapper">
             <input id="help_panel_state" type="checkbox">
@@ -55,8 +55,8 @@
         </aside>
         <h2>
             <span class="text">105 statements &nbsp;</span>
-            <button type="button" class="run button_toggle_run" value="run" data-shortcut="r" title="Toggle lines run">63<span class="text"> run</span></button>
-            <button type="button" class="mis show_mis button_toggle_mis" value="mis" data-shortcut="m" title="Toggle lines missing">42<span class="text"> missing</span></button>
+            <button type="button" class="run button_toggle_run" value="run" data-shortcut="r" title="Toggle lines run">58<span class="text"> run</span></button>
+            <button type="button" class="mis show_mis button_toggle_mis" value="mis" data-shortcut="m" title="Toggle lines missing">47<span class="text"> missing</span></button>
             <button type="button" class="exc show_exc button_toggle_exc" value="exc" data-shortcut="x" title="Toggle lines excluded">0<span class="text"> excluded</span></button>
         </h2>
         <p class="text">
@@ -65,7 +65,7 @@
             <a id="nextFileLink" class="nav" href="z_25a3a8a16e36f53d_geolocation_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.6.0">coverage.py v7.6.0</a>,
-            created at 2024-09-12 11:45 +0000
+            created at 2024-09-12 12:19 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -182,9 +182,9 @@
     <p class="run"><span class="n"><a id="t100" href="#t100">100</a></span><span class="t">        <span class="nam">model</span> <span class="op">=</span> <span class="nam">gs</span><span class="op">.</span><span class="nam">Stable</span><span class="op">(</span><span class="nam">dim</span><span class="op">=</span><span class="num">2</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t101" href="#t101">101</a></span><span class="t">        <span class="key">try</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t102" href="#t102">102</a></span><span class="t">            <span class="nam">model</span><span class="op">.</span><span class="nam">fit_variogram</span><span class="op">(</span><span class="nam">x_data</span><span class="op">=</span><span class="nam">bin_center</span><span class="op">,</span> <span class="nam">y_data</span><span class="op">=</span><span class="nam">vario</span><span class="op">,</span> <span class="nam">nugget</span><span class="op">=</span><span class="key">True</span><span class="op">,</span> <span class="nam">max_eval</span><span class="op">=</span><span class="num">1500</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t103" href="#t103">103</a></span><span class="t">        <span class="key">except</span> <span class="nam">RuntimeError</span> <span class="key">as</span> <span class="nam">err</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t104" href="#t104">104</a></span><span class="t">            <span class="nam">logger</span><span class="op">.</span><span class="nam">error</span><span class="op">(</span><span class="nam">msg</span><span class="op">=</span><span class="str">"\nIMAGE {}: Not able to fit variogram! {}"</span><span class="op">.</span><span class="nam">format</span><span class="op">(</span><span class="nam">idx_range</span><span class="op">[</span><span class="nam">i</span><span class="op">]</span><span class="op">,</span> <span class="nam">err</span><span class="op">)</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t105" href="#t105">105</a></span><span class="t">            <span class="key">if</span> <span class="nam">bool_plot</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="mis show_mis"><span class="n"><a id="t103" href="#t103">103</a></span><span class="t">        <span class="key">except</span> <span class="nam">RuntimeError</span> <span class="key">as</span> <span class="nam">err</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="mis show_mis"><span class="n"><a id="t104" href="#t104">104</a></span><span class="t">            <span class="nam">logger</span><span class="op">.</span><span class="nam">error</span><span class="op">(</span><span class="nam">msg</span><span class="op">=</span><span class="str">"\nIMAGE {}: Not able to fit variogram! {}"</span><span class="op">.</span><span class="nam">format</span><span class="op">(</span><span class="nam">idx_range</span><span class="op">[</span><span class="nam">i</span><span class="op">]</span><span class="op">,</span> <span class="nam">err</span><span class="op">)</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="mis show_mis"><span class="n"><a id="t105" href="#t105">105</a></span><span class="t">            <span class="key">if</span> <span class="nam">bool_plot</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="mis show_mis"><span class="n"><a id="t106" href="#t106">106</a></span><span class="t">                <span class="nam">fig</span><span class="op">,</span> <span class="nam">ax</span> <span class="op">=</span> <span class="nam">plt</span><span class="op">.</span><span class="nam">subplots</span><span class="op">(</span><span class="num">2</span><span class="op">,</span> <span class="nam">figsize</span><span class="op">=</span><span class="op">[</span><span class="num">10</span><span class="op">,</span> <span class="num">5</span><span class="op">]</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="mis show_mis"><span class="n"><a id="t107" href="#t107">107</a></span><span class="t">                <span class="nam">sca1</span> <span class="op">=</span> <span class="nam">ax</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op">.</span><span class="nam">scatter</span><span class="op">(</span><span class="nam">x</span><span class="op">,</span> <span class="nam">y</span><span class="op">,</span> <span class="nam">c</span><span class="op">=</span><span class="nam">field</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="mis show_mis"><span class="n"><a id="t108" href="#t108">108</a></span><span class="t">                <span class="nam">plt</span><span class="op">.</span><span class="nam">colorbar</span><span class="op">(</span><span class="nam">sca1</span><span class="op">,</span> <span class="nam">ax</span><span class="op">=</span><span class="nam">ax</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op">,</span> <span class="nam">pad</span><span class="op">=</span><span class="num">0.03</span><span class="op">,</span> <span class="nam">shrink</span><span class="op">=</span><span class="num">0.5</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
@@ -193,8 +193,8 @@
     <p class="mis show_mis"><span class="n"><a id="t111" href="#t111">111</a></span><span class="t">                <span class="nam">ax</span><span class="op">[</span><span class="num">1</span><span class="op">]</span><span class="op">.</span><span class="nam">set_xlabel</span><span class="op">(</span><span class="str">"distance in [m]"</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="mis show_mis"><span class="n"><a id="t112" href="#t112">112</a></span><span class="t">                <span class="nam">ax</span><span class="op">[</span><span class="num">1</span><span class="op">]</span><span class="op">.</span><span class="nam">set_ylabel</span><span class="op">(</span><span class="str">"semi-variogram"</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="mis show_mis"><span class="n"><a id="t113" href="#t113">113</a></span><span class="t">                <span class="nam">plt</span><span class="op">.</span><span class="nam">close</span><span class="op">(</span><span class="nam">fig</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t114" href="#t114">114</a></span><span class="t">            <span class="nam">prog_bar</span><span class="op">.</span><span class="nam">update</span><span class="op">(</span><span class="nam">value</span><span class="op">=</span><span class="nam">i</span> <span class="op">+</span> <span class="num">1</span><span class="op">,</span> <span class="nam">every</span><span class="op">=</span><span class="num">1</span><span class="op">,</span> <span class="nam">suffix</span><span class="op">=</span><span class="str">'{}/{} images'</span><span class="op">.</span><span class="nam">format</span><span class="op">(</span><span class="nam">i</span> <span class="op">+</span> <span class="num">1</span><span class="op">,</span> <span class="nam">num_time</span><span class="op">)</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t115" href="#t115">115</a></span><span class="t">            <span class="key">continue</span>&nbsp;</span><span class="r"></span></p>
+    <p class="mis show_mis"><span class="n"><a id="t114" href="#t114">114</a></span><span class="t">            <span class="nam">prog_bar</span><span class="op">.</span><span class="nam">update</span><span class="op">(</span><span class="nam">value</span><span class="op">=</span><span class="nam">i</span> <span class="op">+</span> <span class="num">1</span><span class="op">,</span> <span class="nam">every</span><span class="op">=</span><span class="num">1</span><span class="op">,</span> <span class="nam">suffix</span><span class="op">=</span><span class="str">'{}/{} images'</span><span class="op">.</span><span class="nam">format</span><span class="op">(</span><span class="nam">i</span> <span class="op">+</span> <span class="num">1</span><span class="op">,</span> <span class="nam">num_time</span><span class="op">)</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="mis show_mis"><span class="n"><a id="t115" href="#t115">115</a></span><span class="t">            <span class="key">continue</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t116" href="#t116">116</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t117" href="#t117">117</a></span><span class="t">        <span class="com"># 3) estimate parameters of kriging</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t118" href="#t118">118</a></span><span class="t">        <span class="nam">sk</span> <span class="op">=</span> <span class="nam">gs</span><span class="op">.</span><span class="nam">krige</span><span class="op">.</span><span class="nam">Simple</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
@@ -380,7 +380,7 @@
             <a class="nav" href="z_25a3a8a16e36f53d_geolocation_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.6.0">coverage.py v7.6.0</a>,
-            created at 2024-09-12 11:45 +0000
+            created at 2024-09-12 12:19 +0000
         </p>
     </div>
 </footer>
