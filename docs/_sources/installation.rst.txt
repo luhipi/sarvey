@@ -25,8 +25,8 @@ Using mamba_ (latest version recommended), **SARvey** is installed as follows:
 
    .. code-block:: bash
 
-    git clone git@gitlab.projekt.uni-hannover.de:ipi-sar4infra/timeseries.git
-    cd timeseries
+    git clone https://github.com/luhipi/sarvey.git
+    cd sarvey
 
 
 2. Create virtual environment for **SARvey** (optional but recommended):
@@ -57,8 +57,8 @@ Using conda_ (latest version recommended), **SARvey** is installed as follows:
 
    .. code-block:: bash
 
-    git clone git@gitlab.projekt.uni-hannover.de:ipi-sar4infra/timeseries.git
-    cd timeseries
+    git clone https://github.com/luhipi/sarvey.git
+    cd sarvey
 
 
 1. Create virtual environment for **SARvey** (optional but recommended):
@@ -117,8 +117,8 @@ Using conda_ (latest version recommended), SARvey is installed as follows:
     .. code-block:: bash
 
         cd ~/software/sarvey
-        git clone git@gitlab.projekt.uni-hannover.de:ipi-sar4infra/timeseries.git
-        cd timeseries
+        git clone https://github.com/luhipi/sarvey.git
+        cd sarvey
 
    2.2 Open `tests/CI_docker/context/environment_sarvey.yml` in an editor of your choice and comment out the lines `isce2` and `gcc_linux-64`. Alternatively, you can run the following commands.
 
@@ -129,7 +129,7 @@ Using conda_ (latest version recommended), SARvey is installed as follows:
 
     Note: As of the time of creation of this document, `isce2` for MacOS ARM64 is not available in Conda repositories. Therefore, it is skipped, but it should not cause any problems for running SARvey. Also, `gcc_linux-64` is not required on ARM64.
 
-   2.3 Install Timeseries using the same environment that you used to install MiaplPy.
+   2.3 Install SARvey using the same environment that you used to install MiaplPy.
 
     .. code-block:: bash
 
@@ -145,9 +145,9 @@ Using conda_ (latest version recommended), SARvey is installed as follows:
 
         echo 'export miaplpy_path=~/software/sarvey/MiaplPy/src/' > ~/source_sarvey.sh
         echo 'export PYTHONPATH=${PYTHONPATH:+$PYTHONPATH:}$miaplpy_path' >> ~/source_sarvey.sh
-        echo 'export timeseries_path=~/software/sarvey/timeseries' >> ~/source_sarvey.sh
-        echo 'export PATH=${PATH}:$timeseries_path:$timeseries_path/sarvey' >> ~/source_sarvey.sh
-        echo 'export PYTHONPATH=${PYTHONPATH:+$PYTHONPATH:}:$timeseries_path' >> ~/source_sarvey.sh
+        echo 'export sarvey_path=~/software/sarvey/sarvey' >> ~/source_sarvey.sh
+        echo 'export PATH=${PATH}:sarvey_path:$sarvey_path/sarvey' >> ~/source_sarvey.sh
+        echo 'export PYTHONPATH=${PYTHONPATH:+$PYTHONPATH:}:$sarvey_path' >> ~/source_sarvey.sh
 
 4. **Test the installation**
 
@@ -174,7 +174,7 @@ On Windows, SARvey is tested on Windows Subsystem for Linux (WSL_) version 2. Pl
 
 .. note::
 
-    Timeseries has been tested with Python 3.6+., i.e., should be fully compatible to all Python versions from 3.6 onwards.
+    SARvey has been tested with Python 3.6+., i.e., should be fully compatible to all Python versions from 3.6 onwards.
 
 
 .. _pip: https://pip.pypa.io
