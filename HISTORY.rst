@@ -13,3 +13,5 @@ History
 * Allow adding user comments in config.json file.
 * Improve documentation.
 * Adapt CI from gitlab to github.
+* Mask mean amplitude to avoid zero division warning in log10.
+* Set logging level to debug for log file.
