@@ -50,15 +50,15 @@ If you use **SARvey** in your research, please cite the following.
 
 1. The paper describing the methodology:
 
-   Piter, A., Haghshenas Haghighi, M., Motagh, M.(2024). Challenges and Opportunities of Sentinel-1 InSAR for Transport Infrastructure Monitoring. PFG - Journal of Photogrammetry, Remote Sensing and Geoinformation Science. (paper in press).
+   Piter A, Haghshenas Haghighi M, Motagh M (2024). Challenges and Opportunities of Sentinel-1 InSAR for Transport Infrastructure Monitoring. PFG - Journal of Photogrammetry, Remote Sensing and Geoinformation Science. (paper in press).
 
 2. The software itself. Please specify the version you use:
 
-   Piter, A., Haghshenas Haghighi, M., FERN.Lab, & Motagh, M. (2024). SARvey - survey with SAR [version]. Zenodo. https://doi.org/10.5281/zenodo.12544131
+   Piter A, Haghshenas Haghighi M, FERN.Lab, Motagh M (2024). SARvey - survey with SAR [version]. Zenodo. https://doi.org/10.5281/zenodo.12544131
 
 3. If you use the PUMA method for unwrapping in your research, please cite the following publication as indicated in the license:
 
-   An Experimental Comparison of Min-Cut/Max-Flow Algorithms for Energy Minimization in Vision. Yuri Boykov and Vladimir Kolmogorov. In IEEE Transactions on Pattern Analysis and Machine Intelligence (PAMI), September 2004. `Link to paper <https://ieeexplore.ieee.org/document/1316848>`_.
+   Boykov Y, Kolmogorov V (2004). An experimental comparison of min-cut/max- flow algorithms for energy minimization in vision. IEEE Transactions on Pattern Analysis and Machine Intelligence 26(9):1124–1137, DOI 10.1109/TPAMI.2004.60. `Link to paper <https://ieeexplore.ieee.org/document/1316848>`_.
 
 
 Processing overview

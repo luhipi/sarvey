@@ -7,12 +7,12 @@ SARvey documentation
    :caption: Contents:
 
    readme
-   Source code repository <https://gitlab.projekt.uni-hannover.de/ipi-sar4infra/timeseries>
+   Source code repository <https://github.com/luhipi/sarvey>
    installation
    usage
    preparation
    processing
-   demo_datasets   
+   demo_datasets
    modules
    contributing
    authors
