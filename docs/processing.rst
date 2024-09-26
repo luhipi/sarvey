@@ -7,7 +7,7 @@ Multitemporal InSAR processing workflow
 The `sarvey` command line interface executes the multitemporal InSAR processing workflow.
 The workflow is described in the paper
 
-    Piter, A., Haghshenas Haghighi, M., Motagh, M.(2024). An in-depth study on Sentinel-1 InSAR for transport infrastructure monitoring. PFG - Journal of Photogrammetry, Remote Sensing and Geoinformation Science. (paper currently under review).
+    Piter A, Haghshenas Haghighi M, Motagh M (2024). Challenges and Opportunities of Sentinel-1 InSAR for Transport Infrastructure Monitoring. PFG – Journal of Photogrammetry, Remote Sensing and Geoinformation Science, 92, 609-627.
 
 All processing steps are described in detail in the following sections.
 Two processing strategies are provided with either one- or two-step unwrapping.
@@ -237,7 +237,7 @@ However, the step 3 has to be executed as the second-order points are selected d
     The estimation of the APS takes place in time-domain and not interferogram-domain to reduce the computational time.
     The phase contributions are removed from the first-order points which were selected for atmospheric filtering.
     Their residual time series contains atmospheric phase contributions and noise.
-    As the APS is assumed to be spatially correlated, the residuals of all points are spatially filtered (**filtering:interpolation_method**) independently for each time step.
+    As the APS is assumed to be spatially correlated, the residuals of all points are spatially filtered e.g. with Kriging (Müller et al. 2022) or simple polynomial interpolation(**filtering:interpolation_method**) independently for each time step.
     After filtering, the estimated APS is interpolated to the location of the second-order points.
 
 - Output of this step
@@ -325,7 +325,7 @@ Since the densification step is not performed, you should reduce the coherence t
 Literature
 ----------
 
-* Piter, A., Haghshenas Haghighi, M., Motagh, M.(2024). Challenges and Opportunities of Sentinel-1 InSAR for Transport Infrastructure Monitoring. PFG - Journal of Photogrammetry, Remote Sensing and Geoinformation Science. (paper in press).
+* Piter A, Haghshenas Haghighi M, Motagh M (2024). Challenges and Opportunities of Sentinel-1 InSAR for Transport Infrastructure Monitoring. PFG – Journal of Photogrammetry, Remote Sensing and Geoinformation Science, 92, 609-627.
 
 * Zhao F, Mallorqui JJ (2019). A Temporal Phase Coherence Estimation Algorithm and Its Application on DInSAR Pixel Selection. IEEE Transactions on Geoscience and Remote Sensing 57(11):8350–8361, DOI 10.1109/TGRS.2019.2920536
 
@@ -341,4 +341,6 @@ Literature
 
 * Van Leijen FJ (2014). Persistent scatterer interferometry based on geodetic estimation theory. PhD thesis
 
-* Boykov Y, Kolmogorov V (2004) An experimental comparison of min-cut/max- flow algorithms for energy minimization in vision. IEEE Transactions on Pattern Analysis and Machine Intelligence 26(9):1124–1137, DOI 10.1109/TPAMI.2004.60
+* Boykov Y, Kolmogorov V (2004). An experimental comparison of min-cut/max- flow algorithms for energy minimization in vision. IEEE Transactions on Pattern Analysis and Machine Intelligence 26(9):1124–1137, DOI 10.1109/TPAMI.2004.60
+
+* Müller S, Schüler L, Zech A, Heße F (2022). GSTools v1.3: a toolbox for geostatistical modelling in Python. Geoscientific Model Development, 15, 3161-3182.
