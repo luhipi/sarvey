@@ -65,7 +65,7 @@
             <a id="nextFileLink" class="nav" href="z_25a3a8a16e36f53d_osm_utils_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.6.0">coverage.py v7.6.0</a>,
-            created at 2024-10-14 14:57 +0000
+            created at 2024-10-16 11:16 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -542,7 +542,7 @@
     <p class="pln"><span class="n"><a id="t460" href="#t460">460</a></span><span class="t">        <span class="str">"""Assign point_id and radar coordinates to the object.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t461" href="#t461">461</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t462" href="#t462">462</a></span><span class="t"><span class="str">        Store the point_id and radar coordinates of the scatterers in the object (not file) and read further</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t463" href="#t463">463</a></span><span class="t"><span class="str">        attributes from external files (ifg_network.h5, slcStack.h5, geometryRadar.h5, coordinates_utm.h5).</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t463" href="#t463">463</a></span><span class="t"><span class="str">        attributes from external files (ifg_network.h5, slcStack.h5, geometryRadar.h5, coordinates_map.h5).</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t464" href="#t464">464</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t465" href="#t465">465</a></span><span class="t"><span class="str">        Parameters</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t466" href="#t466">466</a></span><span class="t"><span class="str">        ----------</span>&nbsp;</span><span class="r"></span></p>
@@ -602,7 +602,7 @@
     <p class="run"><span class="n"><a id="t520" href="#t520">520</a></span><span class="t">        <span class="nam">self</span><span class="op">.</span><span class="nam">openExternalData</span><span class="op">(</span><span class="nam">input_path</span><span class="op">=</span><span class="nam">input_path</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t521" href="#t521">521</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t522" href="#t522">522</a></span><span class="t">    <span class="key">def</span> <span class="nam">openExternalData</span><span class="op">(</span><span class="nam">self</span><span class="op">,</span> <span class="op">*</span><span class="op">,</span> <span class="nam">input_path</span><span class="op">:</span> <span class="nam">str</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t523" href="#t523">523</a></span><span class="t">        <span class="str">"""Load data which is stored in slcStack.h5, geometryRadar.h5, ifg_network.h5 and coordinates_utm.h5."""</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t523" href="#t523">523</a></span><span class="t">        <span class="str">"""Load data which is stored in slcStack.h5, geometryRadar.h5, ifg_network.h5 and coordinates_map.h5."""</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t524" href="#t524">524</a></span><span class="t">        <span class="com"># 1) read IfgNetwork</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t525" href="#t525">525</a></span><span class="t">        <span class="nam">self</span><span class="op">.</span><span class="nam">ifg_net_obj</span><span class="op">.</span><span class="nam">open</span><span class="op">(</span><span class="nam">path</span><span class="op">=</span><span class="nam">join</span><span class="op">(</span><span class="nam">dirname</span><span class="op">(</span><span class="nam">self</span><span class="op">.</span><span class="nam">file_path</span><span class="op">)</span><span class="op">,</span> <span class="str">"ifg_network.h5"</span><span class="op">)</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t526" href="#t526">526</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
@@ -632,7 +632,7 @@
     <p class="run"><span class="n"><a id="t550" href="#t550">550</a></span><span class="t">        <span class="nam">self</span><span class="op">.</span><span class="nam">coord_lalo</span> <span class="op">=</span> <span class="nam">np</span><span class="op">.</span><span class="nam">array</span><span class="op">(</span><span class="op">[</span><span class="nam">lat</span><span class="op">[</span><span class="nam">mask</span><span class="op">]</span><span class="op">.</span><span class="nam">ravel</span><span class="op">(</span><span class="op">)</span><span class="op">,</span> <span class="nam">lon</span><span class="op">[</span><span class="nam">mask</span><span class="op">]</span><span class="op">.</span><span class="nam">ravel</span><span class="op">(</span><span class="op">)</span><span class="op">]</span><span class="op">)</span><span class="op">.</span><span class="nam">transpose</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t551" href="#t551">551</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t552" href="#t552">552</a></span><span class="t">        <span class="com"># 4) read UTM coordinates</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t553" href="#t553">553</a></span><span class="t">        <span class="nam">coord_utm_obj</span> <span class="op">=</span> <span class="nam">CoordinatesUTM</span><span class="op">(</span><span class="nam">file_path</span><span class="op">=</span><span class="nam">join</span><span class="op">(</span><span class="nam">dirname</span><span class="op">(</span><span class="nam">self</span><span class="op">.</span><span class="nam">file_path</span><span class="op">)</span><span class="op">,</span> <span class="str">"coordinates_utm.h5"</span><span class="op">)</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t553" href="#t553">553</a></span><span class="t">        <span class="nam">coord_utm_obj</span> <span class="op">=</span> <span class="nam">CoordinatesUTM</span><span class="op">(</span><span class="nam">file_path</span><span class="op">=</span><span class="nam">join</span><span class="op">(</span><span class="nam">dirname</span><span class="op">(</span><span class="nam">self</span><span class="op">.</span><span class="nam">file_path</span><span class="op">)</span><span class="op">,</span> <span class="str">"coordinates_map.h5"</span><span class="op">)</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t554" href="#t554">554</a></span><span class="t">                                       <span class="nam">logger</span><span class="op">=</span><span class="nam">self</span><span class="op">.</span><span class="nam">logger</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t555" href="#t555">555</a></span><span class="t">        <span class="nam">coord_utm_obj</span><span class="op">.</span><span class="nam">open</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t556" href="#t556">556</a></span><span class="t">        <span class="nam">self</span><span class="op">.</span><span class="nam">coord_utm</span> <span class="op">=</span> <span class="nam">coord_utm_obj</span><span class="op">.</span><span class="nam">coord_utm</span><span class="op">[</span><span class="op">:</span><span class="op">,</span> <span class="nam">mask</span><span class="op">]</span><span class="op">.</span><span class="nam">transpose</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
@@ -884,7 +884,7 @@
             <a class="nav" href="z_25a3a8a16e36f53d_osm_utils_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.6.0">coverage.py v7.6.0</a>,
-            created at 2024-10-14 14:57 +0000
+            created at 2024-10-16 11:16 +0000
         </p>
     </div>
 </footer>

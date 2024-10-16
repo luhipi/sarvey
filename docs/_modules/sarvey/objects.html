@@ -545,7 +545,7 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Assign point_id and radar coordinates to the object.</span>
 
 <span class="sd">        Store the point_id and radar coordinates of the scatterers in the object (not file) and read further</span>
-<span class="sd">        attributes from external files (ifg_network.h5, slcStack.h5, geometryRadar.h5, coordinates_utm.h5).</span>
+<span class="sd">        attributes from external files (ifg_network.h5, slcStack.h5, geometryRadar.h5, coordinates_map.h5).</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -614,7 +614,7 @@
 <div class="viewcode-block" id="Points.openExternalData">
 <a class="viewcode-back" href="../../sarvey.html#sarvey.objects.Points.openExternalData">[docs]</a>
     <span class="k">def</span> <span class="nf">openExternalData</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">input_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load data which is stored in slcStack.h5, geometryRadar.h5, ifg_network.h5 and coordinates_utm.h5.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load data which is stored in slcStack.h5, geometryRadar.h5, ifg_network.h5 and coordinates_map.h5.&quot;&quot;&quot;</span>
         <span class="c1"># 1) read IfgNetwork</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ifg_net_obj</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">join</span><span class="p">(</span><span class="n">dirname</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_path</span><span class="p">),</span> <span class="s2">&quot;ifg_network.h5&quot;</span><span class="p">))</span>
 
@@ -644,7 +644,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">coord_lalo</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">lat</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span> <span class="n">lon</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span><span class="o">.</span><span class="n">ravel</span><span class="p">()])</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span>
 
         <span class="c1"># 4) read UTM coordinates</span>
-        <span class="n">coord_utm_obj</span> <span class="o">=</span> <span class="n">CoordinatesUTM</span><span class="p">(</span><span class="n">file_path</span><span class="o">=</span><span class="n">join</span><span class="p">(</span><span class="n">dirname</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_path</span><span class="p">),</span> <span class="s2">&quot;coordinates_utm.h5&quot;</span><span class="p">),</span>
+        <span class="n">coord_utm_obj</span> <span class="o">=</span> <span class="n">CoordinatesUTM</span><span class="p">(</span><span class="n">file_path</span><span class="o">=</span><span class="n">join</span><span class="p">(</span><span class="n">dirname</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_path</span><span class="p">),</span> <span class="s2">&quot;coordinates_map.h5&quot;</span><span class="p">),</span>
                                        <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">)</span>
         <span class="n">coord_utm_obj</span><span class="o">.</span><span class="n">open</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">coord_utm</span> <span class="o">=</span> <span class="n">coord_utm_obj</span><span class="o">.</span><span class="n">coord_utm</span><span class="p">[:,</span> <span class="n">mask</span><span class="p">]</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span></div>
