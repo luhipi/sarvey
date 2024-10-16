@@ -211,7 +211,7 @@ def selectPixels(*, path: str, selection_method: str, thrsh: float,
         # cmap = "autumn"
 
     if grid_size is not None:  # -> sparse pixel selection
-        coord_utm_obj = CoordinatesUTM(file_path=join(path, "coordinates_utm.h5"), logger=logger)
+        coord_utm_obj = CoordinatesUTM(file_path=join(path, "coordinates_map.h5"), logger=logger)
         coord_utm_obj.open()
         box_list = ut.createSpatialGrid(coord_utm_img=coord_utm_obj.coord_utm,
                                         length=coord_utm_obj.coord_utm.shape[1],

@@ -460,7 +460,7 @@ class Points:
         """Assign point_id and radar coordinates to the object.
 
         Store the point_id and radar coordinates of the scatterers in the object (not file) and read further
-        attributes from external files (ifg_network.h5, slcStack.h5, geometryRadar.h5, coordinates_utm.h5).
+        attributes from external files (ifg_network.h5, slcStack.h5, geometryRadar.h5, coordinates_map.h5).
 
         Parameters
         ----------
@@ -520,7 +520,7 @@ class Points:
         self.openExternalData(input_path=input_path)
 
     def openExternalData(self, *, input_path: str):
-        """Load data which is stored in slcStack.h5, geometryRadar.h5, ifg_network.h5 and coordinates_utm.h5."""
+        """Load data which is stored in slcStack.h5, geometryRadar.h5, ifg_network.h5 and coordinates_map.h5."""
         # 1) read IfgNetwork
         self.ifg_net_obj.open(path=join(dirname(self.file_path), "ifg_network.h5"))
 
@@ -550,7 +550,7 @@ class Points:
         self.coord_lalo = np.array([lat[mask].ravel(), lon[mask].ravel()]).transpose()
 
         # 4) read UTM coordinates
-        coord_utm_obj = CoordinatesUTM(file_path=join(dirname(self.file_path), "coordinates_utm.h5"),
+        coord_utm_obj = CoordinatesUTM(file_path=join(dirname(self.file_path), "coordinates_map.h5"),
                                        logger=self.logger)
         coord_utm_obj.open()
         self.coord_utm = coord_utm_obj.coord_utm[:, mask].transpose()

@@ -185,8 +185,8 @@ class Processing:
         )
 
         # store auxilliary datasets for faster access during processing
-        if not exists(join(self.path, "coordinates_utm.h5")):
-            coord_utm_obj = CoordinatesUTM(file_path=join(self.path, "coordinates_utm.h5"), logger=self.logger)
+        if not exists(join(self.path, "coordinates_map.h5")):
+            coord_utm_obj = CoordinatesUTM(file_path=join(self.path, "coordinates_map.h5"), logger=self.logger)
             coord_utm_obj.prepare(input_path=join(self.config.general.input_path, "geometryRadar.h5"))
             del coord_utm_obj
 
@@ -590,7 +590,7 @@ class Processing:
         plt.close(fig)
 
         # create grid
-        coord_utm_obj = CoordinatesUTM(file_path=join(self.path, "coordinates_utm.h5"), logger=self.logger)
+        coord_utm_obj = CoordinatesUTM(file_path=join(self.path, "coordinates_map.h5"), logger=self.logger)
         coord_utm_obj.open()
 
         # remove points based on threshold
