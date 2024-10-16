@@ -1007,7 +1007,7 @@ class Processing:
         wr_phase = point2_obj.phase
         wr_res_phase = np.angle(np.exp(1j * wr_phase) * np.conjugate(np.exp(1j * pred_phase)))
 
-        triang_obj = PointNetworkTriangulation(coord_xy=point2_obj.coord_xy, coord_mapxy=None, logger=self.logger)
+        triang_obj = PointNetworkTriangulation(coord_xy=point2_obj.coord_xy, coord_map_xy=None, logger=self.logger)
         triang_obj.triangulateGlobal()
         arcs = triang_obj.getArcsFromAdjMat()
 
@@ -1065,7 +1065,7 @@ class Processing:
         # correct for APS
         point_obj.phase = np.angle(np.exp(1j * point_obj.phase) * np.conjugate(np.exp(1j * aps2_ifg_phase)))
 
-        triang_obj = PointNetworkTriangulation(coord_xy=point_obj.coord_xy, coord_mapxy=None, logger=self.logger)
+        triang_obj = PointNetworkTriangulation(coord_xy=point_obj.coord_xy, coord_map_xy=None, logger=self.logger)
         triang_obj.triangulateGlobal()  # if coord_map is not given, only global delaunay and knn can be calculated
         arcs = triang_obj.getArcsFromAdjMat()
 
