@@ -171,23 +171,43 @@ class CoordinatesMap:
 
         log.info(msg="Transform coordinates from latitude and longitude (WGS84) to North and East.")
         # noinspection PyTypeChecker
-        map_crs_list = query_utm_crs_info(
-            datum_name="WGS 84",
-            area_of_interest=AreaOfInterest(
-                west_lon_degree=np.nanmin(lon.ravel()),
-                south_lat_degree=np.nanmin(lat.ravel()),
-                east_lon_degree=np.nanmax(lon.ravel()),
-                north_lat_degree=np.nanmax(lat.ravel())),
-            contains=True)
-        map_crs = CRS.from_epsg(map_crs_list[0].code)
+
+        log.info(msg="Transform coordinates from lat/lon (WGS84) to North/East (Transverse Mercator).")
+        # noinspection PyTypeChecker
+
+        min_lat = np.nanmin(lat.ravel())
+        max_lat = np.nanmax(lat.ravel())
+        min_lon = np.nanmin(lon.ravel())
+        max_lon = np.nanmax(lon.ravel())
+        log.debug(f"WGS84 Longitude range: {min_lon} - {max_lon} Latitude range: {min_lat} - {max_lat}")
+
+        lon_0 = (max_lon + min_lon) / 2  # Central_meridian
+        lat_0 = (max_lat + min_lat) / 2  # Latitude of origin
+        log.debug(f"Central meridian: {lon_0} Latitude of origin: {lat_0}")
+
+        log.debug("Construct Transverse Mercator projection.")
+        map_crs = CRS.from_dict({
+            "proj": "tmerc",  # Transverse Mercator
+            "lat_0": lat_0,
+            "lon_0": lon_0,
+            "k": 1,
+            "x_0": 0,  # False Easting
+            "y_0": 0,
+            "datum": "WGS84",
+            "units": "m",
+            "no_defs": True
+        })
         lola2map = Proj(map_crs)
         self.coord_map = np.array(lola2map(lon, lat))
+        log.debug(f"North coordinate range: {np.nanmin(self.coord_map[0, :])} - {np.nanmax(self.coord_map[0, :])}")
+        log.debug(f"East coordinate range: {np.nanmin(self.coord_map[1, :])} - {np.nanmax(self.coord_map[1, :])}")
 
         log.info(msg="write data to {}...".format(self.file_path))
 
         if exists(self.file_path):
             os.remove(self.file_path)
 
+        # TODO: store TM projection parameters (lon_0/lat_0) in coordinates_map.h5
         with h5py.File(self.file_path, 'w') as f:
             f.create_dataset('coord_map', data=self.coord_map)
 
