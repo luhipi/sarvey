@@ -619,13 +619,13 @@
 
 <div class="viewcode-block" id="createSpatialGrid">
 <a class="viewcode-back" href="../../sarvey.html#sarvey.utils.createSpatialGrid">[docs]</a>
-<span class="k">def</span> <span class="nf">createSpatialGrid</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">coord_utm_img</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">length</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">width</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">grid_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">createSpatialGrid</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">coord_map_img</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">length</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">width</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">grid_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a spatial grid over the image.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    coord_utm_img: np.ndarray</span>
-<span class="sd">        coordinates of all image pixels in UTM</span>
+<span class="sd">    coord_map_img: np.ndarray</span>
+<span class="sd">        map coordinates of all image pixels</span>
 <span class="sd">    length: int</span>
 <span class="sd">        number of pixels in length of the image</span>
 <span class="sd">    width: int</span>
@@ -640,9 +640,9 @@
 <span class="sd">    num_box: int</span>
 <span class="sd">        actual number of boxes created by the function</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">p0</span> <span class="o">=</span> <span class="n">coord_utm_img</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
-    <span class="n">p1</span> <span class="o">=</span> <span class="n">coord_utm_img</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-    <span class="n">p2</span> <span class="o">=</span> <span class="n">coord_utm_img</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="n">p0</span> <span class="o">=</span> <span class="n">coord_map_img</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="n">p1</span> <span class="o">=</span> <span class="n">coord_map_img</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">p2</span> <span class="o">=</span> <span class="n">coord_map_img</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
     <span class="n">dist_width</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">p0</span> <span class="o">-</span> <span class="n">p1</span><span class="p">)</span>
     <span class="n">dist_length</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">p0</span> <span class="o">-</span> <span class="n">p2</span><span class="p">)</span>
     <span class="n">num_box_az</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">dist_width</span> <span class="o">/</span> <span class="n">grid_size</span><span class="p">))</span>
@@ -699,14 +699,14 @@
 
 <div class="viewcode-block" id="spatiotemporalConsistency">
 <a class="viewcode-back" href="../../sarvey.html#sarvey.utils.spatiotemporalConsistency">[docs]</a>
-<span class="k">def</span> <span class="nf">spatiotemporalConsistency</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">coord_utm</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">phase</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">wavelength</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">min_dist</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">15</span><span class="p">,</span>
+<span class="k">def</span> <span class="nf">spatiotemporalConsistency</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">coord_map</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">phase</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">wavelength</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">min_dist</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">15</span><span class="p">,</span>
                               <span class="n">max_dist</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="n">knn</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Spatiotemporal consistency proposed by Hanssen et al. (2008) and implemented in DePSI (van Leijen, 2014).</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    coord_utm: np.ndarray</span>
-<span class="sd">        UTM coordinates of the points</span>
+<span class="sd">    coord_map: np.ndarray</span>
+<span class="sd">        map coordinates of the points</span>
 <span class="sd">    phase: np.ndarray</span>
 <span class="sd">        phase time series of the points</span>
 <span class="sd">    wavelength: float</span>
@@ -726,12 +726,12 @@
     <span class="kn">from</span> <span class="nn">scipy.spatial</span> <span class="kn">import</span> <span class="n">KDTree</span>
 
     <span class="n">num_samples</span><span class="p">,</span> <span class="n">num_time</span> <span class="o">=</span> <span class="n">phase</span><span class="o">.</span><span class="n">shape</span>
-    <span class="n">tree</span> <span class="o">=</span> <span class="n">KDTree</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">coord_utm</span><span class="p">)</span>
+    <span class="n">tree</span> <span class="o">=</span> <span class="n">KDTree</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">coord_map</span><span class="p">)</span>
 
     <span class="n">stc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_samples</span><span class="p">,),</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_samples</span><span class="p">):</span>
-        <span class="n">dist</span><span class="p">,</span> <span class="n">idx</span> <span class="o">=</span> <span class="n">tree</span><span class="o">.</span><span class="n">query</span><span class="p">([</span><span class="n">coord_utm</span><span class="p">[</span><span class="n">p</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">coord_utm</span><span class="p">[</span><span class="n">p</span><span class="p">,</span> <span class="mi">1</span><span class="p">]],</span> <span class="n">k</span><span class="o">=</span><span class="n">knn</span><span class="p">)</span>
+        <span class="n">dist</span><span class="p">,</span> <span class="n">idx</span> <span class="o">=</span> <span class="n">tree</span><span class="o">.</span><span class="n">query</span><span class="p">([</span><span class="n">coord_map</span><span class="p">[</span><span class="n">p</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">coord_map</span><span class="p">[</span><span class="n">p</span><span class="p">,</span> <span class="mi">1</span><span class="p">]],</span> <span class="n">k</span><span class="o">=</span><span class="n">knn</span><span class="p">)</span>
         <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">dist</span> <span class="o">&lt;</span> <span class="n">max_dist</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">dist</span> <span class="o">&gt;</span> <span class="n">min_dist</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">dist</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span>
         <span class="n">rho</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">idx</span><span class="p">[</span><span class="n">mask</span><span class="p">]:</span>
