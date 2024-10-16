@@ -83,7 +83,7 @@ def exportDataToGisFormat(*, file_path: str, output_path: str, input_path: str,
 
     vel, demerr, _, coherence, omega, _ = ut.estimateParameters(obj=point_obj, ifg_space=False)
 
-    stc = ut.spatiotemporalConsistency(coord_utm=point_obj.coord_utm, phase=point_obj.phase,
+    stc = ut.spatiotemporalConsistency(coord_map=point_obj.coord_map, phase=point_obj.phase,
                                        wavelength=point_obj.wavelength)
 
     point_obj.phase *= point_obj.wavelength / (4 * np.pi)  # in [m]
@@ -134,9 +134,9 @@ def exportDataToGisFormat(*, file_path: str, output_path: str, input_path: str,
         coord_correction = 0
         logger.info("geolocation correction skipped.")
 
-    coord_utm = point_obj.coord_utm
-    coord_utm += coord_correction
-    df_points['coord'] = (coord_utm).tolist()
+    coord_map = point_obj.coord_map
+    coord_map += coord_correction
+    df_points['coord'] = (coord_map).tolist()
     df_points['coord'] = df_points['coord'].apply(Point)
     df_points.insert(0, 'point_id', point_obj.point_id.tolist())
     df_points.insert(1, 'velocity', vel * 1000)  # in [mm]

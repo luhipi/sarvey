@@ -548,13 +548,13 @@ def splitDatasetForParallelProcessing(*, num_samples: int, num_cores: int):
     return idx
 
 
-def createSpatialGrid(*, coord_utm_img: np.ndarray, length: int, width: int, grid_size: int):
+def createSpatialGrid(*, coord_map_img: np.ndarray, length: int, width: int, grid_size: int):
     """Create a spatial grid over the image.
 
     Parameters
     ----------
-    coord_utm_img: np.ndarray
-        coordinates of all image pixels in UTM
+    coord_map_img: np.ndarray
+        map coordinates of all image pixels
     length: int
         number of pixels in length of the image
     width: int
@@ -569,9 +569,9 @@ def createSpatialGrid(*, coord_utm_img: np.ndarray, length: int, width: int, gri
     num_box: int
         actual number of boxes created by the function
     """
-    p0 = coord_utm_img[:, 0, 0]
-    p1 = coord_utm_img[:, 0, -1]
-    p2 = coord_utm_img[:, -1, 0]
+    p0 = coord_map_img[:, 0, 0]
+    p1 = coord_map_img[:, 0, -1]
+    p2 = coord_map_img[:, -1, 0]
     dist_width = np.linalg.norm(p0 - p1)
     dist_length = np.linalg.norm(p0 - p2)
     num_box_az = int(np.round(dist_width / grid_size))
@@ -622,14 +622,14 @@ def selectBestPointsInGrid(*, box_list: list, quality: np.ndarray, sel_min: bool
     return cand_mask_sparse
 
 
-def spatiotemporalConsistency(*, coord_utm: np.ndarray, phase: np.ndarray, wavelength: float, min_dist: int = 15,
+def spatiotemporalConsistency(*, coord_map: np.ndarray, phase: np.ndarray, wavelength: float, min_dist: int = 15,
                               max_dist: float = np.inf, knn: int = 50):
     """Spatiotemporal consistency proposed by Hanssen et al. (2008) and implemented in DePSI (van Leijen, 2014).
 
     Parameters
     ----------
-    coord_utm: np.ndarray
-        UTM coordinates of the points
+    coord_map: np.ndarray
+        map coordinates of the points
     phase: np.ndarray
         phase time series of the points
     wavelength: float
@@ -649,12 +649,12 @@ def spatiotemporalConsistency(*, coord_utm: np.ndarray, phase: np.ndarray, wavel
     from scipy.spatial import KDTree
 
     num_samples, num_time = phase.shape
-    tree = KDTree(data=coord_utm)
+    tree = KDTree(data=coord_map)
 
     stc = np.zeros((num_samples,), np.float64)
 
     for p in range(num_samples):
-        dist, idx = tree.query([coord_utm[p, 0], coord_utm[p, 1]], k=knn)
+        dist, idx = tree.query([coord_map[p, 0], coord_map[p, 1]], k=knn)
         mask = (dist < max_dist) & (dist > min_dist) & (dist != 0)
         rho = list()
         for i in idx[mask]:

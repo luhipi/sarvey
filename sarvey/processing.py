@@ -43,7 +43,7 @@ from sarvey.densification import densifyNetwork
 from sarvey.filtering import estimateAtmosphericPhaseScreen, simpleInterpolation
 from sarvey.ifg_network import (DelaunayNetwork, SmallBaselineYearlyNetwork, SmallTemporalBaselinesNetwork,
                                 SmallBaselineNetwork, StarNetwork)
-from sarvey.objects import Network, Points, AmplitudeImage, CoordinatesUTM, NetworkParameter, BaseStack
+from sarvey.objects import Network, Points, AmplitudeImage, CoordinatesMap, NetworkParameter, BaseStack
 from sarvey.unwrapping import spatialParameterIntegration, \
     parameterBasedNoisyPointRemoval, temporalUnwrapping, spatialUnwrapping, removeGrossOutliers
 from sarvey.preparation import createArcsBetweenPoints, selectPixels, createTimeMaskFromDates
@@ -186,9 +186,9 @@ class Processing:
 
         # store auxilliary datasets for faster access during processing
         if not exists(join(self.path, "coordinates_map.h5")):
-            coord_utm_obj = CoordinatesUTM(file_path=join(self.path, "coordinates_map.h5"), logger=self.logger)
-            coord_utm_obj.prepare(input_path=join(self.config.general.input_path, "geometryRadar.h5"))
-            del coord_utm_obj
+            coord_map_obj = CoordinatesMap(file_path=join(self.path, "coordinates_map.h5"), logger=self.logger)
+            coord_map_obj.prepare(input_path=join(self.config.general.input_path, "geometryRadar.h5"))
+            del coord_map_obj
 
         if not exists(join(self.path, "background_map.h5")):
             bmap_obj = AmplitudeImage(file_path=join(self.path, "background_map.h5"))
@@ -440,7 +440,7 @@ class Processing:
         if self.config.unwrapping.use_arcs_from_temporal_unwrapping:
             arcs = net_par_obj.arcs  # use this to avoid unreliable connections. Takes a bit longer.
         else:
-            triang_obj = PointNetworkTriangulation(coord_xy=point_obj.coord_xy, coord_utmxy=point_obj.coord_utm,
+            triang_obj = PointNetworkTriangulation(coord_xy=point_obj.coord_xy, coord_map_xy=point_obj.coord_map,
                                                    logger=self.logger)
             triang_obj.triangulateGlobal()
             arcs = triang_obj.getArcsFromAdjMat()
@@ -498,7 +498,7 @@ class Processing:
             arcs = net_par_obj.arcs  # use this to avoid unreliable connections. Takes a bit longer.
         else:
             # re-triangulate with delaunay to make PUMA faster
-            triang_obj = PointNetworkTriangulation(coord_xy=point_obj.coord_xy, coord_utmxy=point_obj.coord_utm,
+            triang_obj = PointNetworkTriangulation(coord_xy=point_obj.coord_xy, coord_map_xy=point_obj.coord_map,
                                                    logger=self.logger)
             triang_obj.triangulateGlobal()
             arcs = triang_obj.getArcsFromAdjMat()
@@ -590,14 +590,14 @@ class Processing:
         plt.close(fig)
 
         # create grid
-        coord_utm_obj = CoordinatesUTM(file_path=join(self.path, "coordinates_map.h5"), logger=self.logger)
-        coord_utm_obj.open()
+        coord_map_obj = CoordinatesMap(file_path=join(self.path, "coordinates_map.h5"), logger=self.logger)
+        coord_map_obj.open()
 
         # remove points based on threshold
         mask_thrsh = auto_corr_img <= self.config.filtering.max_temporal_autocorrelation
         auto_corr_img[~mask_thrsh] = np.inf
 
-        box_list, num_box = ut.createSpatialGrid(coord_utm_img=coord_utm_obj.coord_utm, length=point1_obj.length,
+        box_list, num_box = ut.createSpatialGrid(coord_map_img=coord_map_obj.coord_map, length=point1_obj.length,
                                                  width=point1_obj.width,
                                                  grid_size=self.config.filtering.grid_size)
 
@@ -785,8 +785,8 @@ class Processing:
             if self.config.filtering.interpolation_method == "kriging":
                 aps1_phase, aps2_phase = estimateAtmosphericPhaseScreen(
                     residuals=phase_for_aps_filtering,
-                    coord_utm1=point1_obj.coord_utm,
-                    coord_utm2=aps2_obj.coord_utm,
+                    coord_map1=point1_obj.coord_map,
+                    coord_map2=aps2_obj.coord_map,
                     num_cores=self.config.general.num_cores,
                     bool_plot=False,
                     logger=self.logger
@@ -794,8 +794,8 @@ class Processing:
             else:
                 aps1_phase, aps2_phase = simpleInterpolation(
                     residuals=phase_for_aps_filtering,
-                    coord_utm1=point1_obj.coord_utm,
-                    coord_utm2=aps2_obj.coord_utm,
+                    coord_map1=point1_obj.coord_map,
+                    coord_map2=aps2_obj.coord_map,
                     interp_method=self.config.filtering.interpolation_method
                 )
         else:
@@ -804,7 +804,7 @@ class Processing:
             msg += "#" * 10
             self.logger.info(msg=msg)
             num_points1 = phase_for_aps_filtering.shape[0]
-            num_points2 = aps2_obj.coord_utm.shape[0]
+            num_points2 = aps2_obj.coord_map.shape[0]
             num_time = phase_for_aps_filtering.shape[1]
             aps1_phase = np.zeros((num_points1, num_time), dtype=np.float32)
             aps2_phase = np.zeros((num_points2, num_time), dtype=np.float32)
@@ -1007,7 +1007,7 @@ class Processing:
         wr_phase = point2_obj.phase
         wr_res_phase = np.angle(np.exp(1j * wr_phase) * np.conjugate(np.exp(1j * pred_phase)))
 
-        triang_obj = PointNetworkTriangulation(coord_xy=point2_obj.coord_xy, coord_utmxy=None, logger=self.logger)
+        triang_obj = PointNetworkTriangulation(coord_xy=point2_obj.coord_xy, coord_mapxy=None, logger=self.logger)
         triang_obj.triangulateGlobal()
         arcs = triang_obj.getArcsFromAdjMat()
 
@@ -1065,8 +1065,8 @@ class Processing:
         # correct for APS
         point_obj.phase = np.angle(np.exp(1j * point_obj.phase) * np.conjugate(np.exp(1j * aps2_ifg_phase)))
 
-        triang_obj = PointNetworkTriangulation(coord_xy=point_obj.coord_xy, coord_utmxy=None, logger=self.logger)
-        triang_obj.triangulateGlobal()  # if coord_utm is not given, only global delaunay and knn can be calculated
+        triang_obj = PointNetworkTriangulation(coord_xy=point_obj.coord_xy, coord_mapxy=None, logger=self.logger)
+        triang_obj.triangulateGlobal()  # if coord_map is not given, only global delaunay and knn can be calculated
         arcs = triang_obj.getArcsFromAdjMat()
 
         unw_phase = spatialUnwrapping(num_ifgs=point_obj.ifg_net_obj.num_ifgs,

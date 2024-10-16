@@ -155,7 +155,7 @@ def plotMap(*, obj_name: str, save_path: str, interactive: bool = False, input_p
     else:
         plt.close(plt.gcf())
 
-    stc = ut.spatiotemporalConsistency(coord_utm=point_obj.coord_utm, phase=point_obj.phase,
+    stc = ut.spatiotemporalConsistency(coord_map=point_obj.coord_map, phase=point_obj.phase,
                                        wavelength=point_obj.wavelength,
                                        min_dist=50, max_dist=np.inf, knn=40)
 
