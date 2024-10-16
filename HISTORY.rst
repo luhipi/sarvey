@@ -2,6 +2,9 @@
 History
 =======
 
+* Export data to GIS format in WGS84 coordinates
+* Use Transverse Mercator instead of UTM as map coordinates.
+
 1.0.0 (2024-08-12) Strawberry Pie
 ---------------------------------
 
