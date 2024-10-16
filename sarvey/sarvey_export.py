@@ -149,7 +149,7 @@ def exportDataToGisFormat(*, file_path: str, output_path: str, input_path: str,
     logger.debug(f"WGS84 Lat range: {np.min(lat):.6f} - {np.max(lat):.6f}")
     lonlat = np.vstack((lon, lat)).T
 
-    logger.info(f'Construct output dataframe.')
+    logger.info('Construct output dataframe.')
     df_points['coord'] = (lonlat).tolist()
     df_points['coord'] = df_points['coord'].apply(Point)
     df_points.insert(0, 'point_id', point_obj.point_id.tolist())
