@@ -153,6 +153,8 @@ class CoordinatesMap:
         """
         self.file_path = file_path
         self.coord_map = None
+        self.lat_0 = None
+        self.lon_0 = None
         self.logger = logger
 
     def prepare(self, *, input_path: str):
@@ -179,15 +181,15 @@ class CoordinatesMap:
         max_lon = np.nanmax(lon.ravel())
         log.debug(f"WGS84 Longitude range: {min_lon} - {max_lon} Latitude range: {min_lat} - {max_lat}")
 
-        lon_0 = (max_lon + min_lon) / 2  # Central_meridian
-        lat_0 = (max_lat + min_lat) / 2  # Latitude of origin
-        log.debug(f"Central meridian: {lon_0} Latitude of origin: {lat_0}")
+        self.lon_0 = (max_lon + min_lon) / 2  # Central_meridian
+        self.lat_0 = (max_lat + min_lat) / 2  # Latitude of origin
+        log.debug(f"Central meridian: {self.lon_0} Latitude of origin: {self.lat_0}")
 
         log.debug("Construct Transverse Mercator projection.")
         map_crs = CRS.from_dict({
             "proj": "tmerc",  # Transverse Mercator
-            "lat_0": lat_0,
-            "lon_0": lon_0,
+            "lat_0": self.lat_0,
+            "lon_0": self.lon_0,
             "k": 1,
             "x_0": 0,  # False Easting
             "y_0": 0,
@@ -205,14 +207,17 @@ class CoordinatesMap:
         if exists(self.file_path):
             os.remove(self.file_path)
 
-        # TODO: store TM projection parameters (lon_0/lat_0) in coordinates_map.h5
         with h5py.File(self.file_path, 'w') as f:
             f.create_dataset('coord_map', data=self.coord_map)
+            f.attrs["lon_0"] = self.lon_0
+            f.attrs["lat_0"] = self.lat_0
 
     def open(self):
         """Open."""
         with h5py.File(self.file_path, 'r') as f:
             self.coord_map = f["coord_map"][:]
+            self.lon_0 = f.attrs["lon_0"]
+            self.lat_0 = f.attrs["lat_0"]
 
 
 class BaseStack:
