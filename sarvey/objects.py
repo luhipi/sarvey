@@ -35,8 +35,6 @@ import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 from pyproj import Proj, CRS
-from pyproj.aoi import AreaOfInterest
-from pyproj.database import query_utm_crs_info
 from logging import Logger
 
 from miaplpy.objects.slcStack import slcStack
