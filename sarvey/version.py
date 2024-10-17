@@ -30,5 +30,5 @@
 """Version module for SARvey."""
 
 __version__ = '1.0.0'
-__versiondate__ = '2024-06-26_01'
+__versiondate__ = '2024-08-12_01'
 __versionalias__ = 'Strawberry Pie'

@@ -62,8 +62,8 @@ def printCurrentConfig(*, config_section: dict, config_section_default: dict, lo
         Logging handler.
     """
     shift = "    "
-    logger.info(msg=shift + "{:>30} {:>15}      {:>10}".format("Parameter", "value", "default"))
-    logger.info(msg=shift + "{:>30} {:>15}      {:>10}".format("_________", "_____", "_______"))
+    logger.info(msg=shift + "{:>35} {:>15}      {:>10}".format("Parameter", "value", "default"))
+    logger.info(msg=shift + "{:>35} {:>15}      {:>10}".format("_________", "_____", "_______"))
 
     for key in config_section.keys():
         default = config_section_default[key]
@@ -76,9 +76,9 @@ def printCurrentConfig(*, config_section: dict, config_section_default: dict, lo
         value = "True" if value is True else value
         value = "False" if value is False else value
         if default == value:
-            logger.info(msg=shift + "{:>30} {:>15}      {:>10}".format(key, value, default))
+            logger.info(msg=shift + "{:>35} {:>15}      {:>10}".format(key, value, default))
         else:
-            logger.info(msg=shift + "{:>30} {:>15} <--- {:>10}".format(key, value, default))
+            logger.info(msg=shift + "{:>35} {:>15} <--- {:>10}".format(key, value, default))
 
     logger.info(msg="")
 
@@ -95,34 +95,22 @@ def showLogoSARvey(*, logger: Logger, step: str):
     """
     # generate_from: http://patorjk.com/software/taag/  - font: Big, style: default
     # and https://textik.com/
-    logo = rf"""
-                                           -\
-                                         -/  \
-                                       -/     -
-                                      /     /
-                                   -/     -/
-        +-----------------------  /     -/  ------------------------------------------------------+
-        |                       -/    -/                                                          |
-        |                     -/     /                                                            |
-        |                   -/     -/                                                             |
-        |             \   -/     -/                                                               |
-        |           /- -\/     -/        -           _____         _____                          |
-        |         /-     -\  -/        -/           / ____|  /\   |  __ \                         |
-        |        -\        -/        -/            | (___   /  \  | |__) |_   _____ _   _         |
-        |          -\        -     -/               \___ \ / /\ \ |  _  /\ \ / / _ \ | | |        |
-        |        -/  -\      /-  -/                 ____) / ____ \| | \ \ \ V /  __/ |_| |        |
-               -/     --\  /-  -/                  |_____/_/    \_\_|  \_\ \_/ \___|\__, |        |
-             -/     -/   --   / ___                                                  __/ |        |
-           -/     -/        -/     |                                                |___/         |
-          /     -/        -/       |___                  Version: {version.__version__:<25}       |
-         /    -/        -/             |                          {version.__versionalias__:<25}       |
-      -/    -/        -/               |___              Date:    {version.__versiondate__:<25}       |
-    -/    -/        -/                     |             Run:     {step: <25}       |
-  -/     /         /                       |___                                                   |
- /    -/                                       |                                                  |
---   /                                         |___                                               |
-  \--   +------------------------------------      |    ------------------------------------------+
-                                                   |___
-                                                       |
+    logger.info(msg=f"SARvey version: {version.__version__} - {version.__versionalias__}, {version.__versiondate__}, "
+                    f"Run: {step}")
+    new_logo = rf"""                                .            _____         _____
+                      +------  / \  ------  / ____|  /\   |  __ \
+                      |       /  /         | (___   /  \  | |__) |_   _____ _   _
+                      |      /  /           \___ \ / /\ \ |  _  /\ \ / / _ \ | | |
+                      |   /\\  /  /         ____) / ____ \| | \ \ \ V /  __/ |_| |
+                      |  /  \\/  /         |_____/_/    \_\_|  \_\ \_/ \___|\__, |
+                      | /    \  /                                            __/ |
+                      | \    / /               v{version.__version__:<5} - {version.__versionalias__:<18}  |___/
+                        \\  / /...             {version.__versiondate__:<20}              |
+                       / \\/ /    :...                                           |
+                      /  /  /         :...     {step: <20}              |
+                     /  /  /              :...                                   |
+                    /  /       _______        :...                      _________|
+                     \/               \______     :...     ____________/         |
+                      +--------------------  \________:___/  --------------------+
     """
-    logger.info(msg=logo)
+    print(new_logo)

@@ -45,7 +45,7 @@ with open("sarvey/version.py") as version_file:
 req = [
     "cython", "numpy", "pyproj", "matplotlib", "numba", "scipy",
     "mintpy", "h5py", "overpy", "miaplpy", "gstools", "shapely", "pandas", "geopandas", "pymaxflow",
-    "pillow", "pydantic<=1.10.10", "importlib_resources", "kamui"
+    "pillow", "pydantic<=1.10.10", "importlib_resources", "kamui", "json5"
 ]
 
 req_setup = []
@@ -67,8 +67,8 @@ setup(
     author_email='piter@ipi.uni-hannover.de',
     python_requires='>=3.7',
     classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
-        'Intended Audience :: Developers',
+        'Development Status :: Release Candidate',
+        'Intended Audience :: Researchers',
         'None',
         'Natural Language :: English',
         'Programming Language :: Python :: 3',
@@ -103,7 +103,7 @@ setup(
     setup_requires=req_setup,
     test_suite='tests',
     tests_require=req_test,
-    url='https://gitlab.projekt.uni-hannover.de/ipi-sar4infra/sarvey/',
+    url='https://github.com/luhipi/sarvey',
     version=version['__version__'],
     zip_safe=False,
 )

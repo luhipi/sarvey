@@ -76,14 +76,14 @@ Note: The above command only generates a configuration file. Although step 0 is 
 Step 1.4: Modify the config.json File
 """""""""""""""""""""""""""""""""""""
 
-1.4.1. Open the config.json file and check the parameters. The first parameters to specify in the config file are **path_inputs** and **path_outputs**. For this example dataset, the `slcStack.h5` and `geometryRadar.h5` files are in the `inputs/` directory, which is the default value in the config file. Therefore, you do not need to change it. The **path_outputs** should be `outputs/` for this example.
+1.4.1. Open the config.json file and check the parameters. The first parameters to specify in the config file are **input_path** and **output_path**. For this example dataset, the `slcStack.h5` and `geometryRadar.h5` files are in the `inputs/` directory, which is the default value in the config file. Therefore, you do not need to change it. The **output_path** should be `outputs/` for this example.
 
 .. code-block:: json
 
     {
-        "data_directories": {
-            "path_inputs": "inputs/",
-            "path_outputs": "outputs/"
+        "general": {
+            "input_path": "inputs/",
+            "output_path": "outputs/"
         }
         // other parameters
     }
@@ -108,7 +108,7 @@ It is a good practice to specify a number lower than the number of available cor
 
     {
     // other parameters
-        "processing": {
+        "general": {
         "num_cores": 5,
         // other parameters
         },
@@ -150,8 +150,8 @@ In the command line, you will see a list of parameters used by SARvey to run ste
     2024-06-19 11:04:28,137 - INFO - _________ _____ _______
     2024-06-19 11:04:28,138 - INFO - num_cores 5 <--- 50
     2024-06-19 11:04:28,138 - INFO - num_patches 1 1
-    2024-06-19 11:04:28,138 - INFO - temporal_unwrapping True True
-    2024-06-19 11:04:28,138 - INFO - unwrapping_method puma puma
+    2024-06-19 11:04:28,138 - INFO - apply_temporal_unwrapping True True
+    2024-06-19 11:04:28,138 - INFO - spatial_unwrapping_method puma puma
     2024-06-19 11:04:28,138 - INFO -
     2024-06-19 11:04:28,138 - INFO - ---------------------------------------------------------------------------------
     2024-06-19 11:04:28,138 - INFO - STEP 0: PREPARATION
@@ -159,11 +159,11 @@ In the command line, you will see a list of parameters used by SARvey to run ste
     2024-06-19 11:04:28,138 - INFO - Parameter value default
     2024-06-19 11:04:28,139 - INFO - _________ _____ _______
     2024-06-19 11:04:28,139 - INFO - start_date None None
-    2024-06-19 11:04:28,139 - INFO - stop_date None None
-    2024-06-19 11:04:28,139 - INFO - network_type sb <--- delaunay
+    2024-06-19 11:04:28,139 - INFO - end_date None None
+    2024-06-19 11:04:28,139 - INFO - ifg_network_type sb <--- delaunay
     2024-06-19 11:04:28,139 - INFO - num_ifgs 3 3
     2024-06-19 11:04:28,139 - INFO - max_tbase 100 100
-    2024-06-19 11:04:28,139 - INFO - filter_wdw_size 9 9
+    2024-06-19 11:04:28,139 - INFO - filter_window_size 9 9
     ...
 
 After running this step, a `sbas` directory is created. Inside this directory, you can find the following files:
@@ -290,7 +290,7 @@ Outputs of this step are:
         └── step_4_mask_coh80.png
 
 
-The results of step 4 of SARvey, including the time series, are stored in the `coh80_ts.h5` file. The file is named based on the `coherence_p2` parameter in the config.json file.
+The results of step 4 of SARvey, including the time series, are stored in the `p2_coh80_ts.h5` file. The file is named based on the `coherence_p2` parameter in the config.json file.
 
 
 Step 3: Plot Time Series Results
@@ -307,7 +307,7 @@ Plot the time series using the following command. Flag `-t` indicates that you w
 
 .. code-block:: bash
 
-    sarvey_plot outputs/coh80_ts.h5 -t
+    sarvey_plot outputs/p2_coh80_ts.h5 -t
 
 
 You can visualize velocity and DEM error estimation of second-order points. You can also visualize amplitude, DEM, or temporal coherence as the background. Right-click on any point to see its time series. As you will see in the plot, the density of measurement points on the dam is relatively low. In the next section, you will learn how to modify the config file to increase the density of points.
@@ -325,11 +325,11 @@ Rerun steps 4 using the following command:
     sarvey -f config.json 4 4
 
 
-A new file `coh70_ts.h5` is created. You can now visualize this file that has a higher point density.
+A new file `p2_coh70_ts.h5` is created. You can now visualize this file that has a higher point density.
 
 .. code-block:: bash
 
-    sarvey_plot outputs/coh70_ts.h5 -t
+    sarvey_plot outputs/p2_coh70_ts.h5 -t
 
 
 .. note::
@@ -349,7 +349,7 @@ Export the data to Shapefiles using the following command:
 
 .. code-block:: bash
 
-    sarvey_export outputs/coh70_ts.h5 -o outputs/shp/coh70_ts.shp
+    sarvey_export outputs/p2_coh70_ts.h5 -o outputs/shp/p2_coh70_ts.shp
 
 You can open the exported data in any GIS software. If you use QGIS, you can use the `PS Time Series Viewer <https://plugins.qgis.org/plugins/pstimeseries/>`_ plugin to draw the time series.
 

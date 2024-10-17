@@ -37,13 +37,13 @@ from miaplpy.objects.slcStack import slcStack
 from sarvey.objects import Points
 
 
-def getHeading(path_inputs: str, logger: logging.Logger):
+def getHeading(input_path: str, logger: logging.Logger):
     """
     Read heading angle from slcStack.h5.
 
     Parameters
     ----------
-    path_inputs: str
+    input_path: str
         Path to directory containing 'slcStack.h5' and 'geometryRadar.h5'.
     logger: Logger
         Logger handle
@@ -56,7 +56,7 @@ def getHeading(path_inputs: str, logger: logging.Logger):
         for descending ~ 190*pi/180
     """
     # get heading from slcStack.h5
-    slc_stack_file = join(path_inputs, 'slcStack.h5')
+    slc_stack_file = join(input_path, 'slcStack.h5')
     slc_stack_obj = slcStack(slc_stack_file)
     try:
         meta_dict = slc_stack_obj.get_metadata()
@@ -91,7 +91,7 @@ def calculateGeolocationCorrection(*, path_geom: str, point_obj: Points, demerr:
     coord_correction: np.array
         array of geolocation corrections, two columns [x_correction, y_correction] per point.
     """
-    heading_angle = getHeading(path_inputs=path_geom, logger=logger)
+    heading_angle = getHeading(input_path=path_geom, logger=logger)
 
     coord_correction = np.zeros_like(point_obj.coord_xy, dtype=float)
     coord_correction[:, 0] = demerr * np.cos(heading_angle) / np.tan(point_obj.loc_inc)

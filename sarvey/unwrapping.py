@@ -31,6 +31,8 @@
 import multiprocessing
 from os.path import join, dirname
 import time
+from typing import Union
+
 import matplotlib.pyplot as plt
 import numpy as np
 from kamui import unwrap_arbitrary
@@ -455,7 +457,7 @@ def spatialUnwrapping(*, num_ifgs: int, num_points: int, phase: np.ndarray, edge
         Unwrapped phase of the interferograms at the points.
     """
     msg = "#" * 10
-    msg += f" SPATIAL UNWRAPPING: {method}"
+    msg += f" SPATIAL UNWRAPPING: {method} "
     msg += "#" * 10
     logger.info(msg=msg)
 
@@ -781,8 +783,9 @@ def computeAvgCoherencePerPoint(*, net_obj: Network, point_id: np.ndarray, logge
     return mean_gamma_point
 
 
-def removeArcsByPointMask(*, net_obj: Network, point_id: np.ndarray, coord_xy: np.ndarray, p_mask: np.ndarray,
-                          design_mat: np.ndarray, logger: Logger) -> tuple[Network, np.ndarray, np.ndarray, np.ndarray]:
+def removeArcsByPointMask(*, net_obj: Union[Network, NetworkParameter], point_id: np.ndarray, coord_xy: np.ndarray,
+                          p_mask: np.ndarray, design_mat: np.ndarray,
+                          logger: Logger) -> tuple[Network, np.ndarray, np.ndarray, np.ndarray]:
     """Remove all entries related to the arc observations connected to the points which have a False value in p_mask.
 
     Parameters
@@ -991,7 +994,7 @@ def parameterBasedNoisyPointRemoval(*, net_par_obj: NetworkParameter, point_id: 
 
         rmse = rmse_vel.copy()
         max_rmse = np.max(rmse.ravel())
-        logger.info(msg="Maximum RMSE DEM error: {:.2f} m".format(np.max(rmse_demerr.ravel())))
+        logger.info(msg="Maximum RMSE DEM correction: {:.2f} m".format(np.max(rmse_demerr.ravel())))
         logger.info(msg="Maximum RMSE velocity: {:.4f} m / year".format(np.max(rmse_vel.ravel())))
 
         if bool_plot:
@@ -1012,10 +1015,11 @@ def parameterBasedNoisyPointRemoval(*, net_par_obj: NetworkParameter, point_id: 
             sc = ax.scatter(coord_xy[:, 1], coord_xy[:, 0], c=rmse_demerr, s=3.5,
                             cmap=plt.cm.get_cmap("autumn_r"))
             plt.colorbar(sc, pad=0.03, shrink=0.5)
-            ax.set_title("{}. iteration\nDEM error - RMSE per point in [m]".format(it_count))
+            ax.set_title("{}. iteration\nDEM correction - RMSE per point in [m]".format(it_count))
             fig = ax.get_figure()
             plt.tight_layout()
-            fig.savefig(join(dirname(net_par_obj.file_path), "pic", f"step_1_rmse_dem_error_{it_count}th_iter.png"),
+            fig.savefig(join(dirname(net_par_obj.file_path), "pic",
+                             f"step_1_rmse_dem_correction_{it_count}th_iter.png"),
                         dpi=300)
             plt.close(fig)
 
