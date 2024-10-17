@@ -318,7 +318,7 @@ first-order network.</p>
 <p>Filtering module for SARvey.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="sarvey.filtering.estimateAtmosphericPhaseScreen">
-<span class="sig-prename descclassname"><span class="pre">sarvey.filtering.</span></span><span class="sig-name descname"><span class="pre">estimateAtmosphericPhaseScreen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">residuals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coord_map1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coord_map2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_cores</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bool_plot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sarvey/filtering.html#estimateAtmosphericPhaseScreen"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sarvey.filtering.estimateAtmosphericPhaseScreen" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">sarvey.filtering.</span></span><span class="sig-name descname"><span class="pre">estimateAtmosphericPhaseScreen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">residuals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coord_utm1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coord_utm2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_cores</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bool_plot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sarvey/filtering.html#estimateAtmosphericPhaseScreen"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sarvey.filtering.estimateAtmosphericPhaseScreen" title="Link to this definition">¶</a></dt>
 <dd><p>Estimate_atmospheric_phase_screen.</p>
 <p>Estimates the atmospheric phase screen from a stack of phase time series for a sparse set of points.
 Kriging is used to estimate the spatial dependence and to interpolate the phase screen over a set of new points.</p>
@@ -332,9 +332,9 @@ Kriging is used to estimate the spatial dependence and to interpolate the phase 
 <dl class="simple">
 <dt>residuals: np.ndarray</dt><dd><p>residual phase (size: num_points1 x num_images)</p>
 </dd>
-<dt>coord_map1: np.ndarray</dt><dd><p>map coordinates of the points for which the residuals are given (size: num_points1 x 2)</p>
+<dt>coord_utm1: np.ndarray</dt><dd><p>coordinates in UTM of the points for which the residuals are given (size: num_points1 x 2)</p>
 </dd>
-<dt>coord_map2: np.ndarray</dt><dd><p>map coordinates of the new points which shall be interpolated (size: num_points2 x 2)</p>
+<dt>coord_utm2: np.ndarray</dt><dd><p>coordinates in UTM of the new points which shall be interpolated (size: num_points2 x 2)</p>
 </dd>
 <dt>num_cores: int</dt><dd><p>Number of cores</p>
 </dd>
@@ -371,9 +371,9 @@ Kriging is used to estimate the spatial dependence and to interpolate the phase 
 </dd>
 <dt>residuals: np.ndarray</dt><dd><p>residual phase (size: num_points x num_ifgs)</p>
 </dd>
-<dt>coord_map1: np.ndarray</dt><dd><p>map coordinates of the first-order points for which the residuals are given (size: num_points_p1 x 2)</p>
+<dt>coord_utm1: np.ndarray</dt><dd><p>coordinates in UTM of the first-order points for which the residuals are given (size: num_points_p1 x 2)</p>
 </dd>
-<dt>coord_map2: np.ndarray</dt><dd><p>map coordinates of the new points which shall be interpolated (size: num_points_p2 x 2)</p>
+<dt>coord_utm2: np.ndarray</dt><dd><p>coordinates in UTM of the new points which shall be interpolated (size: num_points_p2 x 2)</p>
 </dd>
 <dt>bins: np.ndarray</dt><dd><p>bin edges for the variogram</p>
 </dd>
@@ -400,7 +400,7 @@ Kriging is used to estimate the spatial dependence and to interpolate the phase 
 
 <dl class="py function">
 <dt class="sig sig-object py" id="sarvey.filtering.simpleInterpolation">
-<span class="sig-prename descclassname"><span class="pre">sarvey.filtering.</span></span><span class="sig-name descname"><span class="pre">simpleInterpolation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">residuals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coord_map1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coord_map2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interp_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'linear'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sarvey/filtering.html#simpleInterpolation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sarvey.filtering.simpleInterpolation" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">sarvey.filtering.</span></span><span class="sig-name descname"><span class="pre">simpleInterpolation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">residuals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coord_utm1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coord_utm2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interp_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'linear'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sarvey/filtering.html#simpleInterpolation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sarvey.filtering.simpleInterpolation" title="Link to this definition">¶</a></dt>
 <dd><p>SimpleInterpolation.</p>
 <p>Simple interpolation of atmospheric phase screen using scipy’s griddata function with options “linear” or “cubic”.
 For pixels outside the convex hull of the input points, the nearest neighbor is used.</p>
@@ -409,9 +409,9 @@ For pixels outside the convex hull of the input points, the nearest neighbor is 
 <dl class="simple">
 <dt>residuals: np.ndarray</dt><dd><p>residual phase (size: num_points x num_ifgs)</p>
 </dd>
-<dt>coord_map1: np.ndarray</dt><dd><p>map coordinates of the points for which the residuals are given (size: num_points_p1 x 2)</p>
+<dt>coord_utm1: np.ndarray</dt><dd><p>coordinates in UTM of the points for which the residuals are given (size: num_points_p1 x 2)</p>
 </dd>
-<dt>coord_map2: np.ndarray</dt><dd><p>map coordinates of the new points which shall be interpolated (size: num_points_p2 x 2)</p>
+<dt>coord_utm2: np.ndarray</dt><dd><p>coordinates in UTM of the new points which shall be interpolated (size: num_points_p2 x 2)</p>
 </dd>
 <dt>interp_method: str</dt><dd><p>interpolation method (default: “linear”; options: “linear”, “cubic”)</p>
 </dd>
@@ -865,10 +865,10 @@ tuple of 6 int, indicating x0,y0,z0,x1,y1,z1 of range</p>
 </dd></dl>
 
 <dl class="py class">
-<dt class="sig sig-object py" id="sarvey.objects.CoordinatesMap">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sarvey.objects.</span></span><span class="sig-name descname"><span class="pre">CoordinatesMap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sarvey/objects.html#CoordinatesMap"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sarvey.objects.CoordinatesMap" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sarvey.objects.CoordinatesUTM">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sarvey.objects.</span></span><span class="sig-name descname"><span class="pre">CoordinatesUTM</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sarvey/objects.html#CoordinatesUTM"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sarvey.objects.CoordinatesUTM" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<p>Map Coordinates for all pixels in the radar image.</p>
+<p>Coordinates in UTM for all pixels in the radar image.</p>
 <p>Init.</p>
 <section id="id39">
 <h3>Parameters<a class="headerlink" href="#id39" title="Link to this heading">¶</a></h3>
@@ -879,14 +879,14 @@ tuple of 6 int, indicating x0,y0,z0,x1,y1,z1 of range</p>
 </dd>
 </dl>
 <dl class="py method">
-<dt class="sig sig-object py" id="sarvey.objects.CoordinatesMap.open">
-<span class="sig-name descname"><span class="pre">open</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/sarvey/objects.html#CoordinatesMap.open"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sarvey.objects.CoordinatesMap.open" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sarvey.objects.CoordinatesUTM.open">
+<span class="sig-name descname"><span class="pre">open</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/sarvey/objects.html#CoordinatesUTM.open"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sarvey.objects.CoordinatesUTM.open" title="Link to this definition">¶</a></dt>
 <dd><p>Open.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="sarvey.objects.CoordinatesMap.prepare">
-<span class="sig-name descname"><span class="pre">prepare</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sarvey/objects.html#CoordinatesMap.prepare"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sarvey.objects.CoordinatesMap.prepare" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="sarvey.objects.CoordinatesUTM.prepare">
+<span class="sig-name descname"><span class="pre">prepare</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sarvey/objects.html#CoordinatesUTM.prepare"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sarvey.objects.CoordinatesUTM.prepare" title="Link to this definition">¶</a></dt>
 <dd><p>Read the slc stack, computes the mean amplitude image and stores it into a file.</p>
 <section id="id40">
 <h4>Parameters<a class="headerlink" href="#id40" title="Link to this heading">¶</a></h4>
@@ -1088,7 +1088,7 @@ Points object can be created with the data of another Points object.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="sarvey.objects.Points.openExternalData">
 <span class="sig-name descname"><span class="pre">openExternalData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sarvey/objects.html#Points.openExternalData"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sarvey.objects.Points.openExternalData" title="Link to this definition">¶</a></dt>
-<dd><p>Load data which is stored in slcStack.h5, geometryRadar.h5, ifg_network.h5 and coordinates_map.h5.</p>
+<dd><p>Load data which is stored in slcStack.h5, geometryRadar.h5, ifg_network.h5 and coordinates_utm.h5.</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -1106,7 +1106,7 @@ Points object can be created with the data of another Points object.</p>
 <span class="sig-name descname"><span class="pre">prepare</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">point_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coord_xy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sarvey/objects.html#Points.prepare"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sarvey.objects.Points.prepare" title="Link to this definition">¶</a></dt>
 <dd><p>Assign point_id and radar coordinates to the object.</p>
 <p>Store the point_id and radar coordinates of the scatterers in the object (not file) and read further
-attributes from external files (ifg_network.h5, slcStack.h5, geometryRadar.h5, coordinates_map.h5).</p>
+attributes from external files (ifg_network.h5, slcStack.h5, geometryRadar.h5, coordinates_utm.h5).</p>
 <section id="id48">
 <h4>Parameters<a class="headerlink" href="#id48" title="Link to this heading">¶</a></h4>
 <dl class="simple">
@@ -1697,7 +1697,7 @@ Hint: all nodes are instances from class Node</p>
 <p>Triangulation module for SARvey.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="sarvey.triangulation.PointNetworkTriangulation">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sarvey.triangulation.</span></span><span class="sig-name descname"><span class="pre">PointNetworkTriangulation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coord_xy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coord_map_xy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sarvey/triangulation.html#PointNetworkTriangulation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sarvey.triangulation.PointNetworkTriangulation" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sarvey.triangulation.</span></span><span class="sig-name descname"><span class="pre">PointNetworkTriangulation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coord_xy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coord_utmxy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sarvey/triangulation.html#PointNetworkTriangulation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sarvey.triangulation.PointNetworkTriangulation" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>PointNetworkTriangulation.</p>
 <p>Triangulate points in space based on distance.</p>
@@ -1706,7 +1706,7 @@ Hint: all nodes are instances from class Node</p>
 <dl class="simple">
 <dt>coord_xy: np.ndarray</dt><dd><p>Radar coordinates of the points.</p>
 </dd>
-<dt>coord_map_xy: np.ndarray</dt><dd><p>map coordinates of the points.</p>
+<dt>coord_utmxy: np.ndarray</dt><dd><p>UTM coordinates of the points.</p>
 </dd>
 <dt>logger: Logger</dt><dd><p>Logging handler.</p>
 </dd>
@@ -2293,12 +2293,12 @@ gamma: np.ndarray</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="sarvey.utils.createSpatialGrid">
-<span class="sig-prename descclassname"><span class="pre">sarvey.utils.</span></span><span class="sig-name descname"><span class="pre">createSpatialGrid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coord_map_img</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid_size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sarvey/utils.html#createSpatialGrid"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sarvey.utils.createSpatialGrid" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">sarvey.utils.</span></span><span class="sig-name descname"><span class="pre">createSpatialGrid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coord_utm_img</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid_size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sarvey/utils.html#createSpatialGrid"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sarvey.utils.createSpatialGrid" title="Link to this definition">¶</a></dt>
 <dd><p>Create a spatial grid over the image.</p>
 <section id="id114">
 <h3>Parameters<a class="headerlink" href="#id114" title="Link to this heading">¶</a></h3>
 <dl class="simple">
-<dt>coord_map_img: np.ndarray</dt><dd><p>map coordinates of all image pixels</p>
+<dt>coord_utm_img: np.ndarray</dt><dd><p>coordinates of all image pixels in UTM</p>
 </dd>
 <dt>length: int</dt><dd><p>number of pixels in length of the image</p>
 </dd>
@@ -2679,12 +2679,12 @@ acquisition space. (default: True)</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="sarvey.utils.spatiotemporalConsistency">
-<span class="sig-prename descclassname"><span class="pre">sarvey.utils.</span></span><span class="sig-name descname"><span class="pre">spatiotemporalConsistency</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coord_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wavelength</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_dist</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_dist</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">inf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">knn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sarvey/utils.html#spatiotemporalConsistency"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sarvey.utils.spatiotemporalConsistency" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">sarvey.utils.</span></span><span class="sig-name descname"><span class="pre">spatiotemporalConsistency</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coord_utm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wavelength</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_dist</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_dist</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">inf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">knn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sarvey/utils.html#spatiotemporalConsistency"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sarvey.utils.spatiotemporalConsistency" title="Link to this definition">¶</a></dt>
 <dd><p>Spatiotemporal consistency proposed by Hanssen et al. (2008) and implemented in DePSI (van Leijen, 2014).</p>
 <section id="id139">
 <h3>Parameters<a class="headerlink" href="#id139" title="Link to this heading">¶</a></h3>
 <dl class="simple">
-<dt>coord_map: np.ndarray</dt><dd><p>map coordinates of the points</p>
+<dt>coord_utm: np.ndarray</dt><dd><p>UTM coordinates of the points</p>
 </dd>
 <dt>phase: np.ndarray</dt><dd><p>phase time series of the points</p>
 </dd>
@@ -3061,9 +3061,9 @@ the coordinates must be radar coordinates!</p>
 <li><a class="reference internal" href="#sarvey.objects.BaseStack.writeToFileBlock"><code class="docutils literal notranslate"><span class="pre">BaseStack.writeToFileBlock()</span></code></a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#sarvey.objects.CoordinatesMap"><code class="docutils literal notranslate"><span class="pre">CoordinatesMap</span></code></a><ul>
-<li><a class="reference internal" href="#sarvey.objects.CoordinatesMap.open"><code class="docutils literal notranslate"><span class="pre">CoordinatesMap.open()</span></code></a></li>
-<li><a class="reference internal" href="#sarvey.objects.CoordinatesMap.prepare"><code class="docutils literal notranslate"><span class="pre">CoordinatesMap.prepare()</span></code></a></li>
+<li><a class="reference internal" href="#sarvey.objects.CoordinatesUTM"><code class="docutils literal notranslate"><span class="pre">CoordinatesUTM</span></code></a><ul>
+<li><a class="reference internal" href="#sarvey.objects.CoordinatesUTM.open"><code class="docutils literal notranslate"><span class="pre">CoordinatesUTM.open()</span></code></a></li>
+<li><a class="reference internal" href="#sarvey.objects.CoordinatesUTM.prepare"><code class="docutils literal notranslate"><span class="pre">CoordinatesUTM.prepare()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#sarvey.objects.Network"><code class="docutils literal notranslate"><span class="pre">Network</span></code></a><ul>

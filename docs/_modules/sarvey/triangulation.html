@@ -83,15 +83,15 @@
 <span class="k">class</span> <span class="nc">PointNetworkTriangulation</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;PointNetworkTriangulation.&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">coord_xy</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">coord_map_xy</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">coord_xy</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">coord_utmxy</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Triangulate points in space based on distance.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        coord_xy: np.ndarray</span>
 <span class="sd">            Radar coordinates of the points.</span>
-<span class="sd">        coord_map_xy: np.ndarray</span>
-<span class="sd">            map coordinates of the points.</span>
+<span class="sd">        coord_utmxy: np.ndarray</span>
+<span class="sd">            UTM coordinates of the points.</span>
 <span class="sd">        logger: Logger</span>
 <span class="sd">            Logging handler.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -103,9 +103,9 @@
         <span class="c1"># create network afterwards once. reduces time.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">adj_mat</span> <span class="o">=</span> <span class="n">lil_matrix</span><span class="p">((</span><span class="n">num_points</span><span class="p">,</span> <span class="n">num_points</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">coord_map_xy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">coord_utmxy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;create distance matrix between all points...&quot;</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">dist_mat</span> <span class="o">=</span> <span class="n">distance_matrix</span><span class="p">(</span><span class="n">coord_map_xy</span><span class="p">,</span> <span class="n">coord_map_xy</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dist_mat</span> <span class="o">=</span> <span class="n">distance_matrix</span><span class="p">(</span><span class="n">coord_utmxy</span><span class="p">,</span> <span class="n">coord_utmxy</span><span class="p">)</span>
             <span class="c1"># todo: check out alternatives:</span>
             <span class="c1">#       scipy.spatial.KDTree.sparse_distance_matrix</span>
         <span class="k">else</span><span class="p">:</span>  <span class="c1"># if only global delaunay shall be computed without memory issues</span>
