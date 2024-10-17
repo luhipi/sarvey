@@ -309,7 +309,7 @@ def selectP2(*, output_path: str, config: Config, logger: Logger):
     p1_file = join(output_path, "p1_ts_filt.h5")
     logger.debug(f"Create a mask based on points in file {p1_file}.")
     point1_obj = Points(file_path=p1_file, logger=logger)
-    point1_obj.open(path_inputs=config.data_directories.path_inputs)
+    point1_obj.open(input_path=config.general.input_path)
     p1_mask = point1_obj.createMask()  # used later for selecting psCand2 when a spatial mask AOI is given.
     logger.debug(f"Mask created with {p1_mask.sum()} selected points.")
 
@@ -329,9 +329,9 @@ def selectP2(*, output_path: str, config: Config, logger: Logger):
     )  # first-order points are included in second-order points
     logger.debug(f"{cand_mask2.sum()} second-order points selected based on temporal coherence {coherence_p2:.2f}.")
 
-    if config.phase_linking.phase_linking:
+    if config.phase_linking.use_phase_linking_results:
         # read PL results
-        pl_file = join(config.phase_linking.path_inverted, "phase_series.h5")
+        pl_file = join(config.phase_linking.inverted_path, "phase_series.h5")
         logger.debug(f"Read phase linking results from file {pl_file}.")
         pl_coh = readfile.read(pl_file,
                                datasetName='temporalCoherence')[0]
@@ -340,8 +340,8 @@ def selectP2(*, output_path: str, config: Config, logger: Logger):
                                  datasetName='shp')[0]
 
         if config.phase_linking.use_ps:
-            logger.debug(f"Read phase linking PS mask from file {config.phase_linking.path_mask_file_ps}.")
-            mask_ps = readfile.read(config.phase_linking.path_mask_file_ps,
+            logger.debug(f"Read phase linking PS mask from file {config.phase_linking.mask_ps_file}.")
+            mask_ps = readfile.read(config.phase_linking.mask_ps_file,
                                     datasetName='mask')[0].astype(np.bool_)
             cand_mask_pl = (pl_coh > coherence_p2) | mask_ps
         else:
@@ -349,8 +349,8 @@ def selectP2(*, output_path: str, config: Config, logger: Logger):
             # remove ps candidates, because the ps detection strategy in miaplpy seems to be biased.
             cand_mask_pl[siblings <= config.phase_linking.num_siblings] = False
 
-        if config.phase_linking.spatial_mask_file_pl is not None:
-            path_mask_pl_aoi = join(config.phase_linking.spatial_mask_file_pl)
+        if config.phase_linking.mask_phase_linking_file is not None:
+            path_mask_pl_aoi = join(config.phase_linking.mask_phase_linking_file)
             logger.debug(f"Load mask for area of interest from file {path_mask_pl_aoi}.")
             mask_pl_aoi = readfile.read(path_mask_pl_aoi, datasetName='mask')[0].astype(np.bool_)
 
@@ -367,7 +367,7 @@ def selectP2(*, output_path: str, config: Config, logger: Logger):
             cbar.ax.set_visible(False)  # make size of axis consistent with all others
             plt.tight_layout()
             plt.title("Mask for phase linking points")
-            fig.savefig(join(output_path, "pic", "step_4_mask_coh{}_phase_linking.png".format(coh_value)), dpi=300)
+            fig.savefig(join(output_path, "pic", "step_4_mask_p2_coh{}_phase_linking.png".format(coh_value)), dpi=300)
             plt.close(fig)
 
             # mask points after plotting, so that available coherent points are visible in figure
@@ -380,8 +380,8 @@ def selectP2(*, output_path: str, config: Config, logger: Logger):
 
     mask_valid_area = ut.detectValidAreas(bmap_obj=bmap_obj, logger=logger)
 
-    if config.filtering.spatial_mask_file_p2 is not None:
-        path_mask_aoi = join(config.filtering.spatial_mask_file_p2)
+    if config.densification.mask_p2_file is not None:
+        path_mask_aoi = join(config.densification.mask_p2_file)
         logger.info(f"Load mask for area of interest from file {path_mask_aoi}.")
         mask_aoi = readfile.read(path_mask_aoi, datasetName='mask')[0].astype(np.bool_)
         mask_valid_area &= mask_aoi
@@ -407,10 +407,10 @@ def selectP2(*, output_path: str, config: Config, logger: Logger):
     cbar.ax.set_visible(False)  # make size of axis consistent with all others
     plt.tight_layout()
     plt.title("Mask for dense point set")
-    fig.savefig(join(output_path, "pic", "step_4_mask_coh{}.png".format(coh_value)), dpi=300)
+    fig.savefig(join(output_path, "pic", "step_4_mask_p2_coh{}.png".format(coh_value)), dpi=300)
     plt.close(fig)
 
-    p2_file = join(output_path, f"coh{coh_value}_ifg_wr.h5")
+    p2_file = join(output_path, f"p2_coh{coh_value}_ifg_wr.h5")
     logger.debug(f"Prepare second-order points object to save to file {p2_file}.")
     point2_obj = Points(file_path=p2_file, logger=logger)
     coord_xy = np.array(np.where(cand_mask2)).transpose()
@@ -418,35 +418,35 @@ def selectP2(*, output_path: str, config: Config, logger: Logger):
     point2_obj.prepare(
         point_id=point_id2,
         coord_xy=coord_xy,
-        path_inputs=config.data_directories.path_inputs
+        input_path=config.general.input_path
     )
 
     ifg_stack_file = join(output_path, "ifg_stack.h5")
     logger.debug(f"Read interferogram phase for selected second-order points from file {ifg_stack_file}.")
     ifg_stack_obj = BaseStack(file=ifg_stack_file, logger=logger)
     point2_obj.phase = ut.readPhasePatchwise(stack_obj=ifg_stack_obj, dataset_name="ifgs",
-                                             num_patches=config.processing.num_patches, cand_mask=cand_mask2,
+                                             num_patches=config.general.num_patches, cand_mask=cand_mask2,
                                              point_id_img=point_id_img, logger=logger)
 
-    if config.phase_linking.phase_linking:
-        pl_inverted_file = join(config.phase_linking.path_inverted, "phase_series.h5")
+    if config.phase_linking.use_phase_linking_results:
+        pl_inverted_file = join(config.phase_linking.inverted_path, "phase_series.h5")
         logger.debug(f"Read interferogram phase from MiaplPy results from file {pl_inverted_file}.")
         phase_linking_obj = BaseStack(file=pl_inverted_file,
                                       logger=logger)
 
         pl_phase = ut.readPhasePatchwise(
             stack_obj=phase_linking_obj, dataset_name="phase",
-            num_patches=config.processing.num_patches,
+            num_patches=config.general.num_patches,
             cand_mask=cand_mask2,
             point_id_img=point_id_img, logger=logger
         )
 
         # subset to time span
-        slc_stack_obj = slcStack(join(config.data_directories.path_inputs, "slcStack.h5"))
+        slc_stack_obj = slcStack(join(config.general.input_path, "slcStack.h5"))
         slc_stack_obj.open()
         time_mask = createTimeMaskFromDates(
             start_date=config.preparation.start_date,
-            stop_date=config.preparation.stop_date,
+            stop_date=config.preparation.end_date,
             date_list=slc_stack_obj.dateList,
             logger=logger
         )[0]
@@ -470,7 +470,7 @@ def selectP2(*, output_path: str, config: Config, logger: Logger):
     p1_aps_file = join(output_path, "p1_aps.h5")
     logger.debug(f"Read APS for first order point from file {p1_aps_file}.")
     aps1_obj = Points(file_path=p1_aps_file, logger=logger)
-    aps1_obj.open(path_inputs=config.data_directories.path_inputs)
+    aps1_obj.open(input_path=config.general.input_path)
 
     aps_params_file = join(output_path, "aps_parameters.h5")
     logger.debug(f"Read APS parameters from file {aps_params_file}.")
@@ -499,12 +499,12 @@ def selectP2(*, output_path: str, config: Config, logger: Logger):
                                                       logger=logger,
                                                       interp_method=aps_params_obj.params_obj.model_name)
 
-    p2_aps_file = join(output_path, f"coh{coh_value}_aps.h5")
+    p2_aps_file = join(output_path, f"p2_coh{coh_value}_aps.h5")
     logger.info(f"Write APS for second-order points to file {p2_aps_file}.")
     aps2_obj = Points(file_path=p2_aps_file, logger=logger)
     aps2_obj.open(
-        other_file_path=join(output_path, f"coh{coh_value}_ifg_wr.h5"),
-        path_inputs=config.data_directories.path_inputs
+        other_file_path=join(output_path, f"p2_coh{coh_value}_ifg_wr.h5"),
+        input_path=config.general.input_path
     )
     aps2_obj.phase = aps2_phase
     aps2_obj.writeToFile()

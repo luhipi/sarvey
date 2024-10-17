@@ -44,14 +44,14 @@
         "apply_aps_filtering": true,
         "interpolation_method": "kriging",
         "grid_size": 1000,
-        "mask_p2_file": null,
         "use_moving_points": true,
         "max_temporal_autocorrelation": 0.3
     },
     "densification": {
         "coherence_p2": 0.9,
         "num_connections_p1": 5,
-        "max_distance_p1": 2000,
+        "mask_p2_file": null,
+        "max_distance_to_p1": 2000,
         "velocity_bound": 0.15,
         "dem_error_bound": 100.0,
         "num_optimization_samples": 100,

@@ -485,12 +485,6 @@ class Filtering(BaseModel, extra=Extra.forbid):
         default=1000
     )
 
-    mask_p2_file: Optional[str] = Field(
-        title="Path to spatial mask file for second-order points.",
-        description="Path to the mask file, e.g. created by sarvey_mask.",
-        default=""
-    )
-
     use_moving_points: bool = Field(
         title="Use moving points",
         description="Set whether to use moving points in the filtering step.",
@@ -519,16 +513,6 @@ class Filtering(BaseModel, extra=Extra.forbid):
         else:
             return v
 
-    @validator('mask_p2_file')
-    def checkSpatialMaskPath(cls, v):
-        """Check if the path is correct."""
-        if v == "" or v is None:
-            return None
-        else:
-            if not os.path.exists(os.path.abspath(v)):
-                raise ValueError(f"mask_p2_file path is invalid: {v}")
-        return v
-
     @validator('max_temporal_autocorrelation')
     def checkMaxAutoCorr(cls, v):
         """Check if the value is correct."""
@@ -550,6 +534,12 @@ class Densification(BaseModel, extra=Extra.forbid):
         title="Coherence threshold for densification",
         description="Set coherence threshold for densification.",
         default=0.5
+    )
+
+    mask_p2_file: Optional[str] = Field(
+        title="Path to spatial mask file for second-order points.",
+        description="Path to the mask file, e.g. created by sarvey_mask.",
+        default=""
     )
 
     num_connections_p1: int = Field(
@@ -599,11 +589,14 @@ class Densification(BaseModel, extra=Extra.forbid):
             raise ValueError("Temporal coherence threshold cannot be greater than 1.")
         return v
 
-    @validator('coherence_threshold')
-    def checkCoherenceThresh(cls, v):
-        """Check if coherence_threshold is valid."""
-        if v < 0 or v > 1:
-            raise ValueError(f"coherence_threshold is not between 0 and 1: {v}")
+    @validator('mask_p2_file')
+    def checkSpatialMaskPath(cls, v):
+        """Check if the path is correct."""
+        if v == "" or v is None:
+            return None
+        else:
+            if not os.path.exists(os.path.abspath(v)):
+                raise ValueError(f"mask_p2_file path is invalid: {v}")
         return v
 
     @validator('num_connections_p1')

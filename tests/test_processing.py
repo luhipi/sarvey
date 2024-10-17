@@ -320,7 +320,7 @@ class TestProcessing(unittest.TestCase):
         config.general.apply_temporal_unwrapping = False
         config.preparation.ifg_network_type = "sb"
         config.consistency_check.mask_p1_file = "tests/testdata/aoi_mask.h5"
-        config.filtering.mask_p2_file = "tests/testdata/aoi_mask.h5"
+        config.densification.mask_p2_file = "tests/testdata/aoi_mask.h5"
 
         # preparation
         args.start = 0

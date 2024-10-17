@@ -147,8 +147,7 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
                            config_section_default=config_default_dict["filtering"],
                            logger=logger)
         proc_obj.runFiltering()
-    coh_value = int(config.filtering.coherence_p2 * 100)
-    required_files.extend(["p1_aps.h5", f"p2_coh{coh_value}_ifg_wr.h5", f"p2_coh{coh_value}_aps.h5"])
+    required_files.extend(["p1_aps.h5", "aps_parameters.h5"])
 
     if 4 in steps:
         checkIfRequiredFilesExist(
@@ -295,9 +294,9 @@ def main(iargs=None):
     if config.consistency_check.mask_p1_file is not None:
         config.consistency_check.mask_p1_file = os.path.abspath(
             join(args.workdir, config.consistency_check.mask_p1_file))
-    if config.filtering.mask_p2_file is not None:
-        config.filtering.mask_p2_file = os.path.abspath(
-            join(args.workdir, config.filtering.mask_p2_file))
+    if config.densification.mask_p2_file is not None:
+        config.densification.mask_p2_file = os.path.abspath(
+            join(args.workdir, config.densification.mask_p2_file))
 
     # create all necessary directories
     if not os.path.exists(config.general.output_path):

@@ -644,7 +644,7 @@ class Processing:
                 aps1_phase, aps_model_params = estimateAtmosphericPhaseScreen(
                     residuals=phase_for_aps_filtering,
                     coord_utm1=point1_obj.coord_utm,
-                    num_cores=self.config.processing.num_cores,
+                    num_cores=self.config.general.num_cores,
                     bool_plot=False,
                     logger=self.logger
                 )
@@ -708,7 +708,7 @@ class Processing:
         aps1_obj = Points(file_path=join(self.path, "p1_aps.h5"), logger=self.logger)
         aps1_obj.open(input_path=self.config.general.input_path)
 
-        if self.config.filtering.mask_p2_file is None:
+        if self.config.densification.mask_p2_file is None:
             """
             overview of points contained in the *_obj
             (unstable p1 means: p1 which were not used in atmospheric filtering)
@@ -797,7 +797,7 @@ class Processing:
             vel_p1=vel_p1,
             demerr_p1=demerr_p1,
             point2_obj=point2_obj,
-            num_conn_p1=self.config.densification.num_connections_to_p1,
+            num_conn_p1=self.config.densification.num_connections_p1,
             max_dist_p1=self.config.densification.max_distance_to_p1,
             velocity_bound=self.config.densification.velocity_bound,
             demerr_bound=self.config.densification.dem_error_bound,
