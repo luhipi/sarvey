@@ -236,7 +236,7 @@ jobs:
           name: test-report
 
       - name: Deploy to GitHub Pages
-        if: env.SKIP == 'false'
+        if: env.SKIP_DEPLOY == 'false'
         run: |
           rm -rf public
           mkdir -p public/docs
@@ -254,7 +254,7 @@ jobs:
         shell: bash
 
       - name: Upload to GitHub Pages
-        if: env.SKIP == 'false'
+        if: env.SKIP_DEPLOY == 'false'
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
