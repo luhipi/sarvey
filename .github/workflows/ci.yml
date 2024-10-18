@@ -1,6 +1,10 @@
 name: CI
 
-on: pull_request
+on:
+  pull_request:
+  push:
+    branches:
+      - ci_run_push_to_main
 
 permissions:
   contents: write
