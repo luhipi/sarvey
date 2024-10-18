@@ -7,7 +7,7 @@ Multitemporal InSAR processing workflow
 The `sarvey` command line interface executes the multitemporal InSAR processing workflow.
 The workflow is described in the paper
 
-    Piter A, Haghshenas Haghighi M, Motagh M (2024). Challenges and Opportunities of Sentinel-1 InSAR for Transport Infrastructure Monitoring. PFG – Journal of Photogrammetry, Remote Sensing and Geoinformation Science, 92, 609-627.
+    Piter, A., Haghshenas Haghighi, M., Motagh, M.(2024). An in-depth study on Sentinel-1 InSAR for transport infrastructure monitoring. PFG - Journal of Photogrammetry, Remote Sensing and Geoinformation Science. (paper currently under review).
 
 All processing steps are described in detail in the following sections.
 Two processing strategies are provided with either one- or two-step unwrapping.
@@ -109,7 +109,7 @@ Step 0: Preparation
 - Estimating the temporal coherence:
     The phase noise of each pixel is approximated by the estimation of the temporal phase coherence (Zhao and Mallorqui 2019).
     Thereby, a low-pass filter with a certain window size is used (**preparation:filter_window_size**).
-    The temporal coherence is used to select the first- and second-order points in the later steps (**consistency_check:coherence_p1** and **filtering:coherence_p2**).
+    The temporal coherence is used to select the first- and second-order points in the later steps (**consistency_check:coherence_p1** and **densification:coherence_p2**).
 
 - Output of this step
     - background_map.h5
@@ -222,17 +222,6 @@ However, the step 3 has to be executed as the second-order points are selected d
     Points with a non-linear displacement behaviour are removed by a threshold on the temporal autocorrelation of the displacement time series (**filtering:max_temporal_autocorrelation**) (Crosetto et al. 2018).
     A regular grid (**filtering:grid_size** in [m]) is applied to select the first-order points with the lowest temporal autocorrelation to reduce the computational complexity during filtering.
 
-- Selecting second-order points:
-    Second-order points are selected based on a temporal coherence threshold (**filtering:coherence_p2**) on the temporal phase coherence computed during step 0.
-    A mask file can be specified (**filtering:mask_p2_file**) to limit the second-order points to the given area of interest.
-    Second-order points can also be selected based on the results of phase-linking (set **phase_linking:use_phase_linking_results** to True) implemented in MiaplPy (Mirzaee et al. 2023).
-    More information on Miaplpy and phase-linking can be found `here <preparation>`_.
-    The number of siblings (**phase_linking:num_siblings**) used during phase-linking within MiaplPy processing needs to be specified to identify the distributed scatterers (DS) among the pixels selected by MiaplPy.
-    A mask file can be specified (**phase_linking:mask_phase_linking_file**) to limit the phase-linking to the given area of interest.
-    MiaplPy also provides a selection of persistent scatterers (PS) which can be included as second-order points (set **phase_linking:use_ps** to True) and also specify the path to the maskPS.h5 (**phase_linking:mask_ps_file**) which is also an output of MiaplPy.
-    In case the second-order points are selected among the results from MiaplPy, the filtered interferometric phase (MiaplPy result) is used for the respective points.
-    The DS pixels from MiaplPy and the pixels selected with the temporal phase coherence from step 0 are both selected with the same coherence threshold (**filtering:coherence_p2**).
-
 - Estimating the atmospheric phase screen (APS):
     The estimation of the APS takes place in time-domain and not interferogram-domain to reduce the computational time.
     The phase contributions are removed from the first-order points which were selected for atmospheric filtering.
@@ -243,22 +232,37 @@ However, the step 3 has to be executed as the second-order points are selected d
 - Output of this step
     - p1_ts_filt.h5
     - p1_aps.h5
-    - p2_cohXX_aps.h5
-    - p2_cohXX_ifg_wr.h5
+    - aps_parameters.h5
 
-The placeholder XX depends on the threshold for the temporal coherence used for selecting the second-order points.
-For example, a threshold of 0.8 would result in p2_coh80_aps.h5 and p2_coh80_ifg_wr.h5.
 
 Step 4: Densification
 ^^^^^^^^^^^^^^^^^^^^^
 
+In this step, second order points are selected. Afterwards, the APS, estimated in step 3, is interpolated to the location of the second-order points.
+
 Two unwrapping options (**general:apply_temporal_unwrapping**, also applies to step 2) are implemented and should be chosen based on the characteristics of the displacement (spatial extend, magnitude, temporal behaviour).
 
+- Selecting second-order points:
+    Second-order points are selected based on a temporal coherence threshold (**densification:coherence_p2**) on the temporal phase coherence computed during step 0.
+    A mask file can be specified (**densification:mask_p2_file**) to limit the second-order points to the given area of interest.
+    Second-order points can also be selected based on the results of phase-linking (set **phase_linking:use_phase_linking_results** to True) implemented in MiaplPy (Mirzaee et al. 2023).
+    More information on Miaplpy and phase-linking can be found `here <preparation>`_.
+    The number of siblings (**phase_linking:num_siblings**) used during phase-linking within MiaplPy processing needs to be specified to identify the distributed scatterers (DS) among the pixels selected by MiaplPy.
+    A mask file can be specified (**phase_linking:mask_phase_linking_file**) to limit the phase-linking to the given area of interest.
+    MiaplPy also provides a selection of persistent scatterers (PS) which can be included as second-order points (set **phase_linking:use_ps** to True) and also specify the path to the maskPS.h5 (**phase_linking:mask_ps_file**) which is also an output of MiaplPy.
+    In case the second-order points are selected among the results from MiaplPy, the filtered interferometric phase (MiaplPy result) is used for the respective points.
+    The DS pixels from MiaplPy and the pixels selected with the temporal phase coherence from step 0 are both selected with the same coherence threshold (**filtering:coherence_p2**).
+
+- Apply estimated atmospheric phase screen (APS) to second-order points:
+    The APS, estimated in step 3, is interpolated to the location of the second-order points.
+
 - Output of this step
+    - p2_cohXX_ifg_wr.h5
+    - p2_cohXX_aps.h5
     - p2_cohXX_ifg_unw.h5
     - p2_cohXX_ts.h5
 
-The placeholder XX depends on the threshold for the temporal coherence used for selecting the second-order points during filtering in step 3.
+The placeholder XX depends on the threshold for the temporal coherence used for selecting the second-order points.
 For example, a threshold of 0.8 would result in p2_coh80_ifg_unw.h5 and p2_coh80_ts.h5.
 
 Option 1: Unwrapping in time and space
