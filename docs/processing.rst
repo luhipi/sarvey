@@ -160,6 +160,7 @@ Step 1: Consistency Check
 Step 2: Unwrapping
 ^^^^^^^^^^^^^^^^^^
 
+This step unwraps the phase of the first-order points and retrieves their displacement time series.
 Two unwrapping options (**general:apply_temporal_unwrapping**, also applies to step 4) are implemented and should be chosen based on the characteristics of the displacement (spatial extend, magnitude, temporal behaviour).
 
 - Output of this step
@@ -252,6 +253,11 @@ For example, a threshold of 0.8 would result in p2_coh80_aps.h5 and p2_coh80_ifg
 Step 4: Densification
 ^^^^^^^^^^^^^^^^^^^^^
 
+The densification step is the last step of the two-step unwrapping workflow.
+So far, the displacement was only estimated at the sparse locations of the first-order points.
+The second-order points selected during step 3 (filtering) are added to the first-order points to densify the final set of points.
+During the densification, first, the estimated APS is removed from both first- and second-order points and second, the displacement time series are retrieved by unwrapping phases of the points jointly.
+
 Two unwrapping options (**general:apply_temporal_unwrapping**, also applies to step 2) are implemented and should be chosen based on the characteristics of the displacement (spatial extend, magnitude, temporal behaviour).
 
 - Output of this step
@@ -309,6 +315,8 @@ The processing of large datasets can be computationally expensive and time-consu
 Especially the estimation of the temporal phase coherence in step 0 is a bottleneck, also in terms of memory consumption.
 Therefore, it is recommended to set **general:num_cores** for parallel processing.
 By setting **general:num_patches** the data is split into spatial patches and processed subsequently to fit into memory.
+However, only use the patching option if the memory is not sufficient to process the data in one go.
+Using multiple patches will slow down the processing due to the overhead of loading and saving the data multiple times.
 
 
 Processing steps for one-step unwrapping workflow
