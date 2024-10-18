@@ -38,7 +38,7 @@ import mintpy.utils.readfile as readfile
 
 from sarvey import viewer
 import sarvey.utils as ut
-from sarvey.objects import CoordinatesUTM, AmplitudeImage, BaseStack, Points
+from sarvey.objects import CoordinatesMap, AmplitudeImage, BaseStack, Points
 from sarvey.triangulation import PointNetworkTriangulation
 
 
@@ -211,11 +211,11 @@ def selectPixels(*, path: str, selection_method: str, thrsh: float,
         # cmap = "autumn"
 
     if grid_size is not None:  # -> sparse pixel selection
-        coord_utm_obj = CoordinatesUTM(file_path=join(path, "coordinates_utm.h5"), logger=logger)
-        coord_utm_obj.open()
-        box_list = ut.createSpatialGrid(coord_utm_img=coord_utm_obj.coord_utm,
-                                        length=coord_utm_obj.coord_utm.shape[1],
-                                        width=coord_utm_obj.coord_utm.shape[2],
+        coord_map_obj = CoordinatesMap(file_path=join(path, "coordinates_map.h5"), logger=logger)
+        coord_map_obj.open()
+        box_list = ut.createSpatialGrid(coord_map_img=coord_map_obj.coord_map,
+                                        length=coord_map_obj.coord_map.shape[1],
+                                        width=coord_map_obj.coord_map.shape[2],
                                         grid_size=grid_size)[0]
         cand_mask_sparse = ut.selectBestPointsInGrid(box_list=box_list, quality=quality, sel_min=grid_min_val)
         cand_mask &= cand_mask_sparse
@@ -259,7 +259,7 @@ def createArcsBetweenPoints(*, point_obj: Points, knn: int = None, max_arc_lengt
     arcs: np.ndarray
         Arcs of the triangulation containing the indices of the points for each arc.
     """
-    triang_obj = PointNetworkTriangulation(coord_xy=point_obj.coord_xy, coord_utmxy=point_obj.coord_utm, logger=logger)
+    triang_obj = PointNetworkTriangulation(coord_xy=point_obj.coord_xy, coord_map_xy=point_obj.coord_map, logger=logger)
 
     if knn is not None:
         triang_obj.triangulateKnn(k=knn)

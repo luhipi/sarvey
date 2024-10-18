@@ -120,8 +120,8 @@ def launchDensifyNetworkConsistencyCheck(args: tuple):
     for idx in range(num_points):
         p2 = idx_range[idx]
         # nearest points in p1
-        dist, nearest_p1 = global_tree_p1.query([global_point2_obj.coord_utm[p2, 0],
-                                                 global_point2_obj.coord_utm[p2, 1]], k=num_conn_p1)
+        dist, nearest_p1 = global_tree_p1.query([global_point2_obj.coord_map[p2, 0],
+                                                 global_point2_obj.coord_map[p2, 1]], k=num_conn_p1)
         mask = (dist < max_dist_p1) & (dist != 0)
         mask[:3] = True  # ensure that always at least the three closest points are used
         nearest_p1 = nearest_p1[mask]
@@ -197,7 +197,7 @@ def densifyNetwork(*, point1_obj: Points, vel_p1: np.ndarray, demerr_p1: np.ndar
     start_time = time.time()
 
     # find the closest points from first-order network
-    tree_p1 = KDTree(data=point1_obj.coord_utm)
+    tree_p1 = KDTree(data=point1_obj.coord_map)
 
     # remove parameters from wrapped phase
     pred_phase_demerr, pred_phase_vel = ut.predictPhase(

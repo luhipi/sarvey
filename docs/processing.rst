@@ -114,7 +114,7 @@ Step 0: Preparation
 - Output of this step
     - background_map.h5
     - ifg_stack.h5
-    - coordinates_utm.h5
+    - coordinates_map.h5
     - ifg_network.h5
     - temporal_coherence.h5
 

@@ -39,15 +39,13 @@ from os.path import join, dirname, basename
 import numpy as np
 import pandas as pd
 import geopandas as gpd
-from pyproj import CRS
-from pyproj.aoi import AreaOfInterest
-from pyproj.database import query_utm_crs_info
+from pyproj import CRS, Transformer
 from shapely import Point
 from shapely.errors import ShapelyDeprecationWarning
 
 from sarvey.config import loadConfiguration
 from sarvey.console import showLogoSARvey
-from sarvey.objects import Points
+from sarvey.objects import Points, CoordinatesMap
 import sarvey.utils as ut
 from sarvey.geolocation import calculateGeolocationCorrection
 
@@ -83,7 +81,7 @@ def exportDataToGisFormat(*, file_path: str, output_path: str, input_path: str,
 
     vel, demerr, _, coherence, omega, _ = ut.estimateParameters(obj=point_obj, ifg_space=False)
 
-    stc = ut.spatiotemporalConsistency(coord_utm=point_obj.coord_utm, phase=point_obj.phase,
+    stc = ut.spatiotemporalConsistency(coord_map=point_obj.coord_map, phase=point_obj.phase,
                                        wavelength=point_obj.wavelength)
 
     point_obj.phase *= point_obj.wavelength / (4 * np.pi)  # in [m]
@@ -97,19 +95,6 @@ def exportDataToGisFormat(*, file_path: str, output_path: str, input_path: str,
 
     # transform into meters
     defo_ts *= 1000  # in [mm]
-
-    utm_crs_list = query_utm_crs_info(
-        datum_name="WGS 84",
-        area_of_interest=AreaOfInterest(
-            west_lon_degree=point_obj.coord_lalo[:, 1].min(),
-            south_lat_degree=point_obj.coord_lalo[:, 0].min(),
-            east_lon_degree=point_obj.coord_lalo[:, 1].max(),
-            north_lat_degree=point_obj.coord_lalo[:, 0].max(),
-        ),
-        contains=True
-    )
-
-    utm_epsg = utm_crs_list[0].code
 
     dates = ["D{}".format(date).replace("-", "") for date in point_obj.ifg_net_obj.dates]
 
@@ -134,9 +119,38 @@ def exportDataToGisFormat(*, file_path: str, output_path: str, input_path: str,
         coord_correction = 0
         logger.info("geolocation correction skipped.")
 
-    coord_utm = point_obj.coord_utm
-    coord_utm += coord_correction
-    df_points['coord'] = (coord_utm).tolist()
+    coord_map = point_obj.coord_map
+    coord_map += coord_correction
+
+    # reconstruct Transverse Mercator projection
+    coord_map_obj = CoordinatesMap(file_path=join(dirname(file_path), "coordinates_map.h5"), logger=logger)
+    coord_map_obj.open()
+    lon_0 = coord_map_obj.lon_0
+    lat_0 = coord_map_obj.lat_0
+
+    map_crs = CRS.from_dict({
+        "proj": "tmerc",
+        "lat_0": lat_0,
+        "lon_0": lon_0,
+        "k": 1,
+        "x_0": 0,
+        "y_0": 0,
+        "datum": "WGS84",
+        "units": "m",
+        "no_defs": True
+    })
+
+    # construct Transverse Mercator to WGS84 transformer
+    wgs_epsg = "4326"
+    transformer = Transformer.from_crs(map_crs, wgs_epsg)
+
+    lat, lon = transformer.transform(coord_map[:, 0], coord_map[:, 1])
+    logger.debug(f"WGS84 Lon range: {np.min(lon):.6f} - {np.max(lon):.6f}")
+    logger.debug(f"WGS84 Lat range: {np.min(lat):.6f} - {np.max(lat):.6f}")
+    lonlat = np.vstack((lon, lat)).T
+
+    logger.info('Construct output dataframe.')
+    df_points['coord'] = (lonlat).tolist()
     df_points['coord'] = df_points['coord'].apply(Point)
     df_points.insert(0, 'point_id', point_obj.point_id.tolist())
     df_points.insert(1, 'velocity', vel * 1000)  # in [mm]
@@ -153,7 +167,7 @@ def exportDataToGisFormat(*, file_path: str, output_path: str, input_path: str,
             df_points[date] = defo_ts[:, i]
 
     gdf_points = gpd.GeoDataFrame(df_points, geometry='coord')
-    gdf_points = gdf_points.set_crs(CRS.from_epsg(utm_epsg))
+    gdf_points = gdf_points.set_crs(CRS.from_epsg(wgs_epsg))
     logger.info(msg="write to file.")
     gdf_points.to_file(output_path)
 

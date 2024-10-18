@@ -35,8 +35,6 @@ import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 from pyproj import Proj, CRS
-from pyproj.aoi import AreaOfInterest
-from pyproj.database import query_utm_crs_info
 from logging import Logger
 
 from miaplpy.objects.slcStack import slcStack
@@ -140,8 +138,8 @@ class AmplitudeImage:
         return ax
 
 
-class CoordinatesUTM:
-    """Coordinates in UTM for all pixels in the radar image."""
+class CoordinatesMap:
+    """Map Coordinates for all pixels in the radar image."""
 
     def __init__(self, *, file_path: str, logger: Logger):
         """Init.
@@ -154,7 +152,9 @@ class CoordinatesUTM:
             Logging handler.
         """
         self.file_path = file_path
-        self.coord_utm = None
+        self.coord_map = None
+        self.lat_0 = None
+        self.lon_0 = None
         self.logger = logger
 
     def prepare(self, *, input_path: str):
@@ -169,19 +169,38 @@ class CoordinatesUTM:
         lat = readfile.read(input_path, datasetName='latitude')[0]
         lon = readfile.read(input_path, datasetName='longitude')[0]
 
-        log.info(msg="Transform coordinates from latitude and longitude (WGS84) to North and East (UTM).")
+        log.info(msg="Transform coordinates from latitude and longitude (WGS84) to North and East.")
         # noinspection PyTypeChecker
-        utm_crs_list = query_utm_crs_info(
-            datum_name="WGS 84",
-            area_of_interest=AreaOfInterest(
-                west_lon_degree=np.nanmin(lon.ravel()),
-                south_lat_degree=np.nanmin(lat.ravel()),
-                east_lon_degree=np.nanmax(lon.ravel()),
-                north_lat_degree=np.nanmax(lat.ravel())),
-            contains=True)
-        utm_crs = CRS.from_epsg(utm_crs_list[0].code)
-        lola2utm = Proj(utm_crs)
-        self.coord_utm = np.array(lola2utm(lon, lat))
+
+        log.info(msg="Transform coordinates from lat/lon (WGS84) to North/East (Transverse Mercator).")
+        # noinspection PyTypeChecker
+
+        min_lat = np.nanmin(lat.ravel())
+        max_lat = np.nanmax(lat.ravel())
+        min_lon = np.nanmin(lon.ravel())
+        max_lon = np.nanmax(lon.ravel())
+        log.debug(f"WGS84 Longitude range: {min_lon} - {max_lon} Latitude range: {min_lat} - {max_lat}")
+
+        self.lon_0 = (max_lon + min_lon) / 2  # Central_meridian
+        self.lat_0 = (max_lat + min_lat) / 2  # Latitude of origin
+        log.debug(f"Central meridian: {self.lon_0} Latitude of origin: {self.lat_0}")
+
+        log.debug("Construct Transverse Mercator projection.")
+        map_crs = CRS.from_dict({
+            "proj": "tmerc",  # Transverse Mercator
+            "lat_0": self.lat_0,
+            "lon_0": self.lon_0,
+            "k": 1,
+            "x_0": 0,  # False Easting
+            "y_0": 0,
+            "datum": "WGS84",
+            "units": "m",
+            "no_defs": True
+        })
+        lola2map = Proj(map_crs)
+        self.coord_map = np.array(lola2map(lon, lat))
+        log.debug(f"North coordinate range: {np.nanmin(self.coord_map[0, :])} - {np.nanmax(self.coord_map[0, :])}")
+        log.debug(f"East coordinate range: {np.nanmin(self.coord_map[1, :])} - {np.nanmax(self.coord_map[1, :])}")
 
         log.info(msg="write data to {}...".format(self.file_path))
 
@@ -189,12 +208,16 @@ class CoordinatesUTM:
             os.remove(self.file_path)
 
         with h5py.File(self.file_path, 'w') as f:
-            f.create_dataset('coord_utm', data=self.coord_utm)
+            f.create_dataset('coord_map', data=self.coord_map)
+            f.attrs["lon_0"] = self.lon_0
+            f.attrs["lat_0"] = self.lat_0
 
     def open(self):
         """Open."""
         with h5py.File(self.file_path, 'r') as f:
-            self.coord_utm = f["coord_utm"][:]
+            self.coord_map = f["coord_map"][:]
+            self.lon_0 = f.attrs["lon_0"]
+            self.lat_0 = f.attrs["lat_0"]
 
 
 class BaseStack:
@@ -448,7 +471,7 @@ class Points:
             Logging handler.
         """
         self.ifg_net_obj = IfgNetwork()  # use parent class here which doesn't know and care about 'star' or 'sb'
-        self.coord_utm = None
+        self.coord_map = None
         self.coord_lalo = None
         self.height = None
         self.slant_range = None
@@ -460,7 +483,7 @@ class Points:
         """Assign point_id and radar coordinates to the object.
 
         Store the point_id and radar coordinates of the scatterers in the object (not file) and read further
-        attributes from external files (ifg_network.h5, slcStack.h5, geometryRadar.h5, coordinates_utm.h5).
+        attributes from external files (ifg_network.h5, slcStack.h5, geometryRadar.h5, coordinates_map.h5).
 
         Parameters
         ----------
@@ -520,7 +543,7 @@ class Points:
         self.openExternalData(input_path=input_path)
 
     def openExternalData(self, *, input_path: str):
-        """Load data which is stored in slcStack.h5, geometryRadar.h5, ifg_network.h5 and coordinates_utm.h5."""
+        """Load data which is stored in slcStack.h5, geometryRadar.h5, ifg_network.h5 and coordinates_map.h5."""
         # 1) read IfgNetwork
         self.ifg_net_obj.open(path=join(dirname(self.file_path), "ifg_network.h5"))
 
@@ -549,11 +572,11 @@ class Points:
         self.height = height[mask].ravel()
         self.coord_lalo = np.array([lat[mask].ravel(), lon[mask].ravel()]).transpose()
 
-        # 4) read UTM coordinates
-        coord_utm_obj = CoordinatesUTM(file_path=join(dirname(self.file_path), "coordinates_utm.h5"),
+        # 4) read Map coordinates
+        coord_map_obj = CoordinatesMap(file_path=join(dirname(self.file_path), "coordinates_map.h5"),
                                        logger=self.logger)
-        coord_utm_obj.open()
-        self.coord_utm = coord_utm_obj.coord_utm[:, mask].transpose()
+        coord_map_obj.open()
+        self.coord_map = coord_map_obj.coord_map[:, mask].transpose()
 
     def createMask(self):
         """Create a mask.
