@@ -688,7 +688,7 @@ class Processing:
         coh_value = int(self.config.densification.coherence_p2 * 100)
         self.logger.info(f"Select second-order points using coherence threshold {coherence_p2:.2f}.")
 
-        _, aps2_obj = selectP2(output_path=self.path, config=self.config, logger=self.logger)
+        _, aps2_phase = selectP2(output_path=self.path, config=self.config, logger=self.logger)
 
         point2_obj = Points(file_path=join(self.path, "p2_coh{}_ifg_unw.h5".format(coh_value)), logger=self.logger)
         point2_obj.open(
@@ -725,16 +725,16 @@ class Processing:
             mask_unstable_p1 = p1_mask & (~aps1_mask)
             unstable_p1_id = point_id_img[np.where(mask_unstable_p1)]
 
-            mask_unstable_p1_in_p2 = np.ones((aps2_obj.num_points,), dtype=np.bool_)
-            for p in aps2_obj.point_id:
+            mask_unstable_p1_in_p2 = np.ones((point2_obj.num_points,), dtype=np.bool_)
+            for p in point2_obj.point_id:
                 if p not in unstable_p1_id:
-                    mask_unstable_p1_in_p2[aps2_obj.point_id == p] = False
+                    mask_unstable_p1_in_p2[point2_obj.point_id == p] = False
 
             # add unstable p1 from aps2 to aps1
             aps1_obj.addPointsFromObj(
-                new_point_id=aps2_obj.point_id[mask_unstable_p1_in_p2],
-                new_coord_xy=aps2_obj.coord_xy[mask_unstable_p1_in_p2, :],
-                new_phase=aps2_obj.phase[mask_unstable_p1_in_p2, :],
+                new_point_id=point2_obj.point_id[mask_unstable_p1_in_p2],
+                new_coord_xy=point2_obj.coord_xy[mask_unstable_p1_in_p2, :],
+                new_phase=aps2_phase[mask_unstable_p1_in_p2, :],
                 new_num_points=mask_unstable_p1_in_p2[mask_unstable_p1_in_p2].shape[0],
                 input_path=self.config.general.input_path
             )
@@ -743,8 +743,10 @@ class Processing:
             p2_mask = point2_obj.createMask()
             mask_only_p2 = p2_mask & (~p1_mask)
             keep_id = point_id_img[np.where(mask_only_p2)]
+
+            mask = np.isin(point2_obj.point_id, keep_id)
+            aps2_phase = aps2_phase[mask, :]
             point2_obj.removePoints(keep_id=keep_id, input_path=self.config.general.input_path)
-            aps2_obj.removePoints(keep_id=keep_id, input_path=self.config.general.input_path)
 
         else:
             """
@@ -780,13 +782,15 @@ class Processing:
                 p2_mask = point2_obj.createMask()
                 mask_p2 = ~(p1_mask & p2_mask) & p2_mask
                 p2_id = point_id_img[np.where(mask_p2)]
+
+                mask = np.isin(point2_obj.point_id, p2_id)
+                aps2_phase = aps2_phase[mask, :]
                 point2_obj.removePoints(keep_id=p2_id, input_path=self.config.general.input_path)
-                aps2_obj.removePoints(keep_id=p2_id, input_path=self.config.general.input_path)
 
         # return to ifg-space
         a_ifg = point2_obj.ifg_net_obj.getDesignMatrix()
         aps1_ifg_phase = np.matmul(a_ifg, aps1_obj.phase.T).T
-        aps2_ifg_phase = np.matmul(a_ifg, aps2_obj.phase.T).T
+        aps2_ifg_phase = np.matmul(a_ifg, aps2_phase.T).T
 
         # correct for APS
         point2_obj.phase = np.angle(np.exp(1j * point2_obj.phase) * np.conjugate(np.exp(1j * aps2_ifg_phase)))
@@ -917,7 +921,7 @@ class Processing:
         coh_value = int(coherence_p2 * 100)
 
         self.logger.info(f"Select second-order points using coherence threshold {coherence_p2:.2f}.")
-        _, aps2_obj = selectP2(output_path=self.path, config=self.config, logger=self.logger)
+        _, aps2_phase = selectP2(output_path=self.path, config=self.config, logger=self.logger)
 
         point_obj = Points(file_path=join(self.path, "p2_coh{}_ifg_unw.h5".format(coh_value)), logger=self.logger)
         point_obj.open(
@@ -927,7 +931,7 @@ class Processing:
 
         # return to ifg-space
         a_ifg = point_obj.ifg_net_obj.getDesignMatrix()
-        aps2_ifg_phase = np.matmul(a_ifg, aps2_obj.phase.T).T
+        aps2_ifg_phase = np.matmul(a_ifg, aps2_phase.T).T
 
         # correct for APS
         point_obj.phase = np.angle(np.exp(1j * point_obj.phase) * np.conjugate(np.exp(1j * aps2_ifg_phase)))

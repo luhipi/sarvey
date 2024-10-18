@@ -296,8 +296,8 @@ def selectP2(*, output_path: str, config: Config, logger: Logger):
     -------
     point2_obj : Points
         Points object with second-order points
-    aps2_obj: Points
-        Points object with APS estimation for second-order points
+    aps2_phase: np.ndarray
+        APS estimation for second-order points
     """
     # this function is mainly adapted from sarvey.processing.runFiltering
     # TODO: Directly pass input parameters instead of config dictionary
@@ -499,15 +499,16 @@ def selectP2(*, output_path: str, config: Config, logger: Logger):
                                                       logger=logger,
                                                       interp_method=aps_params_obj.params_obj.model_name)
 
-    p2_aps_file = join(output_path, f"p2_coh{coh_value}_aps.h5")
-    logger.info(f"Write APS for second-order points to file {p2_aps_file}.")
-    aps2_obj = Points(file_path=p2_aps_file, logger=logger)
-    aps2_obj.open(
-        other_file_path=join(output_path, f"p2_coh{coh_value}_ifg_wr.h5"),
-        input_path=config.general.input_path
-    )
-    aps2_obj.phase = aps2_phase
-    aps2_obj.writeToFile()
+    # TODO: delete this part after testing the aps estimation
+    # p2_aps_file = join(output_path, f"p2_coh{coh_value}_aps.h5")
+    # logger.info(f"Write APS for second-order points to file {p2_aps_file}.")
+    # aps2_obj = Points(file_path=p2_aps_file, logger=logger)
+    # aps2_obj.open(
+    #     other_file_path=join(output_path, f"p2_coh{coh_value}_ifg_wr.h5"),
+    #     input_path=config.general.input_path
+    # )
+    # aps2_obj.phase = aps2_phase
+    # aps2_obj.writeToFile()
 
     logger.debug("Finished selecting second-order points.")
-    return point2_obj, aps2_obj
+    return point2_obj, aps2_phase
