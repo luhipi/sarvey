@@ -4,7 +4,7 @@ on:
   pull_request:
   push:
     branches:
-      - ci_run_push_to_main
+      - main
 
 permissions:
   contents: write
