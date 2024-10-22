@@ -96,7 +96,7 @@ pytest: clean-test ## Runs pytest with coverage and creates coverage and test re
 		tests
 
 docs: ## generate Sphinx HTML documentation, including API docs
-	rm -f docs/timeseries.rst
+	rm -f docs/sarvey.rst
 	rm -f docs/modules.rst
 	sphinx-apidoc sarvey -o docs/ --private --doc-project 'Python API reference'
 	$(MAKE) -C docs clean

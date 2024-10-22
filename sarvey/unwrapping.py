@@ -457,7 +457,7 @@ def spatialUnwrapping(*, num_ifgs: int, num_points: int, phase: np.ndarray, edge
         Unwrapped phase of the interferograms at the points.
     """
     msg = "#" * 10
-    msg += f" SPATIAL UNWRAPPING: {method}"
+    msg += f" SPATIAL UNWRAPPING: {method} "
     msg += "#" * 10
     logger.info(msg=msg)
 

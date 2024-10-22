@@ -1,7 +1,7 @@
 {
     "general": {
         "input_path": "tests/testdata/inputs",
-        "output_path": "tests/testdata/output/",
+        "output_path": "tests/testdata/output",
         "num_cores": 50,
         "num_patches": 1,
         "apply_temporal_unwrapping": true,
