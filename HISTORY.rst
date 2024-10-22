@@ -2,6 +2,10 @@
 History
 =======
 
+* Export data to GIS format in WGS84 coordinates.
+* Change file name coordinates_UTM.h5 to coordinates_map.h5.
+* Use Transverse Mercator instead of UTM as map coordinates.
+
 1.0.0 (2024-08-12) Strawberry Pie
 ---------------------------------
 

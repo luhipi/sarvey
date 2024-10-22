@@ -42,15 +42,15 @@ from mintpy.utils import ptime
 class PointNetworkTriangulation:
     """PointNetworkTriangulation."""
 
-    def __init__(self, *, coord_xy: np.ndarray, coord_utmxy: Optional[np.ndarray], logger: Logger):
+    def __init__(self, *, coord_xy: np.ndarray, coord_map_xy: Optional[np.ndarray], logger: Logger):
         """Triangulate points in space based on distance.
 
         Parameters
         ----------
         coord_xy: np.ndarray
             Radar coordinates of the points.
-        coord_utmxy: np.ndarray
-            UTM coordinates of the points.
+        coord_map_xy: np.ndarray
+            map coordinates of the points.
         logger: Logger
             Logging handler.
         """
@@ -62,9 +62,9 @@ class PointNetworkTriangulation:
         # create network afterwards once. reduces time.
         self.adj_mat = lil_matrix((num_points, num_points), dtype=np.bool_)
 
-        if coord_utmxy is not None:
+        if coord_map_xy is not None:
             logger.info(msg="create distance matrix between all points...")
-            self.dist_mat = distance_matrix(coord_utmxy, coord_utmxy)
+            self.dist_mat = distance_matrix(coord_map_xy, coord_map_xy)
             # todo: check out alternatives:
             #       scipy.spatial.KDTree.sparse_distance_matrix
         else:  # if only global delaunay shall be computed without memory issues

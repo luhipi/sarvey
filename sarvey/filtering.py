@@ -41,18 +41,18 @@ from mintpy.utils import ptime
 import sarvey.utils as ut
 
 
-def applySpatialFilteringToP2(*, coord_utm1, residuals, coord_utm2, model_name, model_params, logger):
+def applySpatialFilteringToP2(*, coord_map1, residuals, coord_map2, model_name, model_params, logger):
     """
     Apply spatial filtering to second-order points using kriging.
 
     Parameters
     ----------
-    coord_utm1 : np.ndarray
-        Coordinates of the first-order points in UTM.
+    coord_map1 : np.ndarray
+        Map coordinates of the first-order points in UTM.
     residuals : np.ndarray
         Residuals of the first-order points that were used to estimate APS parameters.
-    coord_utm2 : np.ndarray
-        Coordinates of the second-order points in UTM.
+    coord_map2 : np.ndarray
+        Map coordinates of the second-order points in UTM.
     model_name : str
         Name of the variogram model used in APS estimation.
     model_params : np.ndarray
@@ -66,7 +66,7 @@ def applySpatialFilteringToP2(*, coord_utm1, residuals, coord_utm2, model_name, 
         Interpolated phase values for the second-order points.
     """
     num_time = model_params.shape[1]
-    num_points2 = coord_utm2.shape[0]
+    num_points2 = coord_map2.shape[0]
     logger.debug(f"Start applying {num_time} time APS to {num_points2} second-order points using Kriging"
                  f" interpolation.")
 
@@ -83,7 +83,7 @@ def applySpatialFilteringToP2(*, coord_utm1, residuals, coord_utm2, model_name, 
         logger.warning(msg=error_msg)
         raise ValueError(error_msg)
 
-    coord_point1 = [coord_utm1[:, 0], coord_utm1[:, 1]]
+    coord_point1 = [coord_map1[:, 0], coord_map1[:, 1]]
 
     aps2 = np.zeros((num_points2, num_time), dtype=np.float32)
 
@@ -102,13 +102,13 @@ def applySpatialFilteringToP2(*, coord_utm1, residuals, coord_utm2, model_name, 
         sk = gs.krige.Simple(model=model, cond_pos=coord_point1, cond_val=field)
 
         # evaluate the kriging model at new locations
-        aps2[:, i], var_sk_new = sk((coord_utm2[:, 1], coord_utm2[:, 0]), return_var=True)
+        aps2[:, i], var_sk_new = sk((coord_map2[:, 1], coord_map2[:, 0]), return_var=True)
 
     logger.debug(msg="Finished applying spatial filtering to second-order points using Kriging interpolation.")
     return aps2
 
 
-def applySimpleInterpolationToP2(*, residuals: np.ndarray, coord_utm1: np.ndarray, coord_utm2: np.ndarray,
+def applySimpleInterpolationToP2(*, residuals: np.ndarray, coord_map1: np.ndarray, coord_map2: np.ndarray,
                                  logger: Logger, interp_method: str = "linear",):
     """
     Apply simple interpolation to second-order points.
@@ -118,10 +118,10 @@ def applySimpleInterpolationToP2(*, residuals: np.ndarray, coord_utm1: np.ndarra
     logger
     residuals : np.ndarray
         Residual phase values from the first-order points (size: num_points_p1 x num_ifgs)
-    coord_utm1 : np.ndarray
-        coordinates in UTM of the points for which the residuals are given (size: num_points_p1 x 2)
-    coord_utm2 : np.ndarray
-        Coordinates of the second-order points in UTM. (size: num_points_p2 x 2)
+    coord_map1 : np.ndarray
+        Map coordinates of the points for which the residuals are given (size: num_points_p1 x 2)
+    coord_map2 : np.ndarray
+        Map coordinates of the second-order points. (size: num_points_p2 x 2)
     logger: Logger
         Logger instance for logging messages.
 
@@ -133,7 +133,7 @@ def applySimpleInterpolationToP2(*, residuals: np.ndarray, coord_utm1: np.ndarra
     interpolated_phase : np.ndarray
         Atmospheric phase screen for the second order points (size: num_points_p2 x num_images)
     """
-    num_points2 = coord_utm2.shape[0]
+    num_points2 = coord_map2.shape[0]
     num_images = residuals.shape[1]
     logger.debug(f"Start applying {num_images} APS to {num_points2} second-order points using"
                  f" {interp_method} interpolation.")
@@ -142,14 +142,14 @@ def applySimpleInterpolationToP2(*, residuals: np.ndarray, coord_utm1: np.ndarra
 
     logger.debug(msg=f"Start looping for APS interpolation for {num_images} snapshots.")
     for i in range(num_images):
-        aps2[:, i] = griddata(coord_utm1, residuals[:, i], coord_utm2, method=interp_method)
+        aps2[:, i] = griddata(coord_map1, residuals[:, i], coord_map2, method=interp_method)
         # interpolation with 'linear' or 'cubic' yields nan values for pixel that need to be extrapolated.
         # interpolation with 'knn' solves this problem.
         mask_extrapolate = np.isnan(aps2[:, i])
         aps2[mask_extrapolate, i] = griddata(
-            coord_utm1,
+            coord_map1,
             residuals[:, i],
-            coord_utm2[mask_extrapolate, :],
+            coord_map2[mask_extrapolate, :],
             method='nearest'
         )
 
@@ -173,8 +173,8 @@ def launchSpatialFiltering(parameters: tuple):
             number of time steps
         residuals: np.ndarray
             residual phase (size: num_points x num_ifgs)
-        coord_utm1: np.ndarray
-            coordinates in UTM of the first-order points for which the residuals are given (size: num_points_p1 x 2)
+        coord_map1: np.ndarray
+            map coordinates of the first-order points for which the residuals are given (size: num_points_p1 x 2)
         bins: np.ndarray
             bin edges for the variogram
         bool_plot: bool
@@ -190,12 +190,12 @@ def launchSpatialFiltering(parameters: tuple):
         atmospheric phase screen for the known points (size: num_points_p1 x num_ifgs)
     """
     # Unpack the parameters
-    (idx_range, num_time, residuals, coord_utm1, bins, bool_plot, logger) = parameters
+    (idx_range, num_time, residuals, coord_map1, coord_utm2, bins, bool_plot, logger) = parameters
 
-    x = coord_utm1[:, 1]
-    y = coord_utm1[:, 0]
+    x = coord_map1[:, 1]
+    y = coord_map1[:, 0]
 
-    aps1 = np.zeros((coord_utm1.shape[0], num_time), dtype=np.float32)
+    aps1 = np.zeros((coord_map1.shape[0], num_time), dtype=np.float32)
 
     prog_bar = ptime.progressBar(maxValue=num_time)
 
@@ -250,7 +250,7 @@ def launchSpatialFiltering(parameters: tuple):
     return idx_range, aps1, model_params
 
 
-def estimateAtmosphericPhaseScreen(*, residuals: np.ndarray, coord_utm1: np.ndarray,
+def estimateAtmosphericPhaseScreen(*, residuals: np.ndarray, coord_map1: np.ndarray,
                                    num_cores: int = 1, bool_plot: bool = False,
                                    logger: Logger) -> tuple[np.ndarray, np.ndarray]:
     """Estimate_atmospheric_phase_screen.
@@ -262,7 +262,7 @@ def estimateAtmosphericPhaseScreen(*, residuals: np.ndarray, coord_utm1: np.ndar
     ----------
     residuals: np.ndarray
         residual phase (size: num_points1 x num_images)
-    coord_utm1: np.ndarray
+    coord_map1: np.ndarray
         coordinates in UTM of the points for which the residuals are given (size: num_points1 x 2)
     num_cores: int
         Number of cores
@@ -288,11 +288,11 @@ def estimateAtmosphericPhaseScreen(*, residuals: np.ndarray, coord_utm1: np.ndar
     num_points1 = residuals.shape[0]
     num_time = residuals.shape[1]  # can be either num_ifgs or num_images
 
-    bins = gs.variogram.standard_bins(pos=(coord_utm1[:, 1], coord_utm1[:, 0]),
+    bins = gs.variogram.standard_bins(pos=(coord_map1[:, 1], coord_map1[:, 0]),
                                       dim=2, latlon=False, mesh_type='unstructured', bin_no=30, max_dist=None)
 
     if num_cores == 1:
-        args = (np.arange(0, num_time), num_time, residuals, coord_utm1, bins, bool_plot, logger)
+        args = (np.arange(0, num_time), num_time, residuals, coord_map1, bins, bool_plot, logger)
         _, aps1, model_params = launchSpatialFiltering(parameters=args)
     else:
         logger.info(msg="start parallel processing with {} cores.".format(num_cores))
@@ -308,7 +308,7 @@ def estimateAtmosphericPhaseScreen(*, residuals: np.ndarray, coord_utm1: np.ndar
             idx_range,
             idx_range.shape[0],
             residuals[:, idx_range],
-            coord_utm1,
+            coord_map1,
             bins,
             False,
             logger) for idx_range in idx]
@@ -326,7 +326,7 @@ def estimateAtmosphericPhaseScreen(*, residuals: np.ndarray, coord_utm1: np.ndar
     return aps1, model_params
 
 
-def simpleInterpolation(*, residuals: np.ndarray, coord_utm1: np.ndarray, interp_method: str = "linear"):
+def simpleInterpolation(*, residuals: np.ndarray, coord_map1: np.ndarray, interp_method: str = "linear"):
     """SimpleInterpolation.
 
     Simple interpolation of atmospheric phase screen using scipy's griddata function with options "linear" or "cubic".
@@ -336,8 +336,8 @@ def simpleInterpolation(*, residuals: np.ndarray, coord_utm1: np.ndarray, interp
     ----------
     residuals: np.ndarray
         residual phase (size: num_points x num_ifgs)
-    coord_utm1: np.ndarray
-        coordinates in UTM of the points for which the residuals are given (size: num_points_p1 x 2)
+    coord_map1: np.ndarray
+        map coordinates of the points for which the residuals are given (size: num_points_p1 x 2)
     interp_method: str
         interpolation method (default: "linear"; options: "linear", "cubic")
 
@@ -350,7 +350,7 @@ def simpleInterpolation(*, residuals: np.ndarray, coord_utm1: np.ndarray, interp
 
     aps1 = np.zeros_like(residuals, dtype=np.float32)
     for i in range(num_images):
-        aps1[:, i] = griddata(coord_utm1, residuals[:, i], coord_utm1, method=interp_method)
+        aps1[:, i] = griddata(coord_map1, residuals[:, i], coord_map1, method=interp_method)
 
     return aps1
 

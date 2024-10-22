@@ -7,7 +7,7 @@ Multitemporal InSAR processing workflow
 The `sarvey` command line interface executes the multitemporal InSAR processing workflow.
 The workflow is described in the paper
 
-    Piter, A., Haghshenas Haghighi, M., Motagh, M.(2024). An in-depth study on Sentinel-1 InSAR for transport infrastructure monitoring. PFG - Journal of Photogrammetry, Remote Sensing and Geoinformation Science. (paper currently under review).
+    Piter A, Haghshenas Haghighi M, Motagh M (2024). Challenges and Opportunities of Sentinel-1 InSAR for Transport Infrastructure Monitoring. PFG – Journal of Photogrammetry, Remote Sensing and Geoinformation Science, 92, 609-627.
 
 All processing steps are described in detail in the following sections.
 Two processing strategies are provided with either one- or two-step unwrapping.
@@ -114,7 +114,7 @@ Step 0: Preparation
 - Output of this step
     - background_map.h5
     - ifg_stack.h5
-    - coordinates_utm.h5
+    - coordinates_map.h5
     - ifg_network.h5
     - temporal_coherence.h5
 
@@ -160,6 +160,7 @@ Step 1: Consistency Check
 Step 2: Unwrapping
 ^^^^^^^^^^^^^^^^^^
 
+This step unwraps the phase of the first-order points and retrieves their displacement time series.
 Two unwrapping options (**general:apply_temporal_unwrapping**, also applies to step 4) are implemented and should be chosen based on the characteristics of the displacement (spatial extend, magnitude, temporal behaviour).
 
 - Output of this step
@@ -238,7 +239,11 @@ However, the step 3 has to be executed as the second-order points are selected d
 Step 4: Densification
 ^^^^^^^^^^^^^^^^^^^^^
 
-In this step, second order points are selected. Afterwards, the APS, estimated in step 3, is interpolated to the location of the second-order points.
+The densification step is the last step of the two-step unwrapping workflow.
+So far, the displacement was only estimated at the sparse locations of the first-order points.
+Now, second order points are selected and added to the first-order points to densify the final set of points.
+Afterwards, the APS, estimated in step 3, is interpolated to the location of the second-order points and removed from first- and second-order points.
+Lastly, the displacement time series are retrieved by unwrapping phases of the points jointly.
 
 Two unwrapping options (**general:apply_temporal_unwrapping**, also applies to step 2) are implemented and should be chosen based on the characteristics of the displacement (spatial extend, magnitude, temporal behaviour).
 
@@ -313,6 +318,8 @@ The processing of large datasets can be computationally expensive and time-consu
 Especially the estimation of the temporal phase coherence in step 0 is a bottleneck, also in terms of memory consumption.
 Therefore, it is recommended to set **general:num_cores** for parallel processing.
 By setting **general:num_patches** the data is split into spatial patches and processed subsequently to fit into memory.
+However, only use the patching option if the memory is not sufficient to process the data in one go.
+Using multiple patches will slow down the processing due to the overhead of loading and saving the data multiple times.
 
 
 Processing steps for one-step unwrapping workflow
