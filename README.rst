@@ -71,6 +71,8 @@ Processing overview
    :alt: SARvey workflow
 
 Processing workflow for using the SARvey software to derive displacement time series.
+SARvey builds upon and uses functions of the two InSAR research softwares MintPy_ (multilook SBAS processing) and MiaplPy_ (Phase linking for single-look DS processing).
+
 
 
 SARvey is a command-line-based software. The major steps for running SARvey are the following:
@@ -194,6 +196,7 @@ This package was created with Cookiecutter_ and the `fernlab/cookiecutter-pypack
 .. _`installation instruction`: https://luhipi.github.io/sarvey/docs/installation.html
 .. _`history`: https://luhipi.github.io/sarvey/docs/history.html
 .. _MiaplPy: https://github.com/insarlab/MiaplPy
+.. _MintPy: https://github.com/insarlab/MintPy
 .. _ISCE: https://github.com/isce-framework/isce2
 .. _SNAP: https://step.esa.int/main/toolboxes/snap
 .. _Shapefiles: https://doc.arcgis.com/en/arcgis-online/reference/shapefiles.htm

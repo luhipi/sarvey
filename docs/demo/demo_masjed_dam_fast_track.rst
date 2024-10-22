@@ -51,7 +51,7 @@ You can run each step individually or a range of steps by specifying the first a
 Check Outputs
 """""""""""""
 
-First, check the output snapshots in the `outputs/pics` directory. You can also use **`sarvey_plot`** to plot various products to assess the quality of the results and decide how to adjust parameters.  Modify the parameters in the config file and rerun the corresponding steps of `sarvey` to improve the results. For instance, changing **`coherence_p2`** from 0.8 to 0.7 and rerunning steps 3 and 4 can increase the density of the final set of points. However, be cautious that reducing the value too much may include noisy points of low quality in the analysis, potentially leading to poor final results. You can check the details of all parameters using the -p flag in `sarvey` and decide how to tune them. For more explanations, please refer to :ref:`processing`
+First, check the output snapshots in the `outputs/pics` directory. You can also use **`sarvey_plot`** to plot various products to assess the quality of the results and decide how to adjust parameters.  Modify the parameters in the config file and rerun the corresponding steps of `sarvey` to improve the results. For instance, changing **`coherence_p2`** from 0.8 to 0.7 and rerunning step 4 can increase the density of the final set of points. However, be cautious that reducing the value too much may include noisy points of low quality in the analysis, potentially leading to poor final results. You can check the details of all parameters using the -p flag in `sarvey` and decide how to tune them. For more explanations, please refer to :ref:`processing`
 
 
 

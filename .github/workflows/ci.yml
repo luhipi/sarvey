@@ -1,12 +1,18 @@
 name: CI
 
-on: [push, pull_request]
+on:
+  pull_request:
+  push:
+    branches:
+      - main
 
 permissions:
   contents: write
 
 env:
-    SKIP: false
+    SKIP_DEPLOY: false
+    SKIP_INSTALL: false
+    SKIP_TEST: false
 
 jobs:
   before_script:
@@ -46,11 +52,12 @@ jobs:
           python-version: '3.x'
 
       - name: Run tests
+        if: env.SKIP_TEST == 'false'
         run: |
           conda init bash
           source ~/.bashrc
           mamba env remove --name ci_temp_env --yes || echo "Environment ci_temp_env does not exist"
-          
+
           conda create -n ci_temp_env --clone ci_env
           source activate ci_temp_env
           mamba install json5
@@ -63,6 +70,7 @@ jobs:
         shell: bash
 
       - name: create docs
+        if: env.SKIP_DEPLOY == 'false'
         run: |
           conda init bash
           source ~/.bashrc
@@ -71,30 +79,35 @@ jobs:
         shell: bash
 
       - name: Upload coverage report
+        if: env.SKIP_DEPLOY == 'false'
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: htmlcov/
 
       - name: Upload report.html
+        if: env.SKIP_DEPLOY == 'false'
         uses: actions/upload-artifact@v4
         with:
           name: test-report
           path: report.html
 
       - name: Upload docs
+        if: env.SKIP_DEPLOY == 'false'
         uses: actions/upload-artifact@v4
         with:
           name: docs
           path: docs/_build/html/
 
       - name: Upload cobertura coverage report
+        if: env.SKIP_DEPLOY == 'false'
         uses: actions/upload-artifact@v4
         with:
           name: cobertura-coverage
           path: coverage.xml
 
       - name: Upload junit report
+        if: env.SKIP_DEPLOY == 'false'
         uses: actions/upload-artifact@v4
         with:
           name: junit-report
@@ -113,6 +126,7 @@ jobs:
           python-version: '3.x'
 
       - name: Install dependencies
+        if: env.SKIP_TEST == 'false'
         run: |
           conda init bash
           source ~/.bashrc
@@ -122,18 +136,21 @@ jobs:
         shell: bash
 
       - name: Upload flake8 log
+        if: env.SKIP_TEST == 'false'
         uses: actions/upload-artifact@v4
         with:
           name: flake8-log
           path: tests/linting/flake8.log
 
       - name: Upload pycodestyle log
+        if: env.SKIP_TEST == 'false'
         uses: actions/upload-artifact@v4
         with:
           name: pycodestyle-log
           path: tests/linting/pycodestyle.log
 
       - name: Upload pydocstyle log
+        if: env.SKIP_TEST == 'false'
         uses: actions/upload-artifact@v4
         with:
           name: pydocstyle-log
@@ -152,6 +169,7 @@ jobs:
           python-version: '3.x'
 
       - name: Install dependencies
+        if: env.SKIP_TEST == 'false'
         run: |
           conda init bash
           source ~/.bashrc
@@ -172,6 +190,7 @@ jobs:
           python-version: '3.x'
 
       -   name: Install dependencies
+          if: env.SKIP_INSTALL == 'false'
           run: |
               source $HOME/miniconda/bin/activate
               mamba update -n base mamba conda
@@ -193,6 +212,7 @@ jobs:
     runs-on: self-hosted
 
     needs: test_sarvey
+    if: github.ref == 'refs/heads/main'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -201,7 +221,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.x'
-      
+
       - name: Download docs
         uses: actions/download-artifact@v4
         with:
@@ -220,14 +240,14 @@ jobs:
           name: test-report
 
       - name: Deploy to GitHub Pages
-        if: env.SKIP == 'false'
+        if: env.SKIP_DEPLOY == 'false'
         run: |
           rm -rf public
           mkdir -p public/docs
           mkdir -p public/images/
           mkdir -p public/coverage
           mkdir -p public/test_reports
-          
+
           cp -r docs/_build/html/* public/docs/
           cp -r htmlcov/* public/coverage/
           cp report.html public/test_reports/
@@ -238,7 +258,7 @@ jobs:
         shell: bash
 
       - name: Upload to GitHub Pages
-        if: env.SKIP == 'false'
+        if: env.SKIP_DEPLOY == 'false'
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
