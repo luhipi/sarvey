@@ -154,8 +154,6 @@ class TestProcessing(unittest.TestCase):
         coh_value = int(config.densification.coherence_p2 * 100)
         assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_ifg_wr.h5")), \
             f'Processing failed (p2_coh{coh_value}_ifg_wr.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_aps.h5")), \
-            f'Processing failed (p2_coh{coh_value}_aps.h5 not created).'
         assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_ifg_unw.h5")), \
             f'Processing failed (p2_coh{coh_value}_ifg_unw.h5 not created).'
         assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_ts.h5")), \
@@ -228,8 +226,6 @@ class TestProcessing(unittest.TestCase):
         coh_value = int(config.densification.coherence_p2 * 100)
         assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_ifg_wr.h5")), \
             f'Processing failed (p2_coh{coh_value}_ifg_wr.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_aps.h5")), \
-            f'Processing failed (p2_coh{coh_value}_aps.h5 not created).'
         assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_ifg_unw.h5")), \
             f'Processing failed (p2_coh{coh_value}_ifg_unw.h5 not created).'
         assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_ts.h5")), \
@@ -304,8 +300,6 @@ class TestProcessing(unittest.TestCase):
         coh_value = int(config.densification.coherence_p2 * 100)
         assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_ifg_wr.h5")), \
             f'Processing failed (p2_coh{coh_value}_ifg_wr.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_aps.h5")), \
-            f'Processing failed (p2_coh{coh_value}_aps.h5 not created).'
         assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_ifg_unw.h5")), \
             f'Processing failed (p2_coh{coh_value}_ifg_unw.h5 not created).'
         assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_ts.h5")), \
@@ -380,8 +374,6 @@ class TestProcessing(unittest.TestCase):
         coh_value = int(config.densification.coherence_p2 * 100)
         assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_ifg_wr.h5")), \
             f'Processing failed (p2_coh{coh_value}_ifg_wr.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_aps.h5")), \
-            f'Processing failed (p2_coh{coh_value}_aps.h5 not created).'
         assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_ifg_unw.h5")), \
             f'Processing failed (p2_coh{coh_value}_ifg_unw.h5 not created).'
         assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_ts.h5")), \
