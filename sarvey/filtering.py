@@ -190,7 +190,7 @@ def launchSpatialFiltering(parameters: tuple):
         atmospheric phase screen for the known points (size: num_points_p1 x num_ifgs)
     """
     # Unpack the parameters
-    (idx_range, num_time, residuals, coord_map1, coord_utm2, bins, bool_plot, logger) = parameters
+    (idx_range, num_time, residuals, coord_map1, bins, bool_plot, logger) = parameters
 
     x = coord_map1[:, 1]
     y = coord_map1[:, 0]

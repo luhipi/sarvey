@@ -486,16 +486,16 @@ def selectP2(*, output_path: str, config: Config, logger: Logger):
         logger.info("Apply APS filtering to second-order points.")
 
         if filtering_method == "kriging":
-            aps2_phase = applySpatialFilteringToP2(coord_utm1=aps1_obj.coord_utm,
+            aps2_phase = applySpatialFilteringToP2(coord_map1=aps1_obj.coord_map,
                                                    residuals=aps_params_obj.phase,
-                                                   coord_utm2=point2_obj.coord_utm,
+                                                   coord_map2=point2_obj.coord_map,
                                                    model_name=aps_params_obj.model_name,
                                                    model_params=aps_params_obj.model_params,
                                                    logger=logger)
         elif filtering_method == "simple":
             aps2_phase = applySimpleInterpolationToP2(residuals=aps_params_obj.phase,
-                                                      coord_utm1=aps1_obj.coord_utm,
-                                                      coord_utm2=point2_obj.coord_utm,
+                                                      coord_map1=aps1_obj.coord_map,
+                                                      coord_map2=point2_obj.coord_map,
                                                       logger=logger,
                                                       interp_method=aps_params_obj.params_obj.model_name)
 
