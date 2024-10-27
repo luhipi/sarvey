@@ -467,12 +467,6 @@ class Unwrapping(BaseModel, extra=Extra.forbid):
 class Filtering(BaseModel, extra=Extra.forbid):
     """Template for filtering settings in config file."""
 
-    coherence_p2: float = Field(
-        title="Temporal coherence threshold",
-        description="Set the temporal coherence threshold for the filtering step.",
-        default=0.8
-    )
-
     apply_aps_filtering: bool = Field(
         title="Apply atmosphere filtering",
         description="Set whether to filter atmosphere or to skip it.",
@@ -491,12 +485,6 @@ class Filtering(BaseModel, extra=Extra.forbid):
         default=1000
     )
 
-    mask_p2_file: Optional[str] = Field(
-        title="Path to spatial mask file for second-order points.",
-        description="Path to the mask file, e.g. created by sarvey_mask.",
-        default=""
-    )
-
     use_moving_points: bool = Field(
         title="Use moving points",
         description="Set whether to use moving points in the filtering step.",
@@ -508,15 +496,6 @@ class Filtering(BaseModel, extra=Extra.forbid):
         description="Set temporal autocorrelation threshold for the selection of stable/linearly moving points.",
         default=0.3
     )
-
-    @validator('coherence_p2')
-    def checkTempCohThrsh2(cls, v):
-        """Check if the temporal coherence threshold is valid."""
-        if v < 0:
-            raise ValueError("Temporal coherence threshold cannot be negative.")
-        if v > 1:
-            raise ValueError("Temporal coherence threshold cannot be greater than 1.")
-        return v
 
     @validator('interpolation_method')
     def checkInterpolationMethod(cls, v):
@@ -534,16 +513,6 @@ class Filtering(BaseModel, extra=Extra.forbid):
         else:
             return v
 
-    @validator('mask_p2_file')
-    def checkSpatialMaskPath(cls, v):
-        """Check if the path is correct."""
-        if v == "" or v is None:
-            return None
-        else:
-            if not os.path.exists(os.path.abspath(v)):
-                raise ValueError(f"mask_p2_file path is invalid: {v}")
-        return v
-
     @validator('max_temporal_autocorrelation')
     def checkMaxAutoCorr(cls, v):
         """Check if the value is correct."""
@@ -555,7 +524,25 @@ class Filtering(BaseModel, extra=Extra.forbid):
 class Densification(BaseModel, extra=Extra.forbid):
     """Template for densification settings in config file."""
 
-    num_connections_to_p1: int = Field(
+    coherence_p2: float = Field(
+        title="Temporal coherence threshold",
+        description="Set the temporal coherence threshold for the densification step.",
+        default=0.8
+    )
+
+    coherence_threshold: float = Field(
+        title="Coherence threshold for densification",
+        description="Set coherence threshold for densification.",
+        default=0.5
+    )
+
+    mask_p2_file: Optional[str] = Field(
+        title="Path to spatial mask file for second-order points.",
+        description="Path to the mask file, e.g. created by sarvey_mask.",
+        default=""
+    )
+
+    num_connections_p1: int = Field(
         title="Number of connections in temporal unwrapping.",
         description="Set number of connections between second-order point and closest first-order points for temporal "
                     "unwrapping.",
@@ -593,7 +580,26 @@ class Densification(BaseModel, extra=Extra.forbid):
         default=0.5
     )
 
-    @validator('num_connections_to_p1')
+    @validator('coherence_p2')
+    def checkTempCohThrsh2(cls, v):
+        """Check if the temporal coherence threshold is valid."""
+        if v < 0:
+            raise ValueError("Temporal coherence threshold cannot be negative.")
+        if v > 1:
+            raise ValueError("Temporal coherence threshold cannot be greater than 1.")
+        return v
+
+    @validator('mask_p2_file')
+    def checkSpatialMaskPath(cls, v):
+        """Check if the path is correct."""
+        if v == "" or v is None:
+            return None
+        else:
+            if not os.path.exists(os.path.abspath(v)):
+                raise ValueError(f"mask_p2_file path is invalid: {v}")
+        return v
+
+    @validator('num_connections_p1')
     def checkNumConn1(cls, v):
         """Check if num_connections_p1 are valid."""
         if v <= 0:
