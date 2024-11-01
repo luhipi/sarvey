@@ -398,7 +398,7 @@ class TimeSeriesViewer:
                                              valfmt="%.1f")
 
             self.ax_img.imshow(self.temp_coh_img,
-                               cmap=plt.get_cmap("gray"),
+                               cmap=cm.grayC,
                                vmin=np.round(self.sl_coh.val, decimals=1),
                                vmax=1)
             meta = {"ORBIT_DIRECTION": self.bmap_obj.orbit_direction}
@@ -433,7 +433,7 @@ class TimeSeriesViewer:
                                           self.point_obj.coord_xy[:, 0],
                                           c=par,
                                           s=5,
-                                          cmap=colormaps["jet_r"],
+                                          cmap=cm.roma,
                                           vmin=-v_range,
                                           vmax=v_range)
 
@@ -441,7 +441,7 @@ class TimeSeriesViewer:
         self.cb = self.fig1.colorbar(self.sc, cax=self.ax_cb, ax=self.ax_img, pad=0.03, shrink=0.8, aspect=10,
                                      orientation='vertical')
 
-        # add back location of selected sarvey point and current reference
+        # add back location of selected time series point and current reference
         if self.ts_refpoint_idx is not None:  # initial value is None
             y, x = self.point_obj.coord_xy[self.ts_refpoint_idx, :]
             self.ts_refpoint_marker = self.ax_img.scatter(x, y, marker='^', facecolors='none', edgecolors='k')
