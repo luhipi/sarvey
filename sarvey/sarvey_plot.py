@@ -441,7 +441,7 @@ def main(iargs=None):
 
     config = loadConfiguration(path=config_file_path)
 
-    folder_name = "p1" if "p1" in basename(args.input_file) else basename(args.input_file)[:5]
+    folder_name = "p1" if "p1" in basename(args.input_file) else basename(args.input_file)[:8]
     folder_name = "ifgs" if "ifg_stack" in basename(args.input_file) else folder_name
 
     save_path = join(dirname(args.input_file), "pic", folder_name)
