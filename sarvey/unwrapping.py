@@ -41,6 +41,7 @@ from scipy.sparse.csgraph import structural_rank
 from scipy.sparse.linalg import lsqr
 from scipy.optimize import minimize
 from logging import Logger
+import cmcrameri as cmc
 
 from mintpy.utils import ptime
 
@@ -1001,7 +1002,7 @@ def parameterBasedNoisyPointRemoval(*, net_par_obj: NetworkParameter, point_id: 
             # vel
             ax = bmap_obj.plot(logger=logger)
             sc = ax.scatter(coord_xy[:, 1], coord_xy[:, 0], c=rmse_vel * 1000, s=3.5,
-                            cmap=plt.cm.get_cmap("autumn_r"), vmin=0, vmax=rmse_thrsh * 1000)
+                            cmap=cmc.cm.cmaps["lajolla_r"], vmin=0, vmax=rmse_thrsh * 1000)
             plt.colorbar(sc, pad=0.03, shrink=0.5)
             ax.set_title("{}. iteration\nmean velocity - RMSE per point in [mm / year]".format(it_count))
             fig = ax.get_figure()
@@ -1013,7 +1014,7 @@ def parameterBasedNoisyPointRemoval(*, net_par_obj: NetworkParameter, point_id: 
             # demerr
             ax = bmap_obj.plot(logger=logger)
             sc = ax.scatter(coord_xy[:, 1], coord_xy[:, 0], c=rmse_demerr, s=3.5,
-                            cmap=plt.cm.get_cmap("autumn_r"))
+                            cmap=cmc.cm.cmaps["lajolla_r"])
             plt.colorbar(sc, pad=0.03, shrink=0.5)
             ax.set_title("{}. iteration\nDEM correction - RMSE per point in [m]".format(it_count))
             fig = ax.get_figure()

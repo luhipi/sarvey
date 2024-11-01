@@ -38,7 +38,7 @@ import numpy as np
 import logging
 from logging import Logger
 import sys
-from cmcrameri import cm as cmc
+import cmcrameri as cmc
 
 from mintpy.utils import ptime
 from mintpy.objects.colors import ColormapExt
@@ -98,7 +98,7 @@ def plotMap(*, obj_name: str, save_path: str, interactive: bool = False, input_p
 
     ax = bmap_obj.plot(logger=logger)
     sc = ax.scatter(point_obj.coord_xy[:, 1], point_obj.coord_xy[:, 0], c=demerr, s=scatter_size,
-                    cmap=cmc.roma)
+                    cmap=cmc.cm.cmaps["roma"])
     plt.colorbar(sc, label="[m]", pad=0.03, shrink=0.5)
     plt.title("DEM correction")
     plt.ylabel('Azimuth')
@@ -112,7 +112,7 @@ def plotMap(*, obj_name: str, save_path: str, interactive: bool = False, input_p
 
     ax = bmap_obj.plot(logger=logger)
     sc = ax.scatter(point_obj.coord_xy[:, 1], point_obj.coord_xy[:, 0], c=omega, s=scatter_size,
-                    cmap=cmc.lajolla_r, vmin=0, vmax=np.quantile(omega, 0.95))
+                    cmap=cmc.cm.cmaps["lajolla_r"], vmin=0, vmax=np.quantile(omega, 0.95))
     plt.colorbar(sc, label="", pad=0.03, shrink=0.5)
     plt.title("Squared sum of residuals")
     plt.ylabel('Azimuth')
@@ -128,7 +128,7 @@ def plotMap(*, obj_name: str, save_path: str, interactive: bool = False, input_p
 
     ax = bmap_obj.plot(logger=logger)
     sc = ax.scatter(point_obj.coord_xy[:, 1], point_obj.coord_xy[:, 0], c=vel * 100, s=scatter_size,
-                    cmap=cmc.roma,
+                    cmap=cmc.cm.cmaps["roma"],
                     vmin=-v_range, vmax=v_range)
     plt.colorbar(sc, label="[cm / year]", pad=0.03, shrink=0.5)
     plt.title("Mean Velocity")
@@ -143,7 +143,7 @@ def plotMap(*, obj_name: str, save_path: str, interactive: bool = False, input_p
 
     ax = bmap_obj.plot(logger=logger)
     sc = ax.scatter(point_obj.coord_xy[:, 1], point_obj.coord_xy[:, 0], c=coherence, vmin=0, vmax=1, s=scatter_size,
-                    cmap=cmc.lajolla)
+                    cmap=cmc.cm.cmaps["lajolla"])
     plt.colorbar(sc, label="[-]", pad=0.03, shrink=0.5)
     plt.title("Temporal coherence")
     plt.ylabel('Azimuth')
@@ -161,7 +161,7 @@ def plotMap(*, obj_name: str, save_path: str, interactive: bool = False, input_p
 
     ax = bmap_obj.plot(logger=logger)
     sc = ax.scatter(point_obj.coord_xy[:, 1], point_obj.coord_xy[:, 0], c=stc * 100, s=scatter_size,
-                    cmap=cmc.lajolla_r)
+                    cmap=cmc.cm.cmaps["lajolla_r"])
     plt.colorbar(sc, label="[cm]", pad=0.03, shrink=0.5)
     plt.title("Spatiotemporal consistency")
     plt.ylabel('Azimuth')
