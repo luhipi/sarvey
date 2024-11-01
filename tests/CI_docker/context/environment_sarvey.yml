@@ -47,3 +47,4 @@ dependencies:
   - pip:
           - kamui[extra]
           - pytest-reporter-html1
+          - cmcrameri
