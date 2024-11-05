@@ -1,4 +1,4 @@
-FROM condaforge/mambaforge:latest as conda
+FROM condaforge/miniforge3:latest
 
 # update base environment
 RUN --mount=type=cache,target=/opt/conda/pkgs \

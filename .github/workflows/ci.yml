@@ -36,7 +36,6 @@ jobs:
         run: |
           conda init bash
           source ~/.bashrc
-          conda info
           source activate ci_env
         shell: bash
 
@@ -59,7 +58,7 @@ jobs:
           source ~/.bashrc
           mamba env remove --name ci_temp_env --yes || echo "Environment ci_temp_env does not exist"
 
-          conda create -n ci_temp_env --clone ci_env
+          mamba create -n ci_temp_env --clone ci_env
           source activate ci_temp_env
           mamba install json5
           rm -rf tests/testdata
@@ -131,7 +130,6 @@ jobs:
         run: |
           conda init bash
           source ~/.bashrc
-          conda info
           source activate ci_env
           make lint
         shell: bash
@@ -174,7 +172,6 @@ jobs:
         run: |
           conda init bash
           source ~/.bashrc
-          conda info
           source activate ci_env
           make urlcheck
         shell: bash
@@ -194,7 +191,7 @@ jobs:
           if: env.SKIP_INSTALL == 'false'
           run: |
               source $HOME/miniconda/bin/activate
-              mamba update -n base mamba conda
+              mamba update -n base
               mamba info
               mamba env remove --name sarvey_testinstall --yes || echo "Environment sarvey_testinstall does not exist"
               pip install conda-merge
