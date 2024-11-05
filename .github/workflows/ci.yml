@@ -13,7 +13,7 @@ permissions:
 env:
     SKIP_DEPLOY: true
     SKIP_INSTALL: false
-    SKIP_TEST: true
+    SKIP_TEST: false
 
 jobs:
   before_script:
@@ -190,8 +190,6 @@ jobs:
       -   name: Install dependencies
           if: env.SKIP_INSTALL == 'false'
           run: |
-              mamba info
-              mamba env list
               source activate base
               mamba env remove --name sarvey_testinstall --yes || echo "Environment sarvey_testinstall does not exist"
               pip install conda-merge
