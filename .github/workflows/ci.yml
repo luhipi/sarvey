@@ -191,10 +191,10 @@ jobs:
           if: env.SKIP_INSTALL == 'false'
           run: |
               mamba info
+              mamba env list
+              mamba install -n base conda=23.9 mamba=1.5.8
+              mamba info
               source $HOME/miniconda/bin/activate
-              mamba info
-              mamba install -n base conda=23.9 mamba=2.0.2
-              mamba info
               mamba env remove --name sarvey_testinstall --yes || echo "Environment sarvey_testinstall does not exist"
               pip install conda-merge
               wget https://raw.githubusercontent.com/insarlab/MiaplPy/main/conda-env.yml
