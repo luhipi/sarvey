@@ -11,7 +11,7 @@ permissions:
   contents: write
 
 env:
-    SKIP_DEPLOY: false
+    SKIP_DEPLOY: true
     SKIP_INSTALL: false
     SKIP_TEST: false
 
@@ -191,7 +191,7 @@ jobs:
           if: env.SKIP_INSTALL == 'false'
           run: |
               source $HOME/miniconda/bin/activate
-              mamba update -n base
+              mamba install -n base conda=24.9.1 mamba=1.5.9
               mamba info
               mamba env remove --name sarvey_testinstall --yes || echo "Environment sarvey_testinstall does not exist"
               pip install conda-merge
