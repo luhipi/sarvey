@@ -41,7 +41,6 @@ import sys
 import cmcrameri as cmc
 
 from mintpy.utils import ptime
-from mintpy.objects.colors import ColormapExt
 from mintpy.utils.plot import auto_flip_direction
 
 from sarvey.ifg_network import IfgNetwork
@@ -98,27 +97,13 @@ def plotMap(*, obj_name: str, save_path: str, interactive: bool = False, input_p
 
     ax = bmap_obj.plot(logger=logger)
     sc = ax.scatter(point_obj.coord_xy[:, 1], point_obj.coord_xy[:, 0], c=demerr, s=scatter_size,
-                    cmap=cmc.cm.cmaps["roma"])
+                    cmap=cmc.cm.cmaps["vanimo"])
     plt.colorbar(sc, label="[m]", pad=0.03, shrink=0.5)
     plt.title("DEM correction")
     plt.ylabel('Azimuth')
     plt.xlabel('Range')
     plt.tight_layout()
     plt.gcf().savefig(join(save_path, "map_dem_correction.png"), dpi=300)
-    if interactive:
-        plt.show()
-    else:
-        plt.close(plt.gcf())
-
-    ax = bmap_obj.plot(logger=logger)
-    sc = ax.scatter(point_obj.coord_xy[:, 1], point_obj.coord_xy[:, 0], c=omega, s=scatter_size,
-                    cmap=cmc.cm.cmaps["lajolla_r"], vmin=0, vmax=np.quantile(omega, 0.95))
-    plt.colorbar(sc, label="", pad=0.03, shrink=0.5)
-    plt.title("Squared sum of residuals")
-    plt.ylabel('Azimuth')
-    plt.xlabel('Range')
-    plt.tight_layout()
-    plt.gcf().savefig(join(save_path, "map_squared_sum_of_residuals.png"), dpi=300)
     if interactive:
         plt.show()
     else:
@@ -161,7 +146,7 @@ def plotMap(*, obj_name: str, save_path: str, interactive: bool = False, input_p
 
     ax = bmap_obj.plot(logger=logger)
     sc = ax.scatter(point_obj.coord_xy[:, 1], point_obj.coord_xy[:, 0], c=stc * 100, s=scatter_size,
-                    cmap=cmc.cm.cmaps["lajolla_r"])
+                    cmap=cmc.cm.cmaps["lajolla"])
     plt.colorbar(sc, label="[cm]", pad=0.03, shrink=0.5)
     plt.title("Spatiotemporal consistency")
     plt.ylabel('Azimuth')
@@ -319,11 +304,11 @@ def plotAllIfgs(*, obj_name: str, save_path: str, interactive: bool = False, log
     start_time = time.time()
     logger.info(msg="plot and save figures of ifgs.")
     for i in range(num_ifgs):
-        fig = plt.figure(figsize=[15, 5])
+        fig = plt.figure(figsize=(15, 5))
         ax = fig.add_subplot()
         ifg = np.angle(ifgs[:, :, i])
         ifg[ifg == 0] = np.nan
-        im = plt.imshow(ifg, cmap=ColormapExt('cmy').colormap, interpolation='nearest', vmin=-np.pi, vmax=np.pi)
+        im = plt.imshow(ifg, cmap=cmc.cm.cmaps["romaO"], interpolation='nearest', vmin=-np.pi, vmax=np.pi)
         auto_flip_direction(ifg_stack_obj.metadata, ax=ax, print_msg=False)
         ax.set_xlabel("Range")
         ax.set_ylabel("Azimuth")

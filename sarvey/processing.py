@@ -403,7 +403,7 @@ class Processing:
         #                                               max_rm_fraction=0.001)
         fig = viewer.plotScatter(value=-demerr, coord=point_obj.coord_xy,
                                  ttl="Parameter integration: DEM correction in [m]",
-                                 bmap_obj=bmap_obj, s=3.5, cmap="roma", symmetric=True,
+                                 bmap_obj=bmap_obj, s=3.5, cmap="vanimo", symmetric=True,
                                  logger=self.logger)[0]
         fig.savefig(join(self.path, "pic", "step_2_estimation_dem_correction.png"), dpi=300)
         plt.close(fig)
@@ -586,7 +586,7 @@ class Processing:
         auto_corr_img[~mask] = np.inf
 
         fig = viewer.plotScatter(value=auto_corr, coord=point1_obj.coord_xy, bmap_obj=bmap_obj,
-                                 ttl="Temporal autocorrelation", unit="[ ]", s=3.5, cmap="lajolla_r",
+                                 ttl="Temporal autocorrelation", unit="[ ]", s=3.5, cmap="lajolla",
                                  vmin=0, vmax=1, logger=self.logger)[0]
         fig.savefig(join(self.path, "pic", "step_3_temporal_autocorrelation.png"), dpi=300)
         plt.close(fig)
@@ -620,7 +620,7 @@ class Processing:
         # store plot for quality control during processing
         fig, ax = viewer.plotScatter(value=auto_corr_img[cand_mask_sparse], coord=point1_obj.coord_xy,
                                      bmap_obj=bmap_obj, ttl="Selected pixels for APS estimation",
-                                     unit="Auto-correlation\n[ ]", s=5, cmap="lajolla_r", vmin=0, vmax=1,
+                                     unit="Auto-correlation\n[ ]", s=5, cmap="lajolla", vmin=0, vmax=1,
                                      logger=self.logger)[:2]
         viewer.plotGridFromBoxList(box_list=box_list, ax=ax, edgecolor="k", linewidth=0.2)
         fig.savefig(join(self.path, "pic", "step_3_stable_points.png"), dpi=300)
@@ -991,8 +991,8 @@ class Processing:
         fig.savefig(join(self.path, "pic", "step_4_estimation_velocity_p2_coh{}.png".format(coh_value)), dpi=300)
         plt.close(fig)
 
-        fig = viewer.plotScatter(value=-demerr[mask_gamma], coord=point2_obj.coord_xy, ttl="DEM error in [m]",
-                                 bmap_obj=bmap_obj, s=3.5, cmap="roma", symmetric=True,
+        fig = viewer.plotScatter(value=-demerr[mask_gamma], coord=point2_obj.coord_xy, ttl="DEM correction in [m]",
+                                 bmap_obj=bmap_obj, s=3.5, cmap="vanimo", symmetric=True,
                                  logger=self.logger)[0]
         fig.savefig(join(self.path, "pic", "step_4_estimation_dem_correction_p2_coh{}.png".format(coh_value)), dpi=300)
         plt.close(fig)

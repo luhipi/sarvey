@@ -50,7 +50,8 @@ from sarvey.objects import AmplitudeImage, Points, BaseStack
 import sarvey.utils as ut
 
 
-def plotIfgs(*, phase: np.ndarray, coord: np.ndarray, spatial_ref_idx: int = None, ttl: str = None, cmap: str = "cmy"):
+def plotIfgs(*, phase: np.ndarray, coord: np.ndarray, spatial_ref_idx: int = None, ttl: str = None,
+             cmap: str = "romaO"):
     """Plot one interferogram per subplot.
 
     Parameters
@@ -64,13 +65,8 @@ def plotIfgs(*, phase: np.ndarray, coord: np.ndarray, spatial_ref_idx: int = Non
     ttl: str
         title for the figure (default: None)
     cmap: str
-        colormap, use "cmy" for wrapped phase data (default) or "?" for unwrapped or residual phase
+        colormap name (default: "romaO")
     """
-    if cmap == "cmy":
-        cmap = ColormapExt('cmy').colormap
-    else:
-        cmap = plt.get_cmap(cmap)
-
     num_ifgs = phase.shape[1]
     min_val = np.min(phase)
     max_val = np.max(phase)
@@ -80,7 +76,7 @@ def plotIfgs(*, phase: np.ndarray, coord: np.ndarray, spatial_ref_idx: int = Non
     for i, ax in enumerate(axs.flat):
         if i < num_ifgs:
             sc = ax.scatter(coord[:, 1], coord[:, 0], c=phase[:, i],
-                            vmin=min_val, vmax=max_val, s=1, cmap=cmap)
+                            vmin=min_val, vmax=max_val, s=1, cmap=cmc.cm.cmaps[cmap])
             ax.axes.set_xticks([])
             ax.axes.set_yticks([])
             if spatial_ref_idx is not None:
@@ -312,7 +308,7 @@ class TimeSeriesViewer:
 
         # add radiobutton to select parameter
         self.ax_radio_par = self.fig1.add_axes((0.225, 0.9, 0.2, 0.08))  # (left, bottom, width, height)
-        self.rb_par = widgets.RadioButtons(self.ax_radio_par, labels=['Velocity', 'DEM error', 'None'], active=0)
+        self.rb_par = widgets.RadioButtons(self.ax_radio_par, labels=['Velocity', 'DEM correction', 'None'], active=0)
         self.rb_par.on_clicked(self.plotMap)
 
         # add radiobutton to select background image
@@ -353,7 +349,7 @@ class TimeSeriesViewer:
         self.ax_cbox_par = self.fig2.add_axes((0.525, 0.9, 0.2, 0.08))  # (left, bottom, width, height)
         self.cbox_par = widgets.CheckButtons(
             self.ax_cbox_par,
-            ["Velocity", "DEM error"],
+            ["Velocity", "DEM correction"],
             actives=[True, False]
         )
         self.rb_fit.on_clicked(self.plotPointTimeseries)
@@ -425,17 +421,19 @@ class TimeSeriesViewer:
             v_range = np.max(np.abs(self.vel * self.scale))
             par = self.vel * self.scale
             cb_ttl = f"[{self.vel_scale}/\nyear]"
-        elif self.rb_par.value_selected == "DEM error":  # show demerr
+            cmap = cmc.cm.cmaps["roma"]
+        elif self.rb_par.value_selected == "DEM correction":  # show demerr
             v_range = np.max(np.abs(self.demerr))
             par = self.demerr
             cb_ttl = "[m]"
+            cmap = cmc.cm.cmaps["vanimo"]
 
         if self.rb_par.value_selected != "None":
             self.sc = self.ax_img.scatter(self.point_obj.coord_xy[:, 1],
                                           self.point_obj.coord_xy[:, 0],
                                           c=par,
                                           s=5,
-                                          cmap=cmc.cm.cmaps["roma"],
+                                          cmap=cmap,
                                           vmin=-v_range,
                                           vmax=v_range)
 
