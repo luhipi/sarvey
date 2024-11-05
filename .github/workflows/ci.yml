@@ -191,7 +191,7 @@ jobs:
           if: env.SKIP_INSTALL == 'false'
           run: |
               source $HOME/miniconda/bin/activate
-              mamba install -n base conda=24.9.1 mamba=1.5.9
+              mamba install -n base conda=23.9 mamba=1.5.9
               mamba info
               mamba env remove --name sarvey_testinstall --yes || echo "Environment sarvey_testinstall does not exist"
               pip install conda-merge
