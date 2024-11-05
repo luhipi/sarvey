@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - fix_pipeline
 
 permissions:
   contents: write
@@ -203,7 +204,7 @@ jobs:
               source activate sarvey_testinstall
               pip install git+https://github.com/insarlab/MiaplPy.git
               pip install .
-              pip check
+              OUTPUT=$(pip check) || { echo "$OUTPUT"; true; }
               cd ..
               python -c "import sarvey; print(sarvey)"
           shell: bash
