@@ -192,7 +192,7 @@ jobs:
           run: |
               mamba info
               mamba env list
-              mamba activate base
+              source activate base
               mamba env remove --name sarvey_testinstall --yes || echo "Environment sarvey_testinstall does not exist"
               pip install conda-merge
               wget https://raw.githubusercontent.com/insarlab/MiaplPy/main/conda-env.yml
