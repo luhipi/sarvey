@@ -5,13 +5,12 @@ on:
   push:
     branches:
       - main
-      - fix_pipeline
 
 permissions:
   contents: write
 
 env:
-    SKIP_DEPLOY: true
+    SKIP_DEPLOY: false
     SKIP_INSTALL: false
     SKIP_TEST: false
 
