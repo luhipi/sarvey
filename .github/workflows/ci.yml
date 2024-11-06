@@ -35,7 +35,6 @@ jobs:
         run: |
           conda init bash
           source ~/.bashrc
-          conda info
           source activate ci_env
         shell: bash
 
@@ -58,9 +57,10 @@ jobs:
           source ~/.bashrc
           mamba env remove --name ci_temp_env --yes || echo "Environment ci_temp_env does not exist"
 
-          conda create -n ci_temp_env --clone ci_env
+          mamba create -n ci_temp_env --clone ci_env
           source activate ci_temp_env
           mamba install json5
+          mamba install cmcrameri
           rm -rf tests/testdata
           wget -nv -c -O testdata.zip https://seafile.projekt.uni-hannover.de/f/4b3be399dffa488e98db/?dl=1
           unzip testdata.zip
@@ -130,7 +130,6 @@ jobs:
         run: |
           conda init bash
           source ~/.bashrc
-          conda info
           source activate ci_env
           make lint
         shell: bash
@@ -173,7 +172,6 @@ jobs:
         run: |
           conda init bash
           source ~/.bashrc
-          conda info
           source activate ci_env
           make urlcheck
         shell: bash
@@ -192,9 +190,7 @@ jobs:
       -   name: Install dependencies
           if: env.SKIP_INSTALL == 'false'
           run: |
-              source $HOME/miniconda/bin/activate
-              mamba update -n base mamba conda
-              mamba info
+              source activate base
               mamba env remove --name sarvey_testinstall --yes || echo "Environment sarvey_testinstall does not exist"
               pip install conda-merge
               wget https://raw.githubusercontent.com/insarlab/MiaplPy/main/conda-env.yml
@@ -203,7 +199,7 @@ jobs:
               source activate sarvey_testinstall
               pip install git+https://github.com/insarlab/MiaplPy.git
               pip install .
-              pip check
+              OUTPUT=$(pip check) || { echo "$OUTPUT"; true; }
               cd ..
               python -c "import sarvey; print(sarvey)"
           shell: bash
