@@ -23,8 +23,8 @@ Status
 .. image:: https://img.shields.io/static/v1?label=Documentation&message=GitHub%20Pages&color=blue
         :target: https://luhipi.github.io/sarvey/docs/
         :alt: Documentation
-.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.12544131.svg
-        :target: https://doi.org/10.5281/zenodo.12544131
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.12544130.svg
+        :target: https://doi.org/10.5281/zenodo.12544130
         :alt: DOI
 
 
@@ -54,7 +54,7 @@ If you use **SARvey** in your research, please cite the following.
 
 2. The software itself. Please specify the version you use:
 
-   Piter A, Haghshenas Haghighi M, FERN.Lab, Motagh M (2024). SARvey - survey with SAR [version]. Zenodo. https://doi.org/10.5281/zenodo.12544131
+   Piter A, Haghshenas Haghighi M, FERN.Lab, Motagh M (2024). SARvey - survey with SAR [version]. Zenodo. https://doi.org/10.5281/zenodo.12544130
 
 3. If you use the PUMA method for unwrapping in your research, please cite the following publication as indicated in the license:
 
