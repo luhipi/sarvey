@@ -52,7 +52,6 @@ from sarvey.coherence import computeIfgsAndTemporalCoherence
 from sarvey.triangulation import PointNetworkTriangulation
 from sarvey.config import Config
 
-
 class Processing:
     """Processing."""
 
@@ -148,7 +147,7 @@ class Processing:
         fig = ifg_net_obj.plot()
         fig.savefig(join(self.path, "pic", "step_0_interferogram_network.png"), dpi=300)
         plt.close(fig)
-
+        # at this point just created folder pic and ifg_network.h5
         msg = "#" * 10
         msg += f" GENERATE STACK OF {ifg_net_obj.num_ifgs} INTERFEROGRAMS & ESTIMATE TEMPORAL COHERENCE "
         msg += "#" * 10
@@ -164,7 +163,7 @@ class Processing:
         ifg_stack_obj = BaseStack(file=join(self.path, "ifg_stack.h5"), logger=log)
         ifg_stack_obj.prepareDataset(dataset_name="ifgs", dshape=dshape, dtype=np.csingle,
                                      metadata=slc_stack_obj.metadata, mode='w', chunks=(30, 30, ifg_net_obj.num_ifgs))
-
+        
         # create placeholder in result file for datasets which are stored patch-wise
         temp_coh_obj = BaseStack(file=join(self.path, "temporal_coherence.h5"), logger=log)
         dshape = (slc_stack_obj.length, slc_stack_obj.width)
@@ -183,15 +182,17 @@ class Processing:
             num_cores=self.config.general.num_cores,
             logger=log
         )
-
+        
         # store auxilliary datasets for faster access during processing
-        if not exists(join(self.path, "coordinates_utm.h5")):
-            coord_utm_obj = CoordinatesUTM(file_path=join(self.path, "coordinates_utm.h5"), logger=self.logger)
+        coord_utm_obj = CoordinatesUTM(file_path=join(self.path, "coordinates_utm.h5"), logger=self.logger)
+        coord_utm_obj.open()
+        if not exists(join(self.path, "coordinates_utm.h5")) and coord_utm_obj.coord_utm.shape[1:] != mean_amp_img.shape:
             coord_utm_obj.prepare(input_path=join(self.config.general.input_path, "geometryRadar.h5"))
             del coord_utm_obj
-
-        if not exists(join(self.path, "background_map.h5")):
-            bmap_obj = AmplitudeImage(file_path=join(self.path, "background_map.h5"))
+        
+        bmap_obj = AmplitudeImage(file_path=join(self.path, "background_map.h5"))
+        bmap_obj.open()
+        if not exists(join(self.path, "background_map.h5")) and bmap_obj.background_map.shape != mean_amp_img.shape:
             bmap_obj.prepare(slc_stack_obj=slc_stack_obj, img=mean_amp_img, logger=self.logger)
             ax = bmap_obj.plot(logger=self.logger)
             img = ax.get_images()[0]
@@ -202,7 +203,7 @@ class Processing:
             plt.close(plt.gcf())
             del bmap_obj
         del mean_amp_img
-
+        
         temp_coh = temp_coh_obj.read(dataset_name="temp_coh")
 
         fig = plt.figure(figsize=(15, 5))
