@@ -103,6 +103,10 @@ class AmplitudeImage:
             self.length = f.attrs["LENGTH"]
             self.width = f.attrs["WIDTH"]
 
+    def getShape(self):
+        with h5py.File(self.file_path, 'r') as f:
+            return f["background_map"].shape
+
     def plot(self, *, ax: plt.Axes = None, logger: Logger):
         """Plot the mean amplitude image as a background map.
 
@@ -197,6 +201,9 @@ class CoordinatesUTM:
         with h5py.File(self.file_path, 'r') as f:
             self.coord_utm = f["coord_utm"][:]
 
+    def getShape(self):
+        with h5py.File(self.file_path, 'r') as f:
+            return f["coord_utm"].shape
 
 class BaseStack:
     """Class for 3D image-like data stacks."""

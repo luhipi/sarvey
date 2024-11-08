@@ -185,14 +185,12 @@ class Processing:
         
         # store auxilliary datasets for faster access during processing
         coord_utm_obj = CoordinatesUTM(file_path=join(self.path, "coordinates_utm.h5"), logger=self.logger)
-        coord_utm_obj.open()
-        if not exists(join(self.path, "coordinates_utm.h5")) and coord_utm_obj.coord_utm.shape[1:] != mean_amp_img.shape:
+        if not exists(coord_utm_obj.file_path) or (exists(coord_utm_obj.file_path) and coord_utm_obj.getShape()[1:] != mean_amp_img.shape):
             coord_utm_obj.prepare(input_path=join(self.config.general.input_path, "geometryRadar.h5"))
-            del coord_utm_obj
+        del coord_utm_obj
         
         bmap_obj = AmplitudeImage(file_path=join(self.path, "background_map.h5"))
-        bmap_obj.open()
-        if not exists(join(self.path, "background_map.h5")) and bmap_obj.background_map.shape != mean_amp_img.shape:
+        if not exists(bmap_obj.file_path) or (exists(bmap_obj.file_path) and bmap_obj.getShape() != mean_amp_img.shape):
             bmap_obj.prepare(slc_stack_obj=slc_stack_obj, img=mean_amp_img, logger=self.logger)
             ax = bmap_obj.plot(logger=self.logger)
             img = ax.get_images()[0]
@@ -201,7 +199,7 @@ class Processing:
             plt.tight_layout()
             plt.gcf().savefig(join(self.path, "pic", "step_0_amplitude_image.png"), dpi=300)
             plt.close(plt.gcf())
-            del bmap_obj
+        del bmap_obj
         del mean_amp_img
         
         temp_coh = temp_coh_obj.read(dataset_name="temp_coh")
