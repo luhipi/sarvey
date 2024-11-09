@@ -94,14 +94,9 @@ def computeIfgsAndTemporalCoherence(*, path_temp_coh: str, path_ifgs: str, path_
         # read slc
         slc = slc_stack_obj.read(datasetName='slc', box=bbox, print_msg=False)
         slc = slc[time_mask, :, :]
+
         mean_amp = np.mean(np.abs(slc), axis=0)
-        mask = mean_amp == 0
-        num_zeros = np.sum(mask)
-        if num_zeros > 0:
-            logger.debug(f"Number of zeros in patch {idx+1} of mean amplitude image: {num_zeros}.")
-            # logger.debug(f"Number of zeros in patch {idx} of mean amplitude image: {num_zeros}. Replace with NaN.")
-        # TODO: if possible replace zeros with NaNs to avoid log10(0) = -inf
-        # mean_amp[mask] = np.nan
+        mean_amp[mean_amp == 0] = np.nan
         mean_amp_img[bbox[1]:bbox[3], bbox[0]:bbox[2]] = np.log10(mean_amp)
 
         # compute ifgs

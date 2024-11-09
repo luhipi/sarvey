@@ -10,21 +10,18 @@ Open-source InSAR time series analysis software developed within the project SAR
 Documentation
 -------------
 The documentation with installation instructions, processing steps, and examples with a demo dataset can be found at:
-https://ipi-sar4infra.projektpages.uni-h.de/timeseries/doc/
+https://luhipi.github.io/sarvey/docs/
 
 
 
 Status
 ------
 
-.. image:: https://gitlab.projekt.uni-hannover.de/ipi-sar4infra/timeseries/badges/main/pipeline.svg
-        :target: https://gitlab.projekt.uni-hannover.de/ipi-sar4infra/timeseries/-/pipelines
+.. image:: https://github.com/luhipi/sarvey/actions/workflows/ci.yml/badge.svg
+        :target: https://github.com/luhipi/sarvey/actions
         :alt: Pipelines
-.. image:: https://gitlab.projekt.uni-hannover.de/ipi-sar4infra/timeseries/badges/main/coverage.svg
-        :target: https://ipi-sar4infra.projektpages.uni-h.de/timeseries/coverage/
-        :alt: Coverage
-.. image:: https://img.shields.io/static/v1?label=Documentation&message=GitLab%20Pages&color=orange
-        :target: https://ipi-sar4infra.projektpages.uni-h.de/timeseries/doc/
+.. image:: https://img.shields.io/static/v1?label=Documentation&message=GitHub%20Pages&color=blue
+        :target: https://luhipi.github.io/sarvey/docs/
         :alt: Documentation
 .. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.12544131.svg
         :target: https://doi.org/10.5281/zenodo.12544131
@@ -53,15 +50,15 @@ If you use **SARvey** in your research, please cite the following.
 
 1. The paper describing the methodology:
 
-   Piter, A., Haghshenas Haghighi, M., Motagh, M.(2024). An in-depth study on Sentinel-1 InSAR for transport infrastructure monitoring. PFG - Journal of Photogrammetry, Remote Sensing and Geoinformation Science. (paper currently under review).
+   Piter A, Haghshenas Haghighi M, Motagh M (2024). Challenges and Opportunities of Sentinel-1 InSAR for Transport Infrastructure Monitoring. PFG – Journal of Photogrammetry, Remote Sensing and Geoinformation Science, 92, 609-627.
 
 2. The software itself. Please specify the version you use:
 
-   Piter, A., Haghshenas Haghighi, M., FERN.Lab, & Motagh, M. (2024). SARvey - survey with SAR [version]. Zenodo. https://doi.org/10.5281/zenodo.12544131
+   Piter A, Haghshenas Haghighi M, FERN.Lab, Motagh M (2024). SARvey - survey with SAR [version]. Zenodo. https://doi.org/10.5281/zenodo.12544131
 
 3. If you use the PUMA method for unwrapping in your research, please cite the following publication as indicated in the license:
 
-   An Experimental Comparison of Min-Cut/Max-Flow Algorithms for Energy Minimization in Vision. Yuri Boykov and Vladimir Kolmogorov. In IEEE Transactions on Pattern Analysis and Machine Intelligence (PAMI), September 2004. `Link to paper <https://ieeexplore.ieee.org/document/1316848>`_.
+   Boykov Y, Kolmogorov V (2004). An experimental comparison of min-cut/max- flow algorithms for energy minimization in vision. IEEE Transactions on Pattern Analysis and Machine Intelligence 26(9):1124–1137, DOI 10.1109/TPAMI.2004.60. `Link to paper <https://ieeexplore.ieee.org/document/1316848>`_.
 
 
 Processing overview
@@ -74,6 +71,8 @@ Processing overview
    :alt: SARvey workflow
 
 Processing workflow for using the SARvey software to derive displacement time series.
+SARvey builds upon and uses functions of the two InSAR research softwares MintPy_ (multilook SBAS processing) and MiaplPy_ (Phase linking for single-look DS processing).
+
 
 
 SARvey is a command-line-based software. The major steps for running SARvey are the following:
@@ -89,12 +88,12 @@ SARvey is a command-line-based software. The major steps for running SARvey are 
   The software requires a coregistered stack of SLC and the related geometry information in the MiaplPy_  data format.
   The coregistered stack of SLC can be created using an InSAR processor. Currently MiaplPy_ only supports ISCE_. Support for GAMMA and SNAP_ is planned for future.
   After creating the coregistered stack of SLC, run the "load_data" step from Miaplpy_ to create the "inputs" directory which contains "slcStack.h5" and "geometryRadar.h5".
-  Details are explained in the `Preparation <preparation.html>`_ section
+  Details are explained in the preparation_ section
 
 
 * **Time series analysis**
 
-  Time series analysis is performed using `sarvey`. It consists of 5 steps (steps 0 to 4). The details of each step are explained in `processing steps <processing.html#processing-steps-for-two-step-unwrapping-workflow>`_. The processing parameters are handled in a json config file. Visualization and export are handled by `sarvey_plot` and `sarvey_export` packages. Below are the major steps:
+  Time series analysis is performed using `sarvey`. It consists of 5 steps (steps 0 to 4). The details of each step are explained in `processing steps`_. The processing parameters are handled in a json config file. Visualization and export are handled by `sarvey_plot` and `sarvey_export` packages. Below are the major steps:
 
   * Go to your working directory:
 
@@ -116,7 +115,7 @@ SARvey is a command-line-based software. The major steps for running SARvey are 
 
          sarvey -f config.json 0 4
 
-    Different processing steps are explained `here <processing.html>`_.
+    Different processing steps are explained in `processing`_ section.
 
   * Plot the resulting displacement time series:
 
@@ -155,16 +154,15 @@ You can run each component in the command line with "-h" argument for more infor
 
 **SARvey** supports two processing schemes:
 
-* `Two-step unwrapping <processing.html#processing-steps-for-two-step-unwrapping-workflow>`_ with atmospheric correction (default).
+* `Two-step unwrapping`_ with atmospheric correction (default).
 
-* `One-step unwrapping <processing.html#processing-steps-for-one-step-unwrapping-workflow>`_ for a small area.
-
+* `One-step unwrapping`_ for a small area.
 
 History / Changelog
 -------------------
 
 You can find the protocol of recent changes in the **SARvey** package
-`here <HISTORY.rst>`__.
+`history`_.
 
 We follow the principle of semantic versioning.
 The version number is structured as follows: MAJOR.MINOR.PATCH.
@@ -188,11 +186,17 @@ This package was created with Cookiecutter_ and the `fernlab/cookiecutter-pypack
 
 .. _Cookiecutter: https://github.com/audreyr/cookiecutter
 .. _`fernlab/cookiecutter-pypackage`: https://github.com/fernlab/cookiecutter-pypackage
-.. _coverage: https://ipi-sar4infra.projektpages.uni-h.de/timeseries/coverage/
-.. _pytest: https://ipi-sar4infra.projektpages.uni-h.de/timeseries/test_reports/report.html
-.. _processing: docs/processing.html
-.. _`installation instruction`: docs/installation.html
+.. _coverage: https://luhipi.github.io/sarvey/coverage/
+.. _pytest: https://luhipi.github.io/sarvey/test_reports/report.html
+.. _processing: https://luhipi.github.io/sarvey/docs/processing.html
+.. _`processing steps`: https://luhipi.github.io/sarvey/docs/processing.html#processing-steps-for-two-step-unwrapping-workflow
+.. _preparation: https://luhipi.github.io/sarvey/docs/preparation.html
+.. _`Two-step unwrapping`: https://luhipi.github.io/sarvey/docs/processing.html#processing-steps-for-two-step-unwrapping-workflow
+.. _`One-step unwrapping`: https://luhipi.github.io/sarvey/docs/processing.html#processing-steps-for-one-step-unwrapping-workflow
+.. _`installation instruction`: https://luhipi.github.io/sarvey/docs/installation.html
+.. _`history`: https://luhipi.github.io/sarvey/docs/history.html
 .. _MiaplPy: https://github.com/insarlab/MiaplPy
+.. _MintPy: https://github.com/insarlab/MintPy
 .. _ISCE: https://github.com/isce-framework/isce2
 .. _SNAP: https://step.esa.int/main/toolboxes/snap
 .. _Shapefiles: https://doc.arcgis.com/en/arcgis-online/reference/shapefiles.htm

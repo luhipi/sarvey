@@ -7,7 +7,7 @@ Multitemporal InSAR processing workflow
 The `sarvey` command line interface executes the multitemporal InSAR processing workflow.
 The workflow is described in the paper
 
-    Piter, A., Haghshenas Haghighi, M., Motagh, M.(2024). An in-depth study on Sentinel-1 InSAR for transport infrastructure monitoring. PFG - Journal of Photogrammetry, Remote Sensing and Geoinformation Science. (paper currently under review).
+    Piter A, Haghshenas Haghighi M, Motagh M (2024). Challenges and Opportunities of Sentinel-1 InSAR for Transport Infrastructure Monitoring. PFG – Journal of Photogrammetry, Remote Sensing and Geoinformation Science, 92, 609-627.
 
 All processing steps are described in detail in the following sections.
 Two processing strategies are provided with either one- or two-step unwrapping.
@@ -160,6 +160,7 @@ Step 1: Consistency Check
 Step 2: Unwrapping
 ^^^^^^^^^^^^^^^^^^
 
+This step unwraps the phase of the first-order points and retrieves their displacement time series.
 Two unwrapping options (**general:apply_temporal_unwrapping**, also applies to step 4) are implemented and should be chosen based on the characteristics of the displacement (spatial extend, magnitude, temporal behaviour).
 
 - Output of this step
@@ -237,7 +238,7 @@ However, the step 3 has to be executed as the second-order points are selected d
     The estimation of the APS takes place in time-domain and not interferogram-domain to reduce the computational time.
     The phase contributions are removed from the first-order points which were selected for atmospheric filtering.
     Their residual time series contains atmospheric phase contributions and noise.
-    As the APS is assumed to be spatially correlated, the residuals of all points are spatially filtered (**filtering:interpolation_method**) independently for each time step.
+    As the APS is assumed to be spatially correlated, the residuals of all points are spatially filtered e.g. with Kriging (Müller et al. 2022) or simple polynomial interpolation(**filtering:interpolation_method**) independently for each time step.
     After filtering, the estimated APS is interpolated to the location of the second-order points.
 
 - Output of this step
@@ -251,6 +252,11 @@ For example, a threshold of 0.8 would result in p2_coh80_aps.h5 and p2_coh80_ifg
 
 Step 4: Densification
 ^^^^^^^^^^^^^^^^^^^^^
+
+The densification step is the last step of the two-step unwrapping workflow.
+So far, the displacement was only estimated at the sparse locations of the first-order points.
+The second-order points selected during step 3 (filtering) are added to the first-order points to densify the final set of points.
+During the densification, first, the estimated APS is removed from both first- and second-order points and second, the displacement time series are retrieved by unwrapping phases of the points jointly.
 
 Two unwrapping options (**general:apply_temporal_unwrapping**, also applies to step 2) are implemented and should be chosen based on the characteristics of the displacement (spatial extend, magnitude, temporal behaviour).
 
@@ -309,6 +315,8 @@ The processing of large datasets can be computationally expensive and time-consu
 Especially the estimation of the temporal phase coherence in step 0 is a bottleneck, also in terms of memory consumption.
 Therefore, it is recommended to set **general:num_cores** for parallel processing.
 By setting **general:num_patches** the data is split into spatial patches and processed subsequently to fit into memory.
+However, only use the patching option if the memory is not sufficient to process the data in one go.
+Using multiple patches will slow down the processing due to the overhead of loading and saving the data multiple times.
 
 
 Processing steps for one-step unwrapping workflow
@@ -325,7 +333,7 @@ Since the densification step is not performed, you should reduce the coherence t
 Literature
 ----------
 
-* Piter, A., Haghshenas Haghighi, M., Motagh, M.(2024). An in-depth study on Sentinel-1 InSAR for transport infrastructure monitoring. PFG - Journal of Photogrammetry, Remote Sensing and Geoinformation Science. (paper currently under review).
+* Piter A, Haghshenas Haghighi M, Motagh M (2024). Challenges and Opportunities of Sentinel-1 InSAR for Transport Infrastructure Monitoring. PFG – Journal of Photogrammetry, Remote Sensing and Geoinformation Science, 92, 609-627.
 
 * Zhao F, Mallorqui JJ (2019). A Temporal Phase Coherence Estimation Algorithm and Its Application on DInSAR Pixel Selection. IEEE Transactions on Geoscience and Remote Sensing 57(11):8350–8361, DOI 10.1109/TGRS.2019.2920536
 
@@ -341,4 +349,6 @@ Literature
 
 * Van Leijen FJ (2014). Persistent scatterer interferometry based on geodetic estimation theory. PhD thesis
 
-* Boykov Y, Kolmogorov V (2004) An experimental comparison of min-cut/max- flow algorithms for energy minimization in vision. IEEE Transactions on Pattern Analysis and Machine Intelligence 26(9):1124–1137, DOI 10.1109/TPAMI.2004.60
+* Boykov Y, Kolmogorov V (2004). An experimental comparison of min-cut/max- flow algorithms for energy minimization in vision. IEEE Transactions on Pattern Analysis and Machine Intelligence 26(9):1124–1137, DOI 10.1109/TPAMI.2004.60
+
+* Müller S, Schüler L, Zech A, Heße F (2022). GSTools v1.3: a toolbox for geostatistical modelling in Python. Geoscientific Model Development, 15, 3161-3182.
