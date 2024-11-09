@@ -2,6 +2,11 @@
 History
 =======
 
+1.1.0 (2024-11-06)
+------------------
+
+* Use Scientific colour maps from Crameri.
+
 1.0.0 (2024-08-12) Strawberry Pie
 ---------------------------------
 

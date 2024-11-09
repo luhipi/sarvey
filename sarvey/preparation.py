@@ -206,7 +206,7 @@ def selectPixels(*, path: str, selection_method: str, thrsh: float,
         cand_mask = quality >= thrsh
         grid_min_val = False
         unit = "Temporal\nCoherence [ ]"
-        cmap = "autumn"
+        cmap = "lajolla"
 
     if selection_method == "miaplpy":
         error_msg = "This part is not developed yet. MiaplPy data is read in another way."
@@ -218,7 +218,7 @@ def selectPixels(*, path: str, selection_method: str, thrsh: float,
         # quality = pl_coherence
         # grid_min_val = False
         # unit = "Phase-Linking\nCoherence [ ]"
-        # cmap = "autumn"
+        # cmap = "lajolla"
 
     logger.debug(f"Number of selected pixels: {np.sum(cand_mask)}.")
     if grid_size is not None:  # -> sparse pixel selection
