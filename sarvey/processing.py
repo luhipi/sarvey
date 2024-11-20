@@ -28,7 +28,7 @@
 # with this program. If not, see <https://www.gnu.org/licenses/>.
 
 """Processing module for SARvey."""
-from os.path import join, exists
+from os.path import join
 import matplotlib.pyplot as plt
 import numpy as np
 from logging import Logger
@@ -148,7 +148,7 @@ class Processing:
         fig = ifg_net_obj.plot()
         fig.savefig(join(self.path, "pic", "step_0_interferogram_network.png"), dpi=300)
         plt.close(fig)
-
+        # at this point just created folder pic and ifg_network.h5
         msg = "#" * 10
         msg += f" GENERATE STACK OF {ifg_net_obj.num_ifgs} INTERFEROGRAMS & ESTIMATE TEMPORAL COHERENCE "
         msg += "#" * 10
@@ -181,26 +181,23 @@ class Processing:
             num_boxes=num_patches,
             box_list=box_list,
             num_cores=self.config.general.num_cores,
-            logger=log
-        )
+            logger=log)
 
         # store auxilliary datasets for faster access during processing
-        if not exists(join(self.path, "coordinates_utm.h5")):
-            coord_utm_obj = CoordinatesUTM(file_path=join(self.path, "coordinates_utm.h5"), logger=self.logger)
-            coord_utm_obj.prepare(input_path=join(self.config.general.input_path, "geometryRadar.h5"))
-            del coord_utm_obj
+        coord_utm_obj = CoordinatesUTM(file_path=join(self.path, "coordinates_utm.h5"), logger=self.logger)
+        coord_utm_obj.prepare(input_path=join(self.config.general.input_path, "geometryRadar.h5"))
+        del coord_utm_obj
 
-        if not exists(join(self.path, "background_map.h5")):
-            bmap_obj = AmplitudeImage(file_path=join(self.path, "background_map.h5"))
-            bmap_obj.prepare(slc_stack_obj=slc_stack_obj, img=mean_amp_img, logger=self.logger)
-            ax = bmap_obj.plot(logger=self.logger)
-            img = ax.get_images()[0]
-            cbar = plt.colorbar(img, pad=0.03, shrink=0.5)
-            cbar.ax.set_visible(False)
-            plt.tight_layout()
-            plt.gcf().savefig(join(self.path, "pic", "step_0_amplitude_image.png"), dpi=300)
-            plt.close(plt.gcf())
-            del bmap_obj
+        bmap_obj = AmplitudeImage(file_path=join(self.path, "background_map.h5"))
+        bmap_obj.prepare(slc_stack_obj=slc_stack_obj, img=mean_amp_img, logger=self.logger)
+        ax = bmap_obj.plot(logger=self.logger)
+        img = ax.get_images()[0]
+        cbar = plt.colorbar(img, pad=0.03, shrink=0.5)
+        cbar.ax.set_visible(False)
+        plt.tight_layout()
+        plt.gcf().savefig(join(self.path, "pic", "step_0_amplitude_image.png"), dpi=300)
+        plt.close(plt.gcf())
+        del bmap_obj
         del mean_amp_img
 
         temp_coh = temp_coh_obj.read(dataset_name="temp_coh")
