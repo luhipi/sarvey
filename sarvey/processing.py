@@ -28,6 +28,7 @@
 # with this program. If not, see <https://www.gnu.org/licenses/>.
 
 """Processing module for SARvey."""
+from os.path import join
 import matplotlib.pyplot as plt
 import numpy as np
 from logging import Logger
