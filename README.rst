@@ -181,11 +181,11 @@ The scientific and methodological development was carried out by Andreas Piter (
 The `FERN.Lab`_ (fernlab@gfz-potsdam.de) contributed to the development, documentation, continuous integration, and testing of the package.
 
 
-This package was created with Cookiecutter_ and the `fernlab/cookiecutter-pypackage`_ project template.
+This package was created with Cookiecutter_ and the `fernlab/cookiecutter-python-package`_ project template.
 
 
 .. _Cookiecutter: https://github.com/audreyr/cookiecutter
-.. _`fernlab/cookiecutter-pypackage`: https://github.com/fernlab/cookiecutter-pypackage
+.. _`fernlab/cookiecutter-python-package`: https://git.gfz-potsdam.de/fernlab/products/cookiecutters/cookiecutter-python-package
 .. _coverage: https://luhipi.github.io/sarvey/coverage/
 .. _pytest: https://luhipi.github.io/sarvey/test_reports/report.html
 .. _processing: https://luhipi.github.io/sarvey/docs/processing.html
