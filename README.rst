@@ -201,7 +201,7 @@ This package was created with Cookiecutter_ and the `fernlab/cookiecutter-python
 .. _SNAP: https://step.esa.int/main/toolboxes/snap
 .. _Shapefiles: https://doc.arcgis.com/en/arcgis-online/reference/shapefiles.htm
 .. _QGIS: https://qgis.org/en/site/
-.. _`PS Time Series Viewer`: https://plugins.qgis.org/plugins/pstimeseries/
+.. _`InSAR Explorer`: https://luhipi.github.io/insar-explorer/
 .. _OSM: https://www.openstreetmap.org/
 .. _WSL: https://learn.microsoft.com/en-us/windows/wsl/
 .. _FERN.Lab: https://fernlab.gfz-potsdam.de/
