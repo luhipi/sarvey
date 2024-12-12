@@ -154,7 +154,7 @@ class Processing:
         fig = ifg_net_obj.plot()
         fig.savefig(join(self.path, "pic", "step_0_interferogram_network.png"), dpi=300)
         plt.close(fig)
-
+        # at this point just created folder pic and ifg_network.h5
         msg = "#" * 10
         msg += f" GENERATE STACK OF {ifg_net_obj.num_ifgs} INTERFEROGRAMS & ESTIMATE TEMPORAL COHERENCE "
         msg += "#" * 10
@@ -191,36 +191,32 @@ class Processing:
             num_boxes=num_patches,
             box_list=box_list,
             num_cores=self.config.general.num_cores,
-            logger=log
-        )
+            logger=log)
 
         # store auxilliary datasets for faster access during processing
         coordinates_utm_file = join(self.path, "coordinates_utm.h5")
-        if not exists(coordinates_utm_file):
-            self.logger.debug(f"Prepare UTM coordinates and store to file {coordinates_utm_file}.")
-            coord_utm_obj = CoordinatesUTM(file_path=coordinates_utm_file, logger=self.logger)
-            coord_utm_obj.prepare(input_path=join(self.config.general.input_path, "geometryRadar.h5"))
-            del coord_utm_obj
-        else:
-            self.logger.info(f"Skip creating UTM coordinates file. The file {coordinates_utm_file} already exists.")
+        if exists(coordinates_utm_file):
+            self.logger.debug(f"UTM coordinates exists, but will be recreated {coordinates_utm_file}.")
+        self.logger.debug(f"Prepare UTM coordinates and store to file {coordinates_utm_file}.")
+        coord_utm_obj = CoordinatesUTM(file_path=coordinates_utm_file, logger=self.logger)
+        coord_utm_obj.prepare(input_path=join(self.config.general.input_path, "geometryRadar.h5"))
+        del coord_utm_obj
+
 
         background_map_file = join(self.path, "background_map.h5")
-        if not exists(background_map_file):
-            self.logger.debug(f"Prepare background map and store to file {background_map_file}.")
-            bmap_obj = AmplitudeImage(file_path=background_map_file)
-            bmap_obj.prepare(slc_stack_obj=slc_stack_obj, img=mean_amp_img, logger=self.logger)
-            ax = bmap_obj.plot(logger=self.logger)
-            # TODO: add a saveFig function to AmplitudeImage and move the following code there
-            img = ax.get_images()[0]
-            cbar = plt.colorbar(img, pad=0.03, shrink=0.5)
-            cbar.ax.set_visible(False)
-            plt.tight_layout()
-            plt.gcf().savefig(join(self.path, "pic", "step_0_amplitude_image.png"), dpi=300)
-            plt.close(plt.gcf())
-            del bmap_obj
-        else:
-            self.logger.info(f"Skip creating background map file. The file {background_map_file} already exists.")
-
+        if exists(background_map_file):
+            self.logger.debug(f"Background map file exists, but will be recreated {background_map_file}.")
+        self.logger.debug(f"Prepare background map and store to file {background_map_file}.")
+        bmap_obj = AmplitudeImage(file_path=background_map_file)
+        bmap_obj.prepare(slc_stack_obj=slc_stack_obj, img=mean_amp_img, logger=self.logger)
+        ax = bmap_obj.plot(logger=self.logger)
+        img = ax.get_images()[0]
+        cbar = plt.colorbar(img, pad=0.03, shrink=0.5)
+        cbar.ax.set_visible(False)
+        plt.tight_layout()
+        plt.gcf().savefig(join(self.path, "pic", "step_0_amplitude_image.png"), dpi=300)
+        plt.close(plt.gcf())
+        del bmap_obj
         del mean_amp_img
 
         self.logger.info(f"Read temporal coherence file {temp_coh_obj.file} and make a plot as a png file.")
