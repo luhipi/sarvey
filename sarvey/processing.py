@@ -72,8 +72,10 @@ class Processing:
         log.info(msg=msg)
 
         # load slc data
+        log.debug("Opening SLC stack in MiaplPy...")
         slc_stack_obj = slcStack(join(self.config.general.input_path, "slcStack.h5"))
         slc_stack_obj.open()
+        log.debug("SLC stack opened.")
 
         for key, val in slc_stack_obj.metadata.items():
             log.debug(f"SLC stack {key}: {val}")
@@ -83,7 +85,7 @@ class Processing:
             log.info(f"Orbit direction: {orbit_direction}")
         else:
             log.warning("No orbit direction found in metadata. Add 'ORBIT_DIRECTION' to metadata of 'slcStack.h5'"
-                            "and run again!")
+                        "and run again!")
             raise AttributeError("No orbit direction found in metadata.")
 
         time_mask, num_slc, date_list = createTimeMaskFromDates(
@@ -101,10 +103,10 @@ class Processing:
         msg += "#" * 10
         log.info(msg)
 
-        log.debug("Prepare interferogram network")
+        ifg_network_type = self.config.preparation.ifg_network_type
+        log.debug(f"Configuring interferogram network type {ifg_network_type}...")
         ifg_net_obj = None
-        if self.config.preparation.ifg_network_type == "star":
-            log.info("Star ifg network")
+        if ifg_network_type == "star":
             ifg_net_obj = StarNetwork(logger=self.logger)
             ifg_net_obj.configure(
                 pbase=slc_stack_obj.pbase[time_mask],
@@ -112,16 +114,14 @@ class Processing:
                 ref_idx=int(np.floor(num_slc/2)),
                 dates=date_list
             )
-        elif self.config.preparation.ifg_network_type == "sb":
-            log.info("Small baseline network")
+        elif ifg_network_type == "sb":
             ifg_net_obj = SmallBaselineNetwork(logger=self.logger)
             ifg_net_obj.configure(pbase=slc_stack_obj.pbase[time_mask],
                                   tbase=slc_stack_obj.tbase[time_mask],
                                   num_link=self.config.preparation.num_ifgs,
                                   max_tbase=self.config.preparation.max_tbase,
                                   dates=date_list)
-        elif self.config.preparation.ifg_network_type == "stb":
-            log.info("Small temporal baseline network")
+        elif ifg_network_type == "stb":
             ifg_net_obj = SmallTemporalBaselinesNetwork(logger=self.logger)
             ifg_net_obj.configure(
                 pbase=slc_stack_obj.pbase[time_mask],
@@ -129,8 +129,7 @@ class Processing:
                 num_link=self.config.preparation.num_ifgs,
                 dates=date_list
             )
-        elif self.config.preparation.ifg_network_type == "stb_year":
-            log.info("Small temporal baseline and yearly ifg network")
+        elif ifg_network_type == "stb_year":
             ifg_net_obj = SmallBaselineYearlyNetwork(logger=self.logger)
             ifg_net_obj.configure(
                 pbase=slc_stack_obj.pbase[time_mask],
@@ -138,8 +137,7 @@ class Processing:
                 num_link=self.config.preparation.num_ifgs,
                 dates=date_list
             )
-        elif self.config.preparation.ifg_network_type == "delaunay":
-            log.info("Delaunay ifg network")
+        elif ifg_network_type == "delaunay":
             ifg_net_obj = DelaunayNetwork(logger=self.logger)
             ifg_net_obj.configure(
                 pbase=slc_stack_obj.pbase[time_mask],
@@ -147,6 +145,7 @@ class Processing:
                 dates=date_list
             )
 
+        log.debug("Interferogram network configured.")
         ifg_net_obj.writeToFile(path=join(self.path, "ifg_network.h5"))
         log.debug(f"Unique temporal baselines in interferogram network: "
                   f"{np.unique(np.round(np.abs(ifg_net_obj.tbase_ifg) * 365.25).astype(int))}")
