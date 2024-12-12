@@ -167,7 +167,7 @@ class Processing:
         # create placeholder in result file for datasets which are stored patch-wise
         dshape = (slc_stack_obj.length, slc_stack_obj.width, ifg_net_obj.num_ifgs)
         ifg_stack_file = join(self.path, "ifg_stack.h5")
-        log.debug(f"Initialize interferogram stack file {ifg_stack_file}")
+        log.debug(f"Initialize interferogram stack file...: {ifg_stack_file}")
         ifg_stack_obj = BaseStack(file=ifg_stack_file, logger=log)
         ifg_stack_obj.prepareDataset(dataset_name="ifgs", dshape=dshape, dtype=np.csingle,
                                      metadata=slc_stack_obj.metadata, mode='w', chunks=(30, 30, ifg_net_obj.num_ifgs))
@@ -180,6 +180,7 @@ class Processing:
         temp_coh_obj.prepareDataset(dataset_name="temp_coh", metadata=slc_stack_obj.metadata,
                                     dshape=dshape, dtype=np.float32, mode="w", chunks=True)
 
+        log.info("Computing interferograms and temporal coherence...")
         mean_amp_img = computeIfgsAndTemporalCoherence(
             path_temp_coh=join(self.path, "temporal_coherence.h5"),
             path_ifgs=join(self.path, "ifg_stack.h5"),
@@ -196,7 +197,7 @@ class Processing:
         coordinates_utm_file = join(self.path, "coordinates_utm.h5")
         if exists(coordinates_utm_file):
             self.logger.debug(f"UTM coordinates exists, but will be recreated {coordinates_utm_file}.")
-        self.logger.debug(f"Prepare UTM coordinates and store to file {coordinates_utm_file}.")
+        self.logger.debug(f"Preparing UTM coordinates and storing to file...: {coordinates_utm_file}")
         coord_utm_obj = CoordinatesUTM(file_path=coordinates_utm_file, logger=self.logger)
         coord_utm_obj.prepare(input_path=join(self.config.general.input_path, "geometryRadar.h5"))
         del coord_utm_obj
@@ -205,9 +206,11 @@ class Processing:
         background_map_file = join(self.path, "background_map.h5")
         if exists(background_map_file):
             self.logger.debug(f"Background map file exists, but will be recreated {background_map_file}.")
-        self.logger.debug(f"Prepare background map and store to file {background_map_file}.")
+        self.logger.debug(f"Preparing background map and storing to file...: {background_map_file}")
         bmap_obj = AmplitudeImage(file_path=background_map_file)
         bmap_obj.prepare(slc_stack_obj=slc_stack_obj, img=mean_amp_img, logger=self.logger)
+
+        self.logger.debug(f"Creating a png file from the amplitude...")
         ax = bmap_obj.plot(logger=self.logger)
         img = ax.get_images()[0]
         cbar = plt.colorbar(img, pad=0.03, shrink=0.5)
@@ -218,7 +221,7 @@ class Processing:
         del bmap_obj
         del mean_amp_img
 
-        self.logger.info(f"Read temporal coherence file {temp_coh_obj.file} and make a plot as a png file.")
+        self.logger.debug(f"Reading temporal coherence file and creating a png file...")
         temp_coh = temp_coh_obj.read(dataset_name="temp_coh")
 
         fig = plt.figure(figsize=(15, 5))
