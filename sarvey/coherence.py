@@ -87,7 +87,7 @@ def computeIfgsAndTemporalCoherence(*, path_temp_coh: str, path_ifgs: str, path_
     num_ifgs = ifg_array.shape[0]
 
     for idx in range(num_boxes):
-        logger.debug(f"processing patch {idx + 1}/{num_boxes}")
+        logger.debug(f"Processing patch {idx + 1}/{num_boxes}")
         bbox = box_list[idx]
         block2d = convertBboxToBlock(bbox=bbox)
 
@@ -100,7 +100,7 @@ def computeIfgsAndTemporalCoherence(*, path_temp_coh: str, path_ifgs: str, path_
         mean_amp_img[bbox[1]:bbox[3], bbox[0]:bbox[2]] = np.log10(mean_amp)
 
         # compute ifgs
-        logger.debug(f"Compute interferograms and write to file {ifg_stack_obj.file}.")
+        logger.debug(f"Computing interferograms and write to file...: {ifg_stack_obj.file}")
         ifgs = computeIfgs(slc=slc, ifg_array=ifg_array)
         ifg_stack_obj.writeToFileBlock(data=ifgs, dataset_name="ifgs", block=block2d, print_msg=False)
         del slc
@@ -108,7 +108,7 @@ def computeIfgsAndTemporalCoherence(*, path_temp_coh: str, path_ifgs: str, path_
         # filter ifgs
         avg_neighbours = np.zeros_like(ifgs)
         if num_cores == 1:
-            logger.debug("Filter interferograms using 1 core for temporal coherence estimation.")
+            logger.debug("Filtering interferograms using 1 core for temporal coherence estimation...")
             for i in range(num_ifgs):
                 avg_neighbours[:, :, i] = convolve2d(in1=ifgs[:, :, i], in2=filter_kernel, mode='same', boundary="symm")
         else:
@@ -122,12 +122,12 @@ def computeIfgsAndTemporalCoherence(*, path_temp_coh: str, path_ifgs: str, path_
 
             results = pool.map(func=launchConvolve2d, iterable=args)
 
-            logger.debug(f"Retrieve {len(results)} parallel processed results.")
+            logger.debug(f"Retrieving {len(results)} parallel processed results.")
             for j, avg_neigh in results:
                 avg_neighbours[:, :, j] = avg_neigh
             del results, args, avg_neigh
 
-        logger.debug(f"Compute temporal coherence and write to file {temp_coh_obj.file}.")
+        logger.debug(f"Computing temporal coherence and write to file...: {temp_coh_obj.file}")
         residual_phase = np.angle(ifgs * np.conjugate(avg_neighbours))
         del ifgs, avg_neighbours
         temp_coh = np.abs(np.mean(np.exp(1j * residual_phase), axis=2))
@@ -141,7 +141,7 @@ def computeIfgsAndTemporalCoherence(*, path_temp_coh: str, path_ifgs: str, path_
         logger.info(f"Patches processed:\t {idx+1}/{num_boxes}")
 
     m, s = divmod(time.time() - start_time, 60)
-    logger.debug(f"\ntime used: {m:02.0f} mins {s:02.1f} secs.\n")
+    logger.debug(f"Ifgs and temporal coherence computed. Time used: {m:02.0f} mins {s:02.1f} secs.\n")
     return mean_amp_img
 
 
