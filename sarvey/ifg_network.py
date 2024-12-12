@@ -57,7 +57,7 @@ class IfgNetwork:
 
     def plot(self):
         """Plot the network of interferograms."""
-        self.logger.debug("Plot network of interferograms.")
+        self.logger.debug("Ploting network of interferograms...")
         fig = plt.figure(figsize=(15, 5))
         axs = fig.subplots(1, 3)
         dt = [datetime.date.fromisoformat(d) for d in self.dates]
@@ -124,8 +124,6 @@ class IfgNetwork:
         logger: Logger
             Logging handler.
         """
-        self.logger.info(f"write IfgNetwork to {path}")
-
         self.logger.debug(f"Image stack perpendicular baselines (m):\n{self.pbase.astype(int)}")
         self.logger.debug(f"Image stack temporl baselines (days):\n{np.round(self.tbase*365.25).astype(int)}")
 
@@ -133,7 +131,9 @@ class IfgNetwork:
         self.logger.debug(f"Interferogram network perpendicular baselines (m):\n{self.pbase_ifg.astype(int)}")
         self.logger.debug(f"Interferogram network temporal baselines (days):\n{(self.tbase_ifg*365.25).astype(int)}")
 
+        self.logger.debug(f"Writing IfgNetwork to file: {path}")
         if os.path.exists(path):
+            self.logger.debug(f"IfgNetwork file already exists. Removing file: {path}")
             os.remove(path)
 
         dates = np.array(self.dates, dtype=np.string_)
