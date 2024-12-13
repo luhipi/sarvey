@@ -241,12 +241,12 @@ class Processing:
         log = self.logger
 
         # 0) select candidates for first order points
-        log.info("Select 1st order point candidates.")
-        log.debug("Load interferogram stack.")
+        log.debug("Loading interferogram stack.")
         ifg_stack_obj = BaseStack(file=join(self.path, "ifg_stack.h5"), logger=log)
         length, width, num_ifgs = ifg_stack_obj.getShape(dataset_name="ifgs")
         log.debug(f"Shape of interferogram stack: {length} lines x {width} columen x {num_ifgs} ifgs")
 
+        log.debug("Selecting 1st order point candidates.")
         cand_mask1 = selectPixels(
             path=self.path, selection_method="temp_coh", thrsh=self.config.consistency_check.coherence_p1,
             grid_size=self.config.consistency_check.grid_size, bool_plot=True, logger=log
@@ -255,23 +255,24 @@ class Processing:
         total_num_pixels = length * width
         log.debug(f"Number of initial 1st order point candidates: {np.sum(cand_mask1)}/{total_num_pixels}")
 
+        log.debug(f"Reading background_map.h5 to create valid area mask.")
         bmap_obj = AmplitudeImage(file_path=join(self.path, "background_map.h5"))
         mask_valid_area = ut.detectValidAreas(bmap_obj=bmap_obj, logger=log)
 
         if self.config.consistency_check.mask_p1_file is not None:
             path_mask_aoi = join(self.config.consistency_check.mask_p1_file)
-            log.info(f"load mask for area of interest from file {path_mask_aoi}.")
+            log.info(f"Loading mask_p1_file...: {path_mask_aoi}.")
             mask_aoi = readfile.read(path_mask_aoi, datasetName='mask')[0].astype(np.bool_)
             log.debug(f"Number of pixels in the mask_p1_file: {np.sum(mask_aoi)}/{total_num_pixels}")
             mask_valid_area &= mask_aoi
-            log.debug(f"Number of pixels in the mask_p1_file: {np.sum(mask_aoi)}")
+            log.debug(f"Number of valid pixels in the mask_p1_file: {np.sum(mask_valid_area)}")
         else:
-            log.info("No mask given for 1st order points.")
+            log.debug("No mask given for 1st order points.")
 
         cand_mask1 &= mask_valid_area
-        log.debug(f"Number of valid candidates: {np.sum(cand_mask1)}")
+        log.debug(f"Number of 1st order points valid candidates: {np.sum(cand_mask1)}")
 
-        log.debug("Plot mask for first order points.")
+        log.debug("Plotting mask for first order points.")
         fig = plt.figure(figsize=(15, 5))
         ax = fig.add_subplot()
         ax.imshow(mask_valid_area, cmap=cmc.cm.cmaps["grayC"], alpha=0.5, zorder=10, vmin=0, vmax=1)
@@ -298,7 +299,7 @@ class Processing:
         point_id_img = np.arange(0, length * width).reshape((length, width))
 
         p1_ifg_wr_file = join(self.path, "p1_ifg_wr.h5")
-        log.debug(f"Prepare 1st ordeer points and store to file {p1_ifg_wr_file}.")
+        log.debug(f"Preparing 1st order points and storing to file...: {p1_ifg_wr_file}.")
         point_obj = Points(file_path=p1_ifg_wr_file, logger=log)
         point_id1 = point_id_img[cand_mask1]
 
@@ -316,14 +317,14 @@ class Processing:
         del ifg_stack_obj, cand_mask1
 
         # 1) create spatial network
-        log.info("Create spatial network of 1st order points.")
+        log.info("Creating spatial network of 1st order points...")
         arcs = createArcsBetweenPoints(point_obj=point_obj,
                                        knn=self.config.consistency_check.num_nearest_neighbours,
                                        max_arc_length=self.config.consistency_check.max_arc_length,
                                        logger=log)
 
         point_network_file = join(self.path, "point_network.h5")
-        log.debug(f"Prepare point network and store to file {point_network_file}.")
+        log.debug(f"Preparing point network and store to file...: {point_network_file}.")
         net_obj = Network(file_path=point_network_file, logger=log)
         net_obj.computeArcObservations(
             point_obj=point_obj,
