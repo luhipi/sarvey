@@ -200,7 +200,7 @@ def selectPixels(*, path: str, selection_method: str, thrsh: float,
     cmap = None
     # compute candidates
     if selection_method == "temp_coh":
-        logger.debug(f"Read temporal coherence from temporal_coherence.h5 and select pixels using threshold {thrsh}.")
+        logger.debug(f"Reading temporal coherence from temporal_coherence.h5 and select pixels using threshold {thrsh}...")
         temp_coh_obj = BaseStack(file=join(path, "temporal_coherence.h5"), logger=logger)
         quality = temp_coh_obj.read(dataset_name="temp_coh")
         cand_mask = quality >= thrsh
@@ -224,7 +224,7 @@ def selectPixels(*, path: str, selection_method: str, thrsh: float,
     if grid_size is not None:  # -> sparse pixel selection
         logger.debug(f"Select sparse pixels using grid size {grid_size} m.")
         coord_utm_file = join(path, "coordinates_utm.h5")
-        logger.debug(f"Read coordinates from {coord_utm_file}.")
+        logger.debug(f"Reading coordinates from {coord_utm_file}...")
         coord_utm_obj = CoordinatesUTM(file_path=coord_utm_file, logger=logger)
         coord_utm_obj.open()
         box_list = ut.createSpatialGrid(coord_utm_img=coord_utm_obj.coord_utm,
@@ -236,7 +236,7 @@ def selectPixels(*, path: str, selection_method: str, thrsh: float,
         logger.debug(f"Number of selected sparse pixels: {np.sum(cand_mask)}.")
 
     if bool_plot:
-        logger.debug("Plot selected pixels.")
+        logger.debug("Plotting selected pixels...")
         coord_xy = np.array(np.where(cand_mask)).transpose()
         bmap_obj = AmplitudeImage(file_path=join(path, "background_map.h5"))
         viewer.plotScatter(value=quality[cand_mask], coord=coord_xy, bmap_obj=bmap_obj, ttl="Selected pixels",
@@ -275,7 +275,7 @@ def createArcsBetweenPoints(*, point_obj: Points, knn: int = None, max_arc_lengt
     arcs: np.ndarray
         Arcs of the triangulation containing the indices of the points for each arc.
     """
-    logger.debug(f"Triangulate {point_obj.coord_xy.shape[0]} points.")
+    logger.debug(f"Triangulating {point_obj.coord_xy.shape[0]} points...")
     triang_obj = PointNetworkTriangulation(coord_xy=point_obj.coord_xy, coord_utmxy=point_obj.coord_utm, logger=logger)
 
     if knn is not None:
@@ -283,17 +283,17 @@ def createArcsBetweenPoints(*, point_obj: Points, knn: int = None, max_arc_lengt
 
     triang_obj.triangulateGlobal()
 
-    logger.info(f"remove arcs with length > {max_arc_length}.")
-
     # logger.info(f"remove arcs with length > {max_arc_length} m.")
     ut_mask = np.triu(triang_obj.dist_mat, k=1) != 0
     logger.debug(f"Triangulation arc lengths - Min: {np.min(triang_obj.dist_mat[ut_mask]):.0f} m, "
                  f"Max: {np.max(triang_obj.dist_mat[ut_mask]):.0f} m, "
                  f"Mean: {np.mean(triang_obj.dist_mat[ut_mask]):.0f} m.")
+
+    logger.info(f"Removing arcs with length > {max_arc_length} max_arc_length...")
     triang_obj.removeLongArcs(max_dist=max_arc_length)
 
     if not triang_obj.isConnected():
-        logger.degub("Network is not connected. Triangulate again with global delaunay.")
+        logger.degub("Network is not connected. Triangulating again with global delaunay...")
         triang_obj.triangulateGlobal()
 
     logger.info("retrieve arcs from adjacency matrix.")
