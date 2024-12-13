@@ -811,6 +811,10 @@ def detectValidAreas(*, bmap_obj: AmplitudeImage, logger: Logger):
         logger.info(f"Number of invalid pixels in image: "
                     f"{num_invalid}/{mask_valid_area.size}"
                     f"({num_invalid/mask_valid_area.size*100:.2f}%)")
+    if num_invalid == mask_valid_area.size:
+        logger.error("All pixels in background map are invalid. Check the amplitude image for potential issues.")
+        raise ValueError("Background map contains no valid pixels.")
+
     return mask_valid_area
 
 
