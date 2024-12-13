@@ -288,7 +288,7 @@ class Processing:
         fig.savefig(join(self.path, "pic", "step_1_mask_p1.png"), dpi=300)
         plt.close(fig)
 
-        if cand_mask1[cand_mask1].shape[0] == 0:
+        if np.sum(cand_mask1) == 0:
             log.error(
                 "No first-order points selected. Consider adjusting the coherence threshold, "
                 "verifying the background map, and ensuring the mask_p1_file is sufficiently large.")
