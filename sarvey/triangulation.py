@@ -63,11 +63,14 @@ class PointNetworkTriangulation:
         self.adj_mat = lil_matrix((num_points, num_points), dtype=np.bool_)
 
         if coord_utmxy is not None:
-            logger.info("create distance matrix between all points...")
+            logger.debug(f"Creating distance matrix between all {num_points} points...")
+            logger.debug(f"Min/Max x coordinate: {np.min(coord_utmxy[:, 0]):.2f}/{np.max(coord_utmxy[:, 0]):.2f}")
+            logger.debug(f"Min/Max y coordinate: {np.min(coord_utmxy[:, 1]):.2f}/{np.max(coord_utmxy[:, 1]):.2f}")
             self.dist_mat = distance_matrix(coord_utmxy, coord_utmxy)
             # todo: check out alternatives:
             #       scipy.spatial.KDTree.sparse_distance_matrix
         else:  # if only global delaunay shall be computed without memory issues
+            logger.debug("No Map coordinates given. No distance matrix calculated.")
             self.dist_mat = None
 
     def getArcsFromAdjMat(self):
@@ -78,6 +81,7 @@ class PointNetworkTriangulation:
         arcs: np.ndarray
             List of arcs with indices of the start and end point.
         """
+        self.logger.debug(f"Extracting arcs from adjacency matrix with size {self.adj_mat.shape}...")
         a = self.adj_mat.copy()
         # copy entries from lower to upper triangular matrix
         b = (a + a.T)
@@ -90,6 +94,7 @@ class PointNetworkTriangulation:
             for e in e_list:
                 arcs.append([s, e])
         arcs = np.array(arcs)
+        self.logger.debug(f"Number of arcs extracted: {arcs.shape[0]}")
         return arcs
 
     def removeLongArcs(self, *, max_dist: float):
@@ -101,22 +106,25 @@ class PointNetworkTriangulation:
             distance threshold on arc length in [m]
         """
         mask = self.dist_mat > max_dist
-        self.logger.debug(f"Remove {np.sum(mask)} arcs with distance longer that {max_dist}.")
+        self.logger.debug(f"Removing {np.sum(mask)} arcs with distance longer that {max_dist} max_dist.")
         self.adj_mat[mask] = False
 
     def isConnected(self):
         """Check if the network is connected."""
         n_components = connected_components(csgraph=csr_matrix(self.adj_mat), directed=False, return_labels=False)
         if n_components == 1:
+            self.logger.debug("Network is connected.")
             return True
         else:
+            self.logger.debug("Network is not connected.")
             return False
 
     def triangulateGlobal(self):
         """Connect the points with a GLOBAL delaunay triangulation."""
-        self.logger.info("Triangulate points with global delaunay.")
+        self.logger.info("Triangulating points with global delaunay...")
 
         network = Delaunay(points=self.coord_xy)
+        self.logger.debug(f"Number of simplices in Delaunay triangulation: {network.simplices.shape[0]}")
         for p1, p2, p3 in network.simplices:
             self.adj_mat[p1, p2] = True
             self.adj_mat[p1, p3] = True
@@ -124,7 +132,7 @@ class PointNetworkTriangulation:
 
     def triangulateKnn(self, *, k: int):
         """Connect points to the k-nearest neighbours."""
-        self.logger.info(f"Triangulate points with {k}-nearest neighbours.")
+        self.logger.info(f"Triangulating points with {k}-nearest neighbours....")
         num_points = self.coord_xy.shape[0]
         prog_bar = ptime.progressBar(maxValue=num_points)
         start_time = time.time()
@@ -132,8 +140,9 @@ class PointNetworkTriangulation:
         tree = KDTree(data=self.coord_xy)
 
         if k > num_points:
+            self.logger.info(f"{k} k > {num_points} number of points. Connect all points with each other.")
             k = num_points
-            self.logger.info("k > number of points. Connect all points with each other.")
+        # TODO: check if for loop cand be avoided
         for p1 in range(num_points):
             idx = tree.query(self.coord_xy[p1, :], k)[1]
             self.adj_mat[p1, idx] = True
@@ -142,4 +151,4 @@ class PointNetworkTriangulation:
                             suffix='{}/{} points triangulated'.format(count + 1, num_points + 1))
         prog_bar.close()
         m, s = divmod(time.time() - start_time, 60)
-        self.logger.debug(f"time used: {m:02.0f} mins {s:02.1f} secs.")
+        self.logger.debug(f"time used for knn triangulation: {m:02.0f} mins {s:02.1f} secs.")
