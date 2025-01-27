@@ -232,16 +232,16 @@ jobs:
           name: docs
           path: docs/_build/html/
 
-      - name: Download coverage report
-        uses: actions/download-artifact@v4
-        with:
-          name: coverage-report
-          path: htmlcov/
+      # - name: Download coverage report
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     name: coverage-report
+      #     path: htmlcov/
 
-      - name: Download report.html
-        uses: actions/download-artifact@v4
-        with:
-          name: test-report
+      # - name: Download report.html
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     name: test-report
 
       - name: Deploy to GitHub Pages
         if: env.SKIP_DEPLOY == 'false'
