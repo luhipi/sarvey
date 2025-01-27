@@ -55,7 +55,8 @@ req_test = ['pytest>=3', 'pytest-cov', 'pytest-reporter-html1', 'urlchecker']
 req_doc = [
     'sphinx>=4.1.1',
     'sphinx-argparse',
-    'sphinx-autodoc-typehints'
+    'sphinx-autodoc-typehints',
+    'sphinx_rtd_theme'
 ]
 
 req_lint = ['flake8', 'pycodestyle', 'pydocstyle']
