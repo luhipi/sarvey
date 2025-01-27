@@ -80,9 +80,9 @@ jobs:
       - name: create docs
         if: env.SKIP_DEPLOY == 'false'
         run: |
-          # conda init bash
-          # source ~/.bashrc
-          # source activate ci_env
+          conda init bash
+          source ~/.bashrc
+          source activate ci_temp_env
           make docs
         shell: bash
 
