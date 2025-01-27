@@ -62,9 +62,9 @@ jobs:
       - name: Run tests
         if: env.SKIP_TEST == 'false'
         run: |
-          # conda init bash
-          # source ~/.bashrc
-          # source activate ci_temp_env
+          conda init bash
+          source ~/.bashrc
+          source activate ci_temp_env
           rm -rf tests/testdata
           wget -nv -c -O testdata.zip https://seafile.projekt.uni-hannover.de/f/4b3be399dffa488e98db/?dl=1
           unzip testdata.zip
@@ -136,9 +136,9 @@ jobs:
       - name: Install dependencies
         if: env.SKIP_TEST == 'false'
         run: |
-          # conda init bash
-          # source ~/.bashrc
-          # source activate ci_env
+          conda init bash
+          source ~/.bashrc
+          source activate ci_temp_env
           make lint
         shell: bash
 
@@ -178,9 +178,9 @@ jobs:
       - name: Install dependencies
         if: env.SKIP_TEST == 'false'
         run: |
-          # conda init bash
-          # source ~/.bashrc
-          # source activate ci_env
+          conda init bash
+          source ~/.bashrc
+          source activate ci_temp_env
           make urlcheck
         shell: bash
 
