@@ -44,7 +44,7 @@ jobs:
           source activate ci_temp_env
           # mamba install json5
           # mamba install cmcrameri
-          pip install sphinx_rtd_theme
+          mamba install conda-forge::sphinx_rtd_theme
         shell: bash
 
   test_sarvey:
