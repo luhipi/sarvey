@@ -242,7 +242,8 @@ jobs:
           name: test-report
 
       - name: Deploy to GitHub Pages
-        if: env.SKIP_DEPLOY == 'false'
+        # trigger if merged into the main branch || published new tag
+        if: env.SKIP_DEPLOY == 'false' && github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
         run: |
           rm -rf public
           
