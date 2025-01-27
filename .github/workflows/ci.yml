@@ -38,7 +38,13 @@ jobs:
         run: |
           conda init bash
           source ~/.bashrc
-          source activate ci_env
+          # source activate ci_env
+          mamba env remove --name ci_temp_env --yes || echo "Environment ci_temp_env does not exist"
+          mamba create -n ci_temp_env --clone ci_env
+          source activate ci_temp_env
+          # mamba install json5
+          # mamba install cmcrameri
+          pip install sphinx_rtd_theme
         shell: bash
 
   test_sarvey:
@@ -56,14 +62,9 @@ jobs:
       - name: Run tests
         if: env.SKIP_TEST == 'false'
         run: |
-          conda init bash
-          source ~/.bashrc
-          mamba env remove --name ci_temp_env --yes || echo "Environment ci_temp_env does not exist"
-
-          mamba create -n ci_temp_env --clone ci_env
-          source activate ci_temp_env
-          mamba install json5
-          mamba install cmcrameri
+          # conda init bash
+          # source ~/.bashrc
+          # source activate ci_temp_env
           rm -rf tests/testdata
           wget -nv -c -O testdata.zip https://seafile.projekt.uni-hannover.de/f/4b3be399dffa488e98db/?dl=1
           unzip testdata.zip
@@ -79,9 +80,9 @@ jobs:
       - name: create docs
         if: env.SKIP_DEPLOY == 'false'
         run: |
-          conda init bash
-          source ~/.bashrc
-          source activate ci_env
+          # conda init bash
+          # source ~/.bashrc
+          # source activate ci_env
           make docs
         shell: bash
 
@@ -135,9 +136,9 @@ jobs:
       - name: Install dependencies
         if: env.SKIP_TEST == 'false'
         run: |
-          conda init bash
-          source ~/.bashrc
-          source activate ci_env
+          # conda init bash
+          # source ~/.bashrc
+          # source activate ci_env
           make lint
         shell: bash
 
@@ -177,9 +178,9 @@ jobs:
       - name: Install dependencies
         if: env.SKIP_TEST == 'false'
         run: |
-          conda init bash
-          source ~/.bashrc
-          source activate ci_env
+          # conda init bash
+          # source ~/.bashrc
+          # source activate ci_env
           make urlcheck
         shell: bash
 
