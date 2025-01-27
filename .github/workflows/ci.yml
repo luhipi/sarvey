@@ -38,13 +38,11 @@ jobs:
         run: |
           conda init bash
           source ~/.bashrc
-          # source activate ci_env
           mamba env remove --name ci_temp_env --yes || echo "Environment ci_temp_env does not exist"
           mamba create -n ci_temp_env --clone ci_env
           source activate ci_temp_env
-          # mamba install json5
-          # mamba install cmcrameri
-          mamba install conda-forge::sphinx_rtd_theme
+          # TODO: create the ci_env with the installation of the following packages and remove the following line
+          mamba install json5 cmcrameri conda-forge::sphinx_rtd_theme
         shell: bash
 
   test_sarvey:
@@ -216,7 +214,8 @@ jobs:
     runs-on: self-hosted
 
     needs: make_docs
-    # if: github.ref == 'refs/heads/main'
+    # if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
+    if: github.ref == 'refs/heads/update-pages' || startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -247,18 +246,34 @@ jobs:
         if: env.SKIP_DEPLOY == 'false'
         run: |
           rm -rf public
-          mkdir -p public/docs
-          mkdir -p public/images/
-          mkdir -p public/coverage
-          mkdir -p public/test_reports
+          mkdir -p public
+          
+          git clone --branch gh-pages https://github.com/${{ github.repository }} gh-pages-temp
+          cp -r gh-pages-temp/* public/
 
-          cp -r docs/_build/html/* public/docs/
-          cp -r htmlcov/* public/coverage/
-          cp report.html public/test_reports/
-          ls -al public
-          ls -al public/docs
-          ls -al public/coverage
-          ls -al public/test_reports
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            TAG_NAME=${GITHUB_REF##*/}
+            echo "Deploying to GitHub Pages for version tag: $TAG_NAME"
+            DOCS_PATH=public/tags/$TAG_NAME
+          else
+            echo "Deploying to GitHub Pages for main branch"
+            DOCS_PATH=public/main
+          fi
+
+          rm -rf  $DOCS_PATH
+          mkdir -p $DOCS_PATH/docs
+          mkdir -p $DOCS_PATH/images
+          mkdir -p $DOCS_PATH/coverage
+          mkdir -p $DOCS_PATH/test_reports
+          
+          cp -r docs/_build/html/* $DOCS_PATH/docs
+          # cp -r htmlcov/* $DOCS_PATH/coverage/
+          # cp report.html $DOCS_PATH/test_reports/
+
+          ls -al $DOCS_PATH
+          ls -al $DOCS_PATH/docs
+          ls -al $DOCS_PATH/coverage
+          ls -al $DOCS_PATH/test_reports
         shell: bash
 
       - name: Upload to GitHub Pages
