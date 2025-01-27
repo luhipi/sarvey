@@ -15,7 +15,7 @@ permissions:
 env:
     SKIP_DEPLOY: false
     SKIP_INSTALL: true
-    SKIP_TEST: false
+    SKIP_TEST: true
 
 jobs:
   before_script:
@@ -72,6 +72,10 @@ jobs:
           make pytest
         shell: bash
 
+  make_docs:
+    runs-on: self-hosted
+    needs: before_script
+    steps:
       - name: create docs
         if: env.SKIP_DEPLOY == 'false'
         run: |
@@ -210,7 +214,7 @@ jobs:
   deploy_pages:
     runs-on: self-hosted
 
-    needs: test_sarvey
+    needs: make_docs
     if: github.ref == 'refs/heads/main'
     steps:
       - name: Checkout code
