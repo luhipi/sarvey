@@ -245,7 +245,6 @@ jobs:
         if: env.SKIP_DEPLOY == 'false'
         run: |
           rm -rf public
-          mkdir -p public
           
           git clone --branch gh-pages https://github.com/${{ github.repository }} public
 
@@ -277,7 +276,7 @@ jobs:
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           git add .
-          git commit -m "Deploy to GitHub Pages: $TAG_NAME" || echo "No changes to commit"
+          git diff --quiet || git commit -m "Deploy to GitHub Pages" || echo "No changes to commit"
           git push origin gh-pages
 
         shell: bash
