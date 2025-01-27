@@ -272,18 +272,11 @@ jobs:
           ls -al $DOCS_PATH/coverage
           ls -al $DOCS_PATH/test_reports
 
-          cd public
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          git add .
-          git diff --quiet || git commit -m "Deploy to GitHub Pages" || echo "No changes to commit"
-          git push origin gh-pages
-
         shell: bash
 
-      # - name: Upload to GitHub Pages
-      #   if: env.SKIP_DEPLOY == 'false'
-      #   uses: peaceiris/actions-gh-pages@v4
-      #   with:
-      #     github_token: ${{ secrets.GITHUB_TOKEN }}
-      #     publish_dir: ./public
+      - name: Upload to GitHub Pages
+        if: env.SKIP_DEPLOY == 'false'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public
