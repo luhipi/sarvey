@@ -257,7 +257,7 @@ jobs:
             DOCS_PATH=public/tags/$TAG_NAME
           else
             echo "Deploying to GitHub Pages for main branch"
-            DOCS_PATH=public/main
+            DOCS_PATH=public/dev
           fi
 
           rm -rf  $DOCS_PATH
