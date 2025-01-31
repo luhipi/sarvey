@@ -18,36 +18,36 @@ env:
     SKIP_TEST: false
 
 jobs:
-  before_script:
-    runs-on: self-hosted
+  # before_script:
+  #   runs-on: self-hosted
 
-    strategy:
-      matrix:
-        node-version: [ 20.x ]
+  #   strategy:
+  #     matrix:
+  #       node-version: [ 20.x ]
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.x'
+  #     - name: Set up Python
+  #       uses: actions/setup-python@v5
+  #       with:
+  #         python-version: '3.x'
 
-      - name: Install dependencies
-        run: |
-          conda init bash
-          source ~/.bashrc
-          mamba env remove --name ci_temp_env --yes || echo "Environment ci_temp_env does not exist"
-          mamba create -n ci_temp_env --clone ci_env
-          source activate ci_temp_env
-          # TODO: create the ci_env with the installation of the following packages and remove the following line
-          mamba install json5 cmcrameri conda-forge::sphinx_rtd_theme
-        shell: bash
+  #     - name: Install dependencies
+  #       run: |
+  #         conda init bash
+  #         source ~/.bashrc
+  #         mamba env remove --name ci_temp_env --yes || echo "Environment ci_temp_env does not exist"
+  #         mamba create -n ci_temp_env --clone ci_env
+  #         source activate ci_temp_env
+  #         # TODO: create the ci_env with the installation of the following packages and remove the following line
+  #         mamba install json5 cmcrameri conda-forge::sphinx_rtd_theme
+  #       shell: bash
 
   test_sarvey:
     runs-on: self-hosted
-    needs: before_script
+    needs: test_sarvey_install
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -73,7 +73,7 @@ jobs:
 
   make_docs:
     runs-on: self-hosted
-    needs: before_script
+    needs: test_sarvey_install
     steps:
       - name: create docs
         if: env.SKIP_DEPLOY == 'false'
@@ -121,7 +121,7 @@ jobs:
 
   test_styles:
     runs-on: self-hosted
-    needs: before_script
+    needs: test_sarvey_install
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -163,7 +163,7 @@ jobs:
 
   test_urls:
     runs-on: self-hosted
-    needs: before_script
+    needs: test_sarvey_install
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -197,12 +197,15 @@ jobs:
           if: env.SKIP_INSTALL == 'false'
           run: |
               source activate base
-              mamba env remove --name sarvey_testinstall --yes || echo "Environment sarvey_testinstall does not exist"
+              # mamba env remove --name sarvey_testinstall --yes || echo "Environment sarvey_testinstall does not exist"
+              mamba env remove --name ci_temp_env --yes || echo "Environment ci_temp_env does not exist"
               pip install conda-merge
               wget https://raw.githubusercontent.com/insarlab/MiaplPy/main/conda-env.yml
               conda-merge conda-env.yml tests/CI_docker/context/environment_sarvey.yml > env.yml
-              mamba env create --name sarvey_testinstall -f env.yml
-              source activate sarvey_testinstall
+              # mamba env create --name sarvey_testinstall -f env.yml
+              mamba env create --name ci_temp_env -f env.yml
+              # source activate sarvey_testinstall
+              source activate ci_temp_env
               pip install git+https://github.com/insarlab/MiaplPy.git
               pip install .
               OUTPUT=$(pip check) || { echo "$OUTPUT"; true; }
