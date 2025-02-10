@@ -601,7 +601,8 @@ class Processing:
 
         box_list, num_box = ut.createSpatialGrid(coord_utm_img=coord_utm_obj.coord_utm, length=point1_obj.length,
                                                  width=point1_obj.width,
-                                                 grid_size=self.config.filtering.grid_size)
+                                                 grid_size=self.config.filtering.grid_size,
+                                                 logger=self.logger)
 
         cand_mask_sparse = ut.selectBestPointsInGrid(box_list=box_list, quality=auto_corr_img, sel_min=True)
 
