@@ -65,7 +65,7 @@ jobs:
           source /opt/conda/etc/profile.d/conda.sh
           conda init bash
           source ~/.bashrc
-          source activate ci_temp_env
+          conda activate ci_temp_env
           rm -rf tests/testdata
           wget -nv -c -O testdata.zip https://seafile.projekt.uni-hannover.de/f/4b3be399dffa488e98db/?dl=1
           unzip testdata.zip
@@ -84,7 +84,7 @@ jobs:
           source /opt/conda/etc/profile.d/conda.sh
           conda init bash
           source ~/.bashrc
-          source activate ci_temp_env
+          conda activate ci_temp_env
           make docs
         shell: bash
 
@@ -141,7 +141,7 @@ jobs:
           source /opt/conda/etc/profile.d/conda.sh
           conda init bash
           source ~/.bashrc
-          source activate ci_temp_env
+          conda activate ci_temp_env
           make lint
         shell: bash
 
