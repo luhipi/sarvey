@@ -18,32 +18,32 @@ env:
     SKIP_TEST: false
 
 jobs:
-  # before_script:
-  #   runs-on: self-hosted
+  before_script:
+    runs-on: self-hosted
 
-  #   strategy:
-  #     matrix:
-  #       node-version: [ 20.x ]
+    strategy:
+      matrix:
+        node-version: [ 20.x ]
 
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v4
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-  #     - name: Set up Python
-  #       uses: actions/setup-python@v5
-  #       with:
-  #         python-version: '3.x'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
 
-  #     - name: Install dependencies
-  #       run: |
-  #         conda init bash
-  #         source ~/.bashrc
-  #         mamba env remove --name ci_temp_env --yes || echo "Environment ci_temp_env does not exist"
-  #         mamba create -n ci_temp_env --clone ci_env
-  #         source activate ci_temp_env
-  #         # TODO: create the ci_env with the installation of the following packages and remove the following line
-  #         mamba install json5 cmcrameri conda-forge::sphinx_rtd_theme
-  #       shell: bash
+      - name: Install dependencies
+        run: |
+          conda init bash
+          source ~/.bashrc
+          mamba env remove --name ci_temp_env --yes || echo "Environment ci_temp_env does not exist"
+          mamba create -n ci_temp_env --clone ci_env
+          # source activate ci_temp_env
+          # TODO: create the ci_env with the installation of the following packages and remove the following line
+          # mamba install json5 cmcrameri conda-forge::sphinx_rtd_theme
+        shell: bash
 
   test_sarvey:
     runs-on: self-hosted
