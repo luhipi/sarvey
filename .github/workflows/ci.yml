@@ -36,6 +36,7 @@ jobs:
 
       - name: Install dependencies
         run: |
+          source /opt/conda/etc/profile.d/conda.sh
           conda init bash
           source ~/.bashrc
           mamba env remove --name ci_temp_env --yes || echo "Environment ci_temp_env does not exist"
