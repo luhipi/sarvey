@@ -39,8 +39,9 @@ jobs:
           source /opt/conda/etc/profile.d/conda.sh
           conda init bash
           source ~/.bashrc
-          mamba env remove --name ci_temp_env --yes || echo "Environment ci_temp_env does not exist"
-          mamba create -n ci_temp_env --clone ci_env
+          # mamba env remove --name ci_temp_env --yes || echo "Environment ci_temp_env does not exist"
+          # mamba create -n ci_temp_env --clone ci_env
+          conda create --name ci_temp_env --clone ci_env
           # source activate ci_temp_env
           # TODO: create the ci_env with the installation of the following packages and remove the following line
           # mamba install json5 cmcrameri conda-forge::sphinx_rtd_theme
