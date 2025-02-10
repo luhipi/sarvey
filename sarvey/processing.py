@@ -610,6 +610,9 @@ class Processing:
             self.logger.warning(msg=f"Only {num_p1_points_for_filtering} points for APS filtering selected. Filtering "
                                     f"results are probably not reliable. You can e.g. increase 'max_auto_corr' or try "
                                     f"to increase the number of first-order points during step 1 and 2.")
+            if num_p1_points_for_filtering == 0:
+                self.logger.error("No points selected for APS filtering.")
+                raise ValueError
 
         point_id_img = np.arange(0, point1_obj.length * point1_obj.width).reshape(
             (point1_obj.length, point1_obj.width))
