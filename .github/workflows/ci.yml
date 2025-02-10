@@ -61,6 +61,7 @@ jobs:
       - name: Run tests
         if: env.SKIP_TEST == 'false'
         run: |
+          source /opt/conda/etc/profile.d/conda.sh
           conda init bash
           source ~/.bashrc
           source activate ci_temp_env
@@ -79,6 +80,7 @@ jobs:
       - name: create docs
         if: env.SKIP_DEPLOY == 'false'
         run: |
+          source /opt/conda/etc/profile.d/conda.sh
           conda init bash
           source ~/.bashrc
           source activate ci_temp_env
@@ -135,6 +137,7 @@ jobs:
       - name: Install dependencies
         if: env.SKIP_TEST == 'false'
         run: |
+          source /opt/conda/etc/profile.d/conda.sh
           conda init bash
           source ~/.bashrc
           source activate ci_temp_env
@@ -177,6 +180,7 @@ jobs:
       - name: Install dependencies
         if: env.SKIP_TEST == 'false'
         run: |
+          source /opt/conda/etc/profile.d/conda.sh
           conda init bash
           source ~/.bashrc
           source activate ci_temp_env
