@@ -203,7 +203,7 @@ jobs:
           if: env.SKIP_INSTALL == 'false'
           run: |
               source /opt/conda/etc/profile.d/conda.sh
-              source activate base
+              conda activate base
               # mamba env remove --name sarvey_testinstall --yes || echo "Environment sarvey_testinstall does not exist"
               mamba env remove --name ci_test_env --yes || echo "Environment ci_test_env does not exist"
               pip install conda-merge
@@ -212,7 +212,7 @@ jobs:
               # mamba env create --name sarvey_testinstall -f env.yml
               mamba env create --name ci_test_env -f env.yml
               # source activate sarvey_testinstall
-              source activate ci_test_env
+              conda activate ci_test_env
               pip install git+https://github.com/insarlab/MiaplPy.git
               pip install .
               OUTPUT=$(pip check) || { echo "$OUTPUT"; true; }
