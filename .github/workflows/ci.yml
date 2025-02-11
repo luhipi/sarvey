@@ -212,7 +212,7 @@ jobs:
               wget https://raw.githubusercontent.com/insarlab/MiaplPy/main/conda-env.yml
               conda-merge conda-env.yml tests/CI_docker/context/environment_sarvey.yml > env.yml
               # mamba env create --name sarvey_testinstall -f env.yml
-              mamba env create --name ci_test_env -f env.yml
+              mamba env create --name ci_test_env -f env.yml -v
               # source activate sarvey_testinstall
               conda activate ci_test_env
               pip install git+https://github.com/insarlab/MiaplPy.git
