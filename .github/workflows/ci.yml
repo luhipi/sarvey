@@ -204,6 +204,7 @@ jobs:
           if: env.SKIP_INSTALL == 'false'
           run: |
               export MAMBA_ROOT_PREFIX="$HOME/.mamba" # to be moved to docker
+              export MAMBA_NO_PRELOAD=1
               source /opt/conda/etc/profile.d/conda.sh
               conda activate base
               # mamba env remove --name sarvey_testinstall --yes || echo "Environment sarvey_testinstall does not exist"
