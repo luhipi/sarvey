@@ -4,15 +4,19 @@ on:
   pull_request:
   push:
     branches:
+      - update-runner
       - main
+  release:
+    types: 
+      - published
 
 permissions:
   contents: write
 
 env:
     SKIP_DEPLOY: false
-    SKIP_INSTALL: false
-    SKIP_TEST: false
+    SKIP_INSTALL: true
+    SKIP_TEST: true
 
 jobs:
   before_script:
@@ -33,9 +37,14 @@ jobs:
 
       - name: Install dependencies
         run: |
+          source /opt/conda/etc/profile.d/conda.sh
           conda init bash
           source ~/.bashrc
-          source activate ci_env
+          conda env remove --name ci_temp_env --yes || echo "Environment ci_temp_env does not exist"
+          conda create --name ci_temp_env --clone ci_env
+          conda activate ci_temp_env
+          # TODO: create the ci_env with the installation of the following packages and remove the following line
+          mamba install conda-forge::sphinx_rtd_theme
         shell: bash
 
   test_sarvey:
@@ -53,14 +62,10 @@ jobs:
       - name: Run tests
         if: env.SKIP_TEST == 'false'
         run: |
+          source /opt/conda/etc/profile.d/conda.sh
           conda init bash
           source ~/.bashrc
-          mamba env remove --name ci_temp_env --yes || echo "Environment ci_temp_env does not exist"
-
-          mamba create -n ci_temp_env --clone ci_env
-          source activate ci_temp_env
-          mamba install json5
-          mamba install cmcrameri
+          conda activate ci_temp_env
           rm -rf tests/testdata
           wget -nv -c -O testdata.zip https://seafile.projekt.uni-hannover.de/f/4b3be399dffa488e98db/?dl=1
           unzip testdata.zip
@@ -69,12 +74,17 @@ jobs:
           make pytest
         shell: bash
 
+  make_docs:
+    runs-on: self-hosted
+    needs: before_script
+    steps:
       - name: create docs
         if: env.SKIP_DEPLOY == 'false'
         run: |
+          source /opt/conda/etc/profile.d/conda.sh
           conda init bash
           source ~/.bashrc
-          source activate ci_env
+          conda activate ci_temp_env
           make docs
         shell: bash
 
@@ -128,9 +138,10 @@ jobs:
       - name: Install dependencies
         if: env.SKIP_TEST == 'false'
         run: |
+          source /opt/conda/etc/profile.d/conda.sh
           conda init bash
           source ~/.bashrc
-          source activate ci_env
+          conda activate ci_temp_env
           make lint
         shell: bash
 
@@ -170,9 +181,10 @@ jobs:
       - name: Install dependencies
         if: env.SKIP_TEST == 'false'
         run: |
+          source /opt/conda/etc/profile.d/conda.sh
           conda init bash
           source ~/.bashrc
-          source activate ci_env
+          source activate ci_temp_env
           make urlcheck
         shell: bash
 
@@ -190,13 +202,17 @@ jobs:
       -   name: Install dependencies
           if: env.SKIP_INSTALL == 'false'
           run: |
-              source activate base
-              mamba env remove --name sarvey_testinstall --yes || echo "Environment sarvey_testinstall does not exist"
+              source /opt/conda/etc/profile.d/conda.sh
+              conda activate base
+              # mamba env remove --name sarvey_testinstall --yes || echo "Environment sarvey_testinstall does not exist"
+              mamba env remove --name ci_test_env --yes || echo "Environment ci_test_env does not exist"
               pip install conda-merge
               wget https://raw.githubusercontent.com/insarlab/MiaplPy/main/conda-env.yml
               conda-merge conda-env.yml tests/CI_docker/context/environment_sarvey.yml > env.yml
-              mamba env create --name sarvey_testinstall -f env.yml
-              source activate sarvey_testinstall
+              # mamba env create --name sarvey_testinstall -f env.yml
+              mamba env create --name ci_test_env -f env.yml
+              # source activate sarvey_testinstall
+              conda activate ci_test_env
               pip install git+https://github.com/insarlab/MiaplPy.git
               pip install .
               OUTPUT=$(pip check) || { echo "$OUTPUT"; true; }
@@ -207,8 +223,11 @@ jobs:
   deploy_pages:
     runs-on: self-hosted
 
-    needs: test_sarvey
-    if: github.ref == 'refs/heads/main'
+    needs: 
+      - make_docs
+      - test_urls
+      - test_styles
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -236,21 +255,37 @@ jobs:
           name: test-report
 
       - name: Deploy to GitHub Pages
-        if: env.SKIP_DEPLOY == 'false'
+        # trigger if merged into the main branch || published new tag
+        if: env.SKIP_DEPLOY == 'false' && github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
         run: |
           rm -rf public
-          mkdir -p public/docs
-          mkdir -p public/images/
-          mkdir -p public/coverage
-          mkdir -p public/test_reports
+          
+          git clone --branch gh-pages https://github.com/${{ github.repository }} public
 
-          cp -r docs/_build/html/* public/docs/
-          cp -r htmlcov/* public/coverage/
-          cp report.html public/test_reports/
-          ls -al public
-          ls -al public/docs
-          ls -al public/coverage
-          ls -al public/test_reports
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            TAG_NAME=${GITHUB_REF##*/}
+            echo "Deploying to GitHub Pages for version tag: $TAG_NAME"
+            DOCS_PATH=public/tags/$TAG_NAME
+          else
+            echo "Deploying to GitHub Pages for main branch"
+            DOCS_PATH=public/dev
+          fi
+
+          rm -rf  $DOCS_PATH
+          mkdir -p $DOCS_PATH/docs
+          mkdir -p $DOCS_PATH/images
+          mkdir -p $DOCS_PATH/coverage
+          mkdir -p $DOCS_PATH/test_reports
+          
+          cp -r docs/_build/html/* $DOCS_PATH/docs
+          cp -r htmlcov/* $DOCS_PATH/coverage/
+          cp report.html $DOCS_PATH/test_reports/
+
+          ls -al $DOCS_PATH
+          ls -al $DOCS_PATH/docs
+          ls -al $DOCS_PATH/coverage
+          ls -al $DOCS_PATH/test_reports
+
         shell: bash
 
       - name: Upload to GitHub Pages
