@@ -208,6 +208,7 @@ jobs:
               conda activate base
               # mamba env remove --name sarvey_testinstall --yes || echo "Environment sarvey_testinstall does not exist"
               mamba env remove --name ci_test_env --yes || echo "Environment ci_test_env does not exist"
+              mamba clean --index-cache --lock --tarballs --packages -y
               pip install conda-merge
               export PATH=$HOME/.local/bin:$PATH # workaround conda-merge not found!
               wget https://raw.githubusercontent.com/insarlab/MiaplPy/main/conda-env.yml
