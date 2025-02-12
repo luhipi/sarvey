@@ -2,13 +2,15 @@ name: CI
 
 on:
   pull_request:
+    branches:
+      - main
   push:
     branches:
-      - update-runner
       - main
   release:
     types: 
       - published
+  workflow_dispatch:
 
 permissions:
   contents: write
