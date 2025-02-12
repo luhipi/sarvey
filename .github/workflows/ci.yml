@@ -39,10 +39,8 @@ jobs:
           conda init bash
           source ~/.bashrc
           conda env remove --name ci_temp_env --yes || echo "Environment ci_temp_env does not exist"
-          conda create --name ci_temp_env --clone ci_env
+          conda create --prefix /home/runneruser/.conda/envs/ci_temp_env --clone ci_env
           conda activate ci_temp_env
-          # TODO: create the ci_env with the installation of the following packages and remove the following line
-          mamba install conda-forge::sphinx_rtd_theme
         shell: bash
 
   test_sarvey:
