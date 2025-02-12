@@ -71,17 +71,12 @@ jobs:
           make pytest
         shell: bash
 
-  make_docs:
-    runs-on: self-hosted
-    needs: before_script
-    steps:
       - name: create docs
         if: env.SKIP_DEPLOY == 'false'
         run: |
-          source /opt/conda/etc/profile.d/conda.sh
           conda init bash
           source ~/.bashrc
-          conda activate ci_temp_env
+          source activate ci_temp_env
           make docs
         shell: bash
 
@@ -122,7 +117,7 @@ jobs:
 
   test_styles:
     runs-on: self-hosted
-    needs: before_script
+    needs: test_sarvey
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -165,7 +160,7 @@ jobs:
 
   test_urls:
     runs-on: self-hosted
-    needs: before_script
+    needs: test_sarvey
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
