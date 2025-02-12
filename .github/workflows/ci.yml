@@ -17,7 +17,7 @@ permissions:
 
 env:
     SKIP_DEPLOY: false
-    SKIP_INSTALL: false
+    SKIP_INSTALL: true
     SKIP_TEST: false
 
 jobs:
