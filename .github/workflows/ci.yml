@@ -85,6 +85,7 @@ jobs:
           IFS='/' read -r OWNER REPO <<< "${GITHUB_REPOSITORY}"
           URL_IO="https://${OWNER}.github.io/${REPO}"
           URL="https://github.com/${OWNER}/${REPO}"
+          echo "Repository URL: $URL"
           echo "Repository Documentation URL: $URL"
 
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
@@ -101,6 +102,7 @@ jobs:
           else
               BADGE_URL="${URL}/actions/workflows/ci.yml/badge.svg?branch=main"
           fi
+          echo "Badge URL: $BADGE_URL"
           BADGE_DEFAULT_URL="${URL}/actions/workflows/ci.yml/badge.svg"
           sed -i "s|${BADGE_DEFAULT_URL}|$BADGE_URL|g" README.rst
 
