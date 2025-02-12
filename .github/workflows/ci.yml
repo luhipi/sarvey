@@ -80,6 +80,30 @@ jobs:
           conda init bash
           source ~/.bashrc
           source activate ci_temp_env
+          
+          # replace documentation address for tags befro make docs
+          IFS='/' read -r OWNER REPO <<< "${GITHUB_REPOSITORY}"
+          URL_IO="https://${OWNER}.github.io/${REPO}"
+          URL="https://github.com/${OWNER}/${REPO}"
+          echo "Repository Documentation URL: $URL"
+
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+              TAG_NAME=${GITHUB_REF##*/}
+              DOCS_DEFAULT_URL="${URL_IO}/main/docs/"
+              DOCS_URL="${URL_IO}/tags/${TAG_NAME}/docs/"
+              sed -i "s|$DOCS_DEFAULT_URL|$DOCS_URL|g" README.rst
+          fi
+
+          # update new badge URL based on the branch or tag
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+              TAG_NAME=${GITHUB_REF##*/}
+              BADGE_URL="${URL}/actions/workflows/ci.yml/badge.svg?branch=$TAG_NAME"
+          else
+              BADGE_URL="${URL}/actions/workflows/ci.yml/badge.svg?branch=main"
+          fi
+          BADGE_DEFAULT_URL="${URL}/actions/workflows/ci.yml/badge.svg"
+          sed -i "s|${BADGE_DEFAULT_URL}|$BADGE_URL|g" README.rst
+
           make docs
         shell: bash
 
