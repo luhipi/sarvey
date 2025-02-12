@@ -98,7 +98,7 @@ jobs:
           # update new badge URL based on the branch or tag
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
               TAG_NAME=${GITHUB_REF##*/}
-              BADGE_URL="${URL}/actions/workflows/ci.yml/badge.svg?branch=$TAG_NAME"
+              BADGE_URL="${URL}/actions/workflows/ci.yml/badge.svg?tag=$TAG_NAME"
           else
               BADGE_URL="${URL}/actions/workflows/ci.yml/badge.svg?branch=main"
           fi
