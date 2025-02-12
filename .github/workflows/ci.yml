@@ -4,6 +4,9 @@ on:
   pull_request:
     branches:
       - main
+  push:
+    branches:
+      - main
   release:
     types: 
       - published
@@ -267,7 +270,7 @@ jobs:
             DOCS_PATH=public/tags/$TAG_NAME
           else
             echo "Deploying to GitHub Pages for main branch"
-            DOCS_PATH=public/dev
+            DOCS_PATH=public/main
           fi
 
           rm -rf  $DOCS_PATH
