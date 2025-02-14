@@ -2,16 +2,21 @@ name: CI
 
 on:
   pull_request:
+    branches:
+      - main
   push:
     branches:
       - main
+  release:
+    types: 
+      - published
 
 permissions:
   contents: write
 
 env:
     SKIP_DEPLOY: false
-    SKIP_INSTALL: false
+    SKIP_INSTALL: true
     SKIP_TEST: false
 
 jobs:
@@ -33,9 +38,12 @@ jobs:
 
       - name: Install dependencies
         run: |
+          source /opt/conda/etc/profile.d/conda.sh
           conda init bash
           source ~/.bashrc
-          source activate ci_env
+          conda env remove --name ci_temp_env --yes || echo "Environment ci_temp_env does not exist"
+          conda create --prefix /home/runneruser/.conda/envs/ci_temp_env --clone ci_env
+          conda activate ci_temp_env
         shell: bash
 
   test_sarvey:
@@ -53,16 +61,13 @@ jobs:
       - name: Run tests
         if: env.SKIP_TEST == 'false'
         run: |
+          source /opt/conda/etc/profile.d/conda.sh
           conda init bash
           source ~/.bashrc
-          mamba env remove --name ci_temp_env --yes || echo "Environment ci_temp_env does not exist"
-
-          mamba create -n ci_temp_env --clone ci_env
-          source activate ci_temp_env
-          mamba install json5
-          mamba install cmcrameri
+          conda activate ci_temp_env
           rm -rf tests/testdata
-          wget -nv -c -O testdata.zip https://seafile.projekt.uni-hannover.de/f/4b3be399dffa488e98db/?dl=1
+          # wget -nv -c -O testdata.zip https://seafile.projekt.uni-hannover.de/f/4b3be399dffa488e98db/?dl=1
+          wget -nv -c -O testdata.zip https://seafile.projekt.uni-hannover.de/f/104b499f6f7e4360877d/?dl=1          
           unzip testdata.zip
           mv testdata tests/
           mamba list
@@ -74,7 +79,36 @@ jobs:
         run: |
           conda init bash
           source ~/.bashrc
-          source activate ci_env
+          source activate ci_temp_env
+          
+          # replace documentation address for tags befro make docs
+          IFS='/' read -r OWNER REPO <<< "${GITHUB_REPOSITORY}"
+          URL_IO="https://${OWNER}.github.io/${REPO}"
+          URL="https://github.com/${OWNER}/${REPO}"
+          echo "Repository URL: $URL"
+          echo "Repository Documentation URL: $URL"
+
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+              TAG_NAME=${GITHUB_REF##*/}
+              DEFAULT_URL="${URL_IO}/main"
+              NEW_URL="${URL_IO}/tags/${TAG_NAME}"
+              sed -i "s|$DEFAULT_URL|$NEW_URL|g" README.rst
+          fi
+
+          # update new badge URL based on the branch or tag
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+              TAG_NAME=${GITHUB_REF##*/}
+              BADGE_URL="${URL}/actions/workflows/ci.yml/badge.svg?branch=$TAG_NAME"
+          else
+              BADGE_URL="${URL}/actions/workflows/ci.yml/badge.svg?branch=main"
+          fi
+          echo "Badge URL: $BADGE_URL"
+          BADGE_DEFAULT_URL="${URL}/actions/workflows/ci.yml/badge.svg"
+          sed -i "s|${BADGE_DEFAULT_URL}|$BADGE_URL|g" README.rst
+
+          echo "README.rst content"
+          cat README.rst
+
           make docs
         shell: bash
 
@@ -115,7 +149,7 @@ jobs:
 
   test_styles:
     runs-on: self-hosted
-    needs: before_script
+    needs: test_sarvey
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -128,9 +162,10 @@ jobs:
       - name: Install dependencies
         if: env.SKIP_TEST == 'false'
         run: |
+          source /opt/conda/etc/profile.d/conda.sh
           conda init bash
           source ~/.bashrc
-          source activate ci_env
+          conda activate ci_temp_env
           make lint
         shell: bash
 
@@ -157,7 +192,7 @@ jobs:
 
   test_urls:
     runs-on: self-hosted
-    needs: before_script
+    needs: test_sarvey
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -170,9 +205,10 @@ jobs:
       - name: Install dependencies
         if: env.SKIP_TEST == 'false'
         run: |
+          source /opt/conda/etc/profile.d/conda.sh
           conda init bash
           source ~/.bashrc
-          source activate ci_env
+          source activate ci_temp_env
           make urlcheck
         shell: bash
 
@@ -190,13 +226,16 @@ jobs:
       -   name: Install dependencies
           if: env.SKIP_INSTALL == 'false'
           run: |
-              source activate base
+              source /opt/conda/etc/profile.d/conda.sh
+              conda activate base
               mamba env remove --name sarvey_testinstall --yes || echo "Environment sarvey_testinstall does not exist"
+              mamba clean --index-cache --tarballs --packages -y
               pip install conda-merge
+              export PATH=$HOME/.local/bin:$PATH # workaround conda-merge not found!
               wget https://raw.githubusercontent.com/insarlab/MiaplPy/main/conda-env.yml
               conda-merge conda-env.yml tests/CI_docker/context/environment_sarvey.yml > env.yml
               mamba env create --name sarvey_testinstall -f env.yml
-              source activate sarvey_testinstall
+              conda activate sarvey_testinstall
               pip install git+https://github.com/insarlab/MiaplPy.git
               pip install .
               OUTPUT=$(pip check) || { echo "$OUTPUT"; true; }
@@ -207,8 +246,11 @@ jobs:
   deploy_pages:
     runs-on: self-hosted
 
-    needs: test_sarvey
-    if: github.ref == 'refs/heads/main'
+    needs: 
+      - test_sarvey
+      - test_urls
+      - test_styles
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -236,21 +278,37 @@ jobs:
           name: test-report
 
       - name: Deploy to GitHub Pages
-        if: env.SKIP_DEPLOY == 'false'
+        # trigger if merged into the main branch || published new tag
+        if: env.SKIP_DEPLOY == 'false' && github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
         run: |
           rm -rf public
-          mkdir -p public/docs
-          mkdir -p public/images/
-          mkdir -p public/coverage
-          mkdir -p public/test_reports
+          
+          git clone --branch gh-pages https://github.com/${{ github.repository }} public
 
-          cp -r docs/_build/html/* public/docs/
-          cp -r htmlcov/* public/coverage/
-          cp report.html public/test_reports/
-          ls -al public
-          ls -al public/docs
-          ls -al public/coverage
-          ls -al public/test_reports
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            TAG_NAME=${GITHUB_REF##*/}
+            echo "Deploying to GitHub Pages for version tag: $TAG_NAME"
+            DOCS_PATH=public/tags/$TAG_NAME
+          else
+            echo "Deploying to GitHub Pages for main branch"
+            DOCS_PATH=public/main
+          fi
+
+          rm -rf  $DOCS_PATH
+          mkdir -p $DOCS_PATH/docs
+          mkdir -p $DOCS_PATH/images
+          mkdir -p $DOCS_PATH/coverage
+          mkdir -p $DOCS_PATH/test_reports
+          
+          cp -r docs/_build/html/* $DOCS_PATH/docs
+          cp -r htmlcov/* $DOCS_PATH/coverage/
+          cp report.html $DOCS_PATH/test_reports/
+
+          ls -al $DOCS_PATH
+          ls -al $DOCS_PATH/docs
+          ls -al $DOCS_PATH/coverage
+          ls -al $DOCS_PATH/test_reports
+
         shell: bash
 
       - name: Upload to GitHub Pages
