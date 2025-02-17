@@ -22,7 +22,6 @@ env:
 jobs:
   before_script:
     runs-on: self-hosted
-
     strategy:
       matrix:
         node-version: [ 20.x ]
@@ -74,44 +73,63 @@ jobs:
           make pytest
         shell: bash
 
-      - name: create docs
+      # BUILD DOCUSAURUS DOCS
+      - name: Set up Node
+        if: env.SKIP_DEPLOY == 'false'
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install Node dependencies
         if: env.SKIP_DEPLOY == 'false'
         run: |
+          # If your Docusaurus project is in the root, this installs from package.json
+          npm ci
+        shell: bash
+
+      - name: Update README badges & run Docusaurus versioning (tag only)
+        if: env.SKIP_DEPLOY == 'false'
+        run: |
+          source /opt/conda/etc/profile.d/conda.sh
           conda init bash
           source ~/.bashrc
-          source activate ci_temp_env
+          conda activate ci_temp_env
           
-          # replace documentation address for tags befro make docs
           IFS='/' read -r OWNER REPO <<< "${GITHUB_REPOSITORY}"
           URL_IO="https://${OWNER}.github.io/${REPO}"
           URL="https://github.com/${OWNER}/${REPO}"
           echo "Repository URL: $URL"
-          echo "Repository Documentation URL: $URL"
+          echo "Repository Documentation URL: $URL_IO"
 
-          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
-              TAG_NAME=${GITHUB_REF##*/}
-              DEFAULT_URL="${URL_IO}/main"
-              NEW_URL="${URL_IO}/tags/${TAG_NAME}"
-              sed -i "s|$DEFAULT_URL|$NEW_URL|g" README.rst
-          fi
-
-          # update new badge URL based on the branch or tag
+          # Update the badge in README.rst
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
               TAG_NAME=${GITHUB_REF##*/}
               BADGE_URL="${URL}/actions/workflows/ci.yml/badge.svg?branch=$TAG_NAME"
-          else
+            else
               BADGE_URL="${URL}/actions/workflows/ci.yml/badge.svg?branch=main"
           fi
+
           echo "Badge URL: $BADGE_URL"
           BADGE_DEFAULT_URL="${URL}/actions/workflows/ci.yml/badge.svg"
           sed -i "s|${BADGE_DEFAULT_URL}|$BADGE_URL|g" README.rst
 
-          echo "README.rst content"
-          cat README.rst
+          # If pushing a tag like v1.2.3, create a new Docusaurus doc version
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+              TAG_NAME=${GITHUB_REF##*/}
+              echo "Docusaurus docs:version => $TAG_NAME"
+              npx docusaurus docs:version "$TAG_NAME"
+          fi
 
-          make docs
+      - name: Build Docusaurus docs
+        if: env.SKIP_DEPLOY == 'false' && github.event_name != 'pull_request'
+        run: |
+          # Produce the static site in the "build/" folder
+          npm run build
         shell: bash
 
+      # --------------------------------
+      # UPLOAD ARTIFACTS
+      # --------------------------------
       - name: Upload coverage report
         if: env.SKIP_DEPLOY == 'false'
         uses: actions/upload-artifact@v4
@@ -126,12 +144,12 @@ jobs:
           name: test-report
           path: report.html
 
-      - name: Upload docs
+      - name: Upload Docusaurus build
         if: env.SKIP_DEPLOY == 'false'
         uses: actions/upload-artifact@v4
         with:
-          name: docs
-          path: docs/_build/html/
+          name: docusaurus-build
+          path: build/
 
       - name: Upload cobertura coverage report
         if: env.SKIP_DEPLOY == 'false'
@@ -208,7 +226,7 @@ jobs:
           source /opt/conda/etc/profile.d/conda.sh
           conda init bash
           source ~/.bashrc
-          source activate ci_temp_env
+          conda activate ci_temp_env
           make urlcheck
         shell: bash
 
@@ -245,7 +263,6 @@ jobs:
 
   deploy_pages:
     runs-on: self-hosted
-
     needs: 
       - test_sarvey
       - test_urls
@@ -260,11 +277,11 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Download docs
+      - name: Download Docusaurus build artifact
         uses: actions/download-artifact@v4
         with:
-          name: docs
-          path: docs/_build/html/
+          name: docusaurus-build
+          path: build
 
       - name: Download coverage report
         uses: actions/download-artifact@v4
@@ -272,48 +289,27 @@ jobs:
           name: coverage-report
           path: htmlcov/
 
-      - name: Download report.html
+      - name: Download test report
         uses: actions/download-artifact@v4
         with:
           name: test-report
+          path: .
 
+      # ---------------------------------
+      # SSH Setup (if you want SSH-based deploy key)
+      # ---------------------------------
+      - name: Configure SSH
+        uses: webfactory/ssh-agent@v0.5.4
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      # ---------------------------------
+      # Deploy to GitHub Pages using SSH
+      # ---------------------------------
       - name: Deploy to GitHub Pages
-        # trigger if merged into the main branch || published new tag
-        if: env.SKIP_DEPLOY == 'false' && github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
-        run: |
-          rm -rf public
-          
-          git clone --branch gh-pages https://github.com/${{ github.repository }} public
-
-          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
-            TAG_NAME=${GITHUB_REF##*/}
-            echo "Deploying to GitHub Pages for version tag: $TAG_NAME"
-            DOCS_PATH=public/tags/$TAG_NAME
-          else
-            echo "Deploying to GitHub Pages for main branch"
-            DOCS_PATH=public/main
-          fi
-
-          rm -rf  $DOCS_PATH
-          mkdir -p $DOCS_PATH/docs
-          mkdir -p $DOCS_PATH/images
-          mkdir -p $DOCS_PATH/coverage
-          mkdir -p $DOCS_PATH/test_reports
-          
-          cp -r docs/_build/html/* $DOCS_PATH/docs
-          cp -r htmlcov/* $DOCS_PATH/coverage/
-          cp report.html $DOCS_PATH/test_reports/
-
-          ls -al $DOCS_PATH
-          ls -al $DOCS_PATH/docs
-          ls -al $DOCS_PATH/coverage
-          ls -al $DOCS_PATH/test_reports
-
-        shell: bash
-
-      - name: Upload to GitHub Pages
-        if: env.SKIP_DEPLOY == 'false'
+        if: env.SKIP_DEPLOY == 'false' && github.event_name != 'pull_request'
         uses: peaceiris/actions-gh-pages@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./public
+          deploy_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          publish_branch: gh-pages
+          publish_dir: ./build
