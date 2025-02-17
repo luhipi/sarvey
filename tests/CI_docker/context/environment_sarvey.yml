@@ -41,9 +41,11 @@ dependencies:
   - sphinx-argparse
   - sphinx-autodoc-typehints
   - sphinxcontrib-jquery
+  - sphinx_rtd_theme
   # deployment requirements
   - twine
 
   - pip:
           - kamui[extra]
           - pytest-reporter-html1
+          - cmcrameri
