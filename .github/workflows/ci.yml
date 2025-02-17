@@ -40,7 +40,7 @@ jobs:
           source /opt/conda/etc/profile.d/conda.sh
           conda init bash
           source ~/.bashrc
-          conda env remove --name ci_temp_env --yes || echo "Environment ci_temp_env does not exist"
+          conda env remove --prefix /home/runneruser/.conda/envs/ci_temp_env --yes || rm -rf /home/runneruser/.conda/envs/ci_temp_env
           conda create --prefix /home/runneruser/.conda/envs/ci_temp_env --clone ci_env
           conda activate ci_temp_env
         shell: bash
