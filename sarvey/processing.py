@@ -28,11 +28,11 @@
 # with this program. If not, see <https://www.gnu.org/licenses/>.
 
 """Processing module for SARvey."""
-from os.path import join, exists
+from os.path import join
 import matplotlib.pyplot as plt
-from matplotlib import colormaps
 import numpy as np
 from logging import Logger
+import cmcrameri as cmc
 
 from miaplpy.objects.slcStack import slcStack
 from mintpy.utils import readfile
@@ -148,7 +148,7 @@ class Processing:
         fig = ifg_net_obj.plot()
         fig.savefig(join(self.path, "pic", "step_0_interferogram_network.png"), dpi=300)
         plt.close(fig)
-
+        # at this point just created folder pic and ifg_network.h5
         msg = "#" * 10
         msg += f" GENERATE STACK OF {ifg_net_obj.num_ifgs} INTERFEROGRAMS & ESTIMATE TEMPORAL COHERENCE "
         msg += "#" * 10
@@ -181,33 +181,30 @@ class Processing:
             num_boxes=num_patches,
             box_list=box_list,
             num_cores=self.config.general.num_cores,
-            logger=log
-        )
+            logger=log)
 
         # store auxilliary datasets for faster access during processing
-        if not exists(join(self.path, "coordinates_map.h5")):
-            coord_map_obj = CoordinatesMap(file_path=join(self.path, "coordinates_map.h5"), logger=self.logger)
-            coord_map_obj.prepare(input_path=join(self.config.general.input_path, "geometryRadar.h5"))
-            del coord_map_obj
+        coord_map_obj = CoordinatesMap(file_path=join(self.path, "coordinates_map.h5"), logger=self.logger)
+        coord_map_obj.prepare(input_path=join(self.config.general.input_path, "geometryRadar.h5"))
+        del coord_map_obj
 
-        if not exists(join(self.path, "background_map.h5")):
-            bmap_obj = AmplitudeImage(file_path=join(self.path, "background_map.h5"))
-            bmap_obj.prepare(slc_stack_obj=slc_stack_obj, img=mean_amp_img, logger=self.logger)
-            ax = bmap_obj.plot(logger=self.logger)
-            img = ax.get_images()[0]
-            cbar = plt.colorbar(img, pad=0.03, shrink=0.5)
-            cbar.ax.set_visible(False)
-            plt.tight_layout()
-            plt.gcf().savefig(join(self.path, "pic", "step_0_amplitude_image.png"), dpi=300)
-            plt.close(plt.gcf())
-            del bmap_obj
+        bmap_obj = AmplitudeImage(file_path=join(self.path, "background_map.h5"))
+        bmap_obj.prepare(slc_stack_obj=slc_stack_obj, img=mean_amp_img, logger=self.logger)
+        ax = bmap_obj.plot(logger=self.logger)
+        img = ax.get_images()[0]
+        cbar = plt.colorbar(img, pad=0.03, shrink=0.5)
+        cbar.ax.set_visible(False)
+        plt.tight_layout()
+        plt.gcf().savefig(join(self.path, "pic", "step_0_amplitude_image.png"), dpi=300)
+        plt.close(plt.gcf())
+        del bmap_obj
         del mean_amp_img
 
         temp_coh = temp_coh_obj.read(dataset_name="temp_coh")
 
         fig = plt.figure(figsize=(15, 5))
         ax = fig.add_subplot()
-        im = ax.imshow(temp_coh, cmap=colormaps["gray"], vmin=0, vmax=1)
+        im = ax.imshow(temp_coh, cmap=cmc.cm.cmaps["grayC"], vmin=0, vmax=1)
         auto_flip_direction(slc_stack_obj.metadata, ax=ax, print_msg=True)
         ax.set_xlabel("Range")
         ax.set_ylabel("Azimuth")
@@ -243,11 +240,11 @@ class Processing:
 
         fig = plt.figure(figsize=(15, 5))
         ax = fig.add_subplot()
-        ax.imshow(mask_valid_area, cmap=plt.cm.get_cmap("gray"), alpha=0.5, zorder=10, vmin=0, vmax=1)
+        ax.imshow(mask_valid_area, cmap=cmc.cm.cmaps["grayC"], alpha=0.5, zorder=10, vmin=0, vmax=1)
         bmap_obj.plot(ax=ax, logger=self.logger)
         coord_xy = np.array(np.where(cand_mask1)).transpose()
         val = np.ones_like(cand_mask1)
-        sc = ax.scatter(coord_xy[:, 1], coord_xy[:, 0], c=val[cand_mask1], s=0.5, cmap=plt.get_cmap("autumn_r"),
+        sc = ax.scatter(coord_xy[:, 1], coord_xy[:, 0], c=val[cand_mask1], s=0.5, cmap=cmc.cm.cmaps["lajolla_r"],
                         vmin=1, vmax=2)  # set min, max to ensure that points are yellow
         cbar = plt.colorbar(sc, pad=0.03, shrink=0.5)
         cbar.ax.set_visible(False)  # make size of axis consistent with all others
@@ -322,7 +319,7 @@ class Processing:
             ax, cbar = viewer.plotColoredPointNetwork(x=point_obj.coord_xy[:, 1], y=point_obj.coord_xy[:, 0],
                                                       arcs=net_par_obj.arcs[arc_mask, :],
                                                       val=net_par_obj.gamma[arc_mask],
-                                                      ax=ax, linewidth=1, cmap_name="autumn", clim=(0, 1))
+                                                      ax=ax, linewidth=1, cmap="lajolla", clim=(0, 1))
             ax.set_title("Coherence from temporal unwrapping\n"
                          r"(only arcs with $\gamma \leq$ {} "
                          "shown)\nBefore outlier removal".format(thrsh_visualisation))
@@ -347,7 +344,7 @@ class Processing:
             ax, cbar = viewer.plotColoredPointNetwork(x=coord_xy[:, 1], y=coord_xy[:, 0],
                                                       arcs=net_par_obj.arcs[arc_mask, :],
                                                       val=net_par_obj.gamma[arc_mask],
-                                                      ax=ax, linewidth=1, cmap_name="autumn", clim=(0, 1))
+                                                      ax=ax, linewidth=1, cmap="lajolla", clim=(0, 1))
             ax.set_title("Coherence from temporal unwrapping\n"
                          r"(only arcs with $\gamma \leq$ {} "
                          "shown)\nAfter outlier removal".format(thrsh_visualisation))
@@ -403,7 +400,8 @@ class Processing:
         #                                               max_rm_fraction=0.001)
         fig = viewer.plotScatter(value=-demerr, coord=point_obj.coord_xy,
                                  ttl="Parameter integration: DEM correction in [m]",
-                                 bmap_obj=bmap_obj, s=3.5, cmap="jet_r", symmetric=True, logger=self.logger)[0]
+                                 bmap_obj=bmap_obj, s=3.5, cmap="vanimo", symmetric=True,
+                                 logger=self.logger)[0]
         fig.savefig(join(self.path, "pic", "step_2_estimation_dem_correction.png"), dpi=300)
         plt.close(fig)
 
@@ -422,7 +420,8 @@ class Processing:
         #                                            max_rm_fraction=0.001)
         fig = viewer.plotScatter(value=-vel, coord=point_obj.coord_xy,
                                  ttl="Parameter integration: mean velocity in [m / year]",
-                                 bmap_obj=bmap_obj, s=3.5, cmap="jet_r", symmetric=True, logger=self.logger)[0]
+                                 bmap_obj=bmap_obj, s=3.5, cmap="roma", symmetric=True,
+                                 logger=self.logger)[0]
         fig.savefig(join(self.path, "pic", "step_2_estimation_velocity.png"), dpi=300)
         plt.close(fig)
 
@@ -509,7 +508,7 @@ class Processing:
                                                   y=point_obj.coord_xy[:, 0],
                                                   arcs=arcs,
                                                   val=np.zeros(arcs.shape[0], dtype=np.float32),
-                                                  ax=ax, linewidth=0.5, cmap_name="hot", clim=(0, 1))
+                                                  ax=ax, linewidth=0.5, cmap="lajolla", clim=(0, 1))
         cbar.ax.set_visible(False)
         ax.set_xlabel("Range")
         ax.set_ylabel("Azimuth")
@@ -584,7 +583,7 @@ class Processing:
         auto_corr_img[~mask] = np.inf
 
         fig = viewer.plotScatter(value=auto_corr, coord=point1_obj.coord_xy, bmap_obj=bmap_obj,
-                                 ttl="Temporal autocorrelation", unit="[ ]", s=3.5, cmap="autumn_r",
+                                 ttl="Temporal autocorrelation", unit="[ ]", s=3.5, cmap="lajolla",
                                  vmin=0, vmax=1, logger=self.logger)[0]
         fig.savefig(join(self.path, "pic", "step_3_temporal_autocorrelation.png"), dpi=300)
         plt.close(fig)
@@ -618,7 +617,7 @@ class Processing:
         # store plot for quality control during processing
         fig, ax = viewer.plotScatter(value=auto_corr_img[cand_mask_sparse], coord=point1_obj.coord_xy,
                                      bmap_obj=bmap_obj, ttl="Selected pixels for APS estimation",
-                                     unit="Auto-correlation\n[ ]", s=5, cmap="autumn_r", vmin=0, vmax=1,
+                                     unit="Auto-correlation\n[ ]", s=5, cmap="lajolla", vmin=0, vmax=1,
                                      logger=self.logger)[:2]
         viewer.plotGridFromBoxList(box_list=box_list, ax=ax, edgecolor="k", linewidth=0.2)
         fig.savefig(join(self.path, "pic", "step_3_stable_points.png"), dpi=300)
@@ -669,12 +668,12 @@ class Processing:
 
                 fig = plt.figure(figsize=(15, 5))
                 ax = fig.add_subplot()
-                ax.imshow(mask_pl_aoi, cmap=plt.cm.get_cmap("gray"), alpha=0.5, zorder=10, vmin=0, vmax=1)
+                ax.imshow(mask_pl_aoi, cmap=cmc.cm.cmaps["grayC"], alpha=0.5, zorder=10, vmin=0, vmax=1)
                 bmap_obj.plot(ax=ax, logger=self.logger)
                 coord_xy = np.array(np.where(cand_mask_pl)).transpose()
                 val = np.ones_like(cand_mask_pl)
                 sc = ax.scatter(coord_xy[:, 1], coord_xy[:, 0], c=val[cand_mask_pl], s=0.5,
-                                cmap=plt.get_cmap("autumn_r"),
+                                cmap=cmc.cm.cmaps["lajolla_r"],
                                 vmin=1, vmax=2)  # set min, max to ensure that points are yellow
                 cbar = plt.colorbar(sc, pad=0.03, shrink=0.5)
                 cbar.ax.set_visible(False)  # make size of axis consistent with all others
@@ -707,12 +706,12 @@ class Processing:
 
         fig = plt.figure(figsize=(15, 5))
         ax = fig.add_subplot()
-        ax.imshow(mask_valid_area, cmap=plt.cm.get_cmap("gray"), alpha=0.5, zorder=10, vmin=0, vmax=1)
+        ax.imshow(mask_valid_area, cmap=cmc.cm.cmaps["grayC"], alpha=0.5, zorder=10, vmin=0, vmax=1)
         bmap_obj.plot(ax=ax, logger=self.logger)
         coord_xy = np.array(np.where(cand_mask2)).transpose()
         val = np.ones_like(cand_mask2)
-        sc = ax.scatter(coord_xy[:, 1], coord_xy[:, 0], c=val[cand_mask2], s=0.5, cmap=plt.get_cmap("autumn_r"),
-                        vmin=1, vmax=2)  # set min, max to ensure that points are yellow
+        sc = ax.scatter(coord_xy[:, 1], coord_xy[:, 0], c=val[cand_mask2], s=0.5, cmap=cmc.cm.cmaps["lajolla_r"],
+                        vmin=0, vmax=10)  # set min, max to ensure that points are yellow
         cbar = plt.colorbar(sc, pad=0.03, shrink=0.5)
         cbar.ax.set_visible(False)  # make size of axis consistent with all others
         plt.tight_layout()
@@ -951,8 +950,8 @@ class Processing:
 
         bmap_obj = AmplitudeImage(file_path=join(self.path, "background_map.h5"))
         fig = viewer.plotScatter(value=gamma, coord=point2_obj.coord_xy, bmap_obj=bmap_obj,
-                                 ttl="Coherence from temporal unwrapping\nBefore outlier removal", s=3.5, cmap="autumn",
-                                 vmin=0, vmax=1, logger=self.logger)[0]
+                                 ttl="Coherence from temporal unwrapping\nBefore outlier removal", s=3.5,
+                                 cmap="lajolla", vmin=0, vmax=1, logger=self.logger)[0]
         fig.savefig(join(self.path, "pic", "step_4_temporal_unwrapping_p2_coh{}.png".format(coh_value)), dpi=300)
         plt.close(fig)
 
@@ -976,20 +975,22 @@ class Processing:
         plt.close(fig)
 
         fig = viewer.plotScatter(value=gamma[mask_gamma], coord=point2_obj.coord_xy, bmap_obj=bmap_obj,
-                                 ttl="Coherence from temporal unwrapping\nAfter outlier removal", s=3.5, cmap="autumn",
-                                 vmin=0, vmax=1, logger=self.logger)[0]
+                                 ttl="Coherence from temporal unwrapping\nAfter outlier removal", s=3.5,
+                                 cmap="lajolla", vmin=0, vmax=1, logger=self.logger)[0]
         fig.savefig(join(self.path, "pic", "step_4_temporal_unwrapping_p2_coh{}_reduced.png".format(coh_value)),
                     dpi=300)
         plt.close(fig)
 
         fig = viewer.plotScatter(value=-vel[mask_gamma], coord=point2_obj.coord_xy,
                                  ttl="Mean velocity in [m / year]",
-                                 bmap_obj=bmap_obj, s=3.5, cmap="jet_r", symmetric=True, logger=self.logger)[0]
+                                 bmap_obj=bmap_obj, s=3.5, cmap="roma", symmetric=True,
+                                 logger=self.logger)[0]
         fig.savefig(join(self.path, "pic", "step_4_estimation_velocity_p2_coh{}.png".format(coh_value)), dpi=300)
         plt.close(fig)
 
-        fig = viewer.plotScatter(value=-demerr[mask_gamma], coord=point2_obj.coord_xy, ttl="DEM error in [m]",
-                                 bmap_obj=bmap_obj, s=3.5, cmap="jet_r", symmetric=True, logger=self.logger)[0]
+        fig = viewer.plotScatter(value=-demerr[mask_gamma], coord=point2_obj.coord_xy, ttl="DEM correction in [m]",
+                                 bmap_obj=bmap_obj, s=3.5, cmap="vanimo", symmetric=True,
+                                 logger=self.logger)[0]
         fig.savefig(join(self.path, "pic", "step_4_estimation_dem_correction_p2_coh{}.png".format(coh_value)), dpi=300)
         plt.close(fig)
 

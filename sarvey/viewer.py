@@ -34,14 +34,15 @@ from logging import Logger
 import matplotlib.cm as cm
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
-from matplotlib import colormaps, widgets
+from matplotlib import widgets
 from matplotlib.backend_bases import MouseButton
 from matplotlib.colors import Normalize
 import numpy as np
 from scipy.spatial import KDTree
 import datetime
+import cmcrameri as cmc
 
-from mintpy.objects.colors import ColormapExt
+from mintpy.objects.colors import ColormapExt  # for DEM_print colormap
 from mintpy.utils import readfile
 from mintpy.utils.plot import auto_flip_direction
 
@@ -49,7 +50,8 @@ from sarvey.objects import AmplitudeImage, Points, BaseStack
 import sarvey.utils as ut
 
 
-def plotIfgs(*, phase: np.ndarray, coord: np.ndarray, spatial_ref_idx: int = None, ttl: str = None, cmap: str = "cmy"):
+def plotIfgs(*, phase: np.ndarray, coord: np.ndarray, spatial_ref_idx: int = None, ttl: str = None,
+             cmap: str = "romaO"):
     """Plot one interferogram per subplot.
 
     Parameters
@@ -63,13 +65,8 @@ def plotIfgs(*, phase: np.ndarray, coord: np.ndarray, spatial_ref_idx: int = Non
     ttl: str
         title for the figure (default: None)
     cmap: str
-        colormap, use "cmy" for wrapped phase data (default) or "?" for unwrapped or residual phase
+        colormap name (default: "romaO")
     """
-    if cmap == "cmy":
-        cmap = ColormapExt('cmy').colormap
-    else:
-        cmap = plt.get_cmap(cmap)
-
     num_ifgs = phase.shape[1]
     min_val = np.min(phase)
     max_val = np.max(phase)
@@ -79,7 +76,7 @@ def plotIfgs(*, phase: np.ndarray, coord: np.ndarray, spatial_ref_idx: int = Non
     for i, ax in enumerate(axs.flat):
         if i < num_ifgs:
             sc = ax.scatter(coord[:, 1], coord[:, 0], c=phase[:, i],
-                            vmin=min_val, vmax=max_val, s=1, cmap=cmap)
+                            vmin=min_val, vmax=max_val, s=1, cmap=cmc.cm.cmaps[cmap])
             ax.axes.set_xticks([])
             ax.axes.set_yticks([])
             if spatial_ref_idx is not None:
@@ -94,7 +91,7 @@ def plotIfgs(*, phase: np.ndarray, coord: np.ndarray, spatial_ref_idx: int = Non
 
 
 def plotScatter(*, value: np.ndarray, coord: np.ndarray, bmap_obj: AmplitudeImage = None, ttl: str = None,
-                unit: str = None, s: float = 5.0, cmap: colormaps = colormaps["jet_r"], symmetric: bool = False,
+                unit: str = None, s: float = 5.0, cmap: str = "batlow", symmetric: bool = False,
                 logger: Logger, **kwargs: Any):
     """Plot a scatter map for given value.
 
@@ -114,7 +111,7 @@ def plotScatter(*, value: np.ndarray, coord: np.ndarray, bmap_obj: AmplitudeImag
     s: float
         size of the scatter points (default: 5.0)
     cmap: str
-        colormap (default: "jet_r")
+        colormap (default: "batlow")
     symmetric: bool
         plot symmetric colormap extend, i.e. abs(vmin) == abs(vmax) (default: False)
     logger: Logger
@@ -140,10 +137,11 @@ def plotScatter(*, value: np.ndarray, coord: np.ndarray, bmap_obj: AmplitudeImag
 
     if symmetric:
         v_range = np.max(np.abs(value.ravel()))
-        sc = ax.scatter(coord[:, 1], coord[:, 0], c=value, s=s, cmap=plt.get_cmap(cmap),
+        sc = ax.scatter(coord[:, 1], coord[:, 0], c=value, s=s, cmap=cmc.cm.cmaps[cmap],
                         vmin=-v_range, vmax=v_range)
     else:
-        sc = ax.scatter(coord[:, 1], coord[:, 0], c=value, s=s, cmap=plt.get_cmap(cmap), **kwargs)
+        sc = ax.scatter(coord[:, 1], coord[:, 0], c=value, s=s, cmap=cmc.cm.cmaps[cmap], **kwargs)
+
     cb = plt.colorbar(sc, ax=ax, pad=0.03, shrink=0.5)
     cb.ax.set_title(unit)
     ax.set_title(ttl)
@@ -152,7 +150,7 @@ def plotScatter(*, value: np.ndarray, coord: np.ndarray, bmap_obj: AmplitudeImag
 
 
 def plotColoredPointNetwork(*, x: np.ndarray, y: np.ndarray, arcs: np.ndarray, val: np.ndarray, ax: plt.Axes = None,
-                            linewidth: float = 2, cmap_name: str = "seismic", clim: tuple = None):
+                            linewidth: float = 2, cmap: str = "vik", clim: tuple = None):
     """Plot a network of points with colored arcs.
 
     Parameters
@@ -169,8 +167,8 @@ def plotColoredPointNetwork(*, x: np.ndarray, y: np.ndarray, arcs: np.ndarray, v
         axis for plotting (default: None)
     linewidth: float
         line width of the arcs (default: 2)
-    cmap_name: str
-        name of the colormap (default: "seismic")
+    cmap: str
+        name of the colormap (default: "vik")
     clim: tuple
         color limits for the colormap (default: None)
 
@@ -182,7 +180,7 @@ def plotColoredPointNetwork(*, x: np.ndarray, y: np.ndarray, arcs: np.ndarray, v
         current colorbar
     """
     if ax is None:
-        fig = plt.figure(figsize=[15, 5])
+        fig = plt.figure(figsize=(15, 5))
         ax = fig.add_subplot()
     else:
         fig = ax.get_figure()
@@ -193,7 +191,7 @@ def plotColoredPointNetwork(*, x: np.ndarray, y: np.ndarray, arcs: np.ndarray, v
     else:
         norm = Normalize(vmin=clim[0], vmax=clim[1])
 
-    mapper = cm.ScalarMappable(norm=norm, cmap=cm.get_cmap(cmap_name))
+    mapper = cm.ScalarMappable(norm=norm, cmap=cmc.cm.cmaps[cmap])
     mapper_list = [mapper.to_rgba(v) for v in val]
     for m in range(arcs.shape[0]):
         x_val = [x[arcs[m, 0]], x[arcs[m, 1]]]
@@ -293,7 +291,7 @@ class TimeSeriesViewer:
         self.fig1 = plt.figure()
         self.ax_img = self.fig1.subplots(1, 1)
 
-        self.ax_cb = self.fig1.add_axes([0.93, 0.6, 0.015, 0.15])  # (left, bottom, width, height)
+        self.ax_cb = self.fig1.add_axes((0.93, 0.6, 0.015, 0.15))  # (left, bottom, width, height)
         self.cb = self.fig1.colorbar(self.sc,
                                      cax=self.ax_cb,
                                      ax=self.ax_img,
@@ -304,23 +302,23 @@ class TimeSeriesViewer:
 
         # add button to select reference point
         self.set_reference_point = False
-        self.ax_button = self.fig1.add_axes([0.125, 0.9, 0.1, 0.08])  # (left, bottom, width, height)
+        self.ax_button = self.fig1.add_axes((0.125, 0.9, 0.1, 0.08))  # (left, bottom, width, height)
         self.button_mask = widgets.Button(ax=self.ax_button, label='Select\nReference', image=None, color='1')
         self.button_mask.on_clicked(self.updateButtonStatus)
 
         # add radiobutton to select parameter
-        self.ax_radio_par = self.fig1.add_axes([0.225, 0.9, 0.2, 0.08])  # (left, bottom, width, height)
-        self.rb_par = widgets.RadioButtons(self.ax_radio_par, labels=['Velocity', 'DEM error', 'None'], active=0)
+        self.ax_radio_par = self.fig1.add_axes((0.225, 0.9, 0.2, 0.08))  # (left, bottom, width, height)
+        self.rb_par = widgets.RadioButtons(self.ax_radio_par, labels=['Velocity', 'DEM correction', 'None'], active=0)
         self.rb_par.on_clicked(self.plotMap)
 
         # add radiobutton to select background image
-        self.ax_radio_backgr = self.fig1.add_axes([0.425, 0.9, 0.2, 0.08])  # (left, bottom, width, height)
+        self.ax_radio_backgr = self.fig1.add_axes((0.425, 0.9, 0.2, 0.08))  # (left, bottom, width, height)
         self.rb_backgr = widgets.RadioButtons(self.ax_radio_backgr, labels=['Amplitude', 'DEM', 'Coherence', 'None'],
                                               active=0)
         self.rb_backgr.on_clicked(self.plotMap)
 
         # add info box with info about velocity and DEM error of selected pixel
-        self.ax_info_box = self.fig1.add_axes([0.625, 0.9, 0.2, 0.08])  # (left, bottom, width, height)
+        self.ax_info_box = self.fig1.add_axes((0.625, 0.9, 0.2, 0.08))  # (left, bottom, width, height)
         self.text_obj_time = self.ax_info_box.text(0.1, 0.1, "")
         self.ax_info_box.set_xticks([], [])
         self.ax_info_box.set_yticks([], [])
@@ -336,11 +334,11 @@ class TimeSeriesViewer:
         self.ax_ts = self.fig2.subplots(1, 1)
 
         # add radiobutton for fitting linear model
-        self.ax_radio_fit = self.fig2.add_axes([0.125, 0.9, 0.2, 0.08])  # (left, bottom, width, height)
+        self.ax_radio_fit = self.fig2.add_axes((0.125, 0.9, 0.2, 0.08))  # (left, bottom, width, height)
         self.rb_fit = widgets.RadioButtons(self.ax_radio_fit, labels=['None', 'Linear fit'], active=0)
 
         # add radiobutton for selecting baseline type
-        self.ax_radio_baselines = self.fig2.add_axes([0.325, 0.9, 0.2, 0.08])  # (left, bottom, width, height)
+        self.ax_radio_baselines = self.fig2.add_axes((0.325, 0.9, 0.2, 0.08))  # (left, bottom, width, height)
         self.rb_baselines = widgets.RadioButtons(
             self.ax_radio_baselines,
             labels=['Temporal baseline', 'Perpendicular baseline'],
@@ -348,10 +346,10 @@ class TimeSeriesViewer:
         )
 
         # add check box for removing phase due to parameters
-        self.ax_cbox_par = self.fig2.add_axes([0.525, 0.9, 0.2, 0.08])  # (left, bottom, width, height)
+        self.ax_cbox_par = self.fig2.add_axes((0.525, 0.9, 0.2, 0.08))  # (left, bottom, width, height)
         self.cbox_par = widgets.CheckButtons(
             self.ax_cbox_par,
-            ["Velocity", "DEM error"],
+            ["Velocity", "DEM correction"],
             actives=[True, False]
         )
         self.rb_fit.on_clicked(self.plotPointTimeseries)
@@ -389,7 +387,7 @@ class TimeSeriesViewer:
         if self.rb_backgr.value_selected == "Coherence":
             if self.ax_slide_coh is None:
                 # add slider to change value of coherence for background map
-                self.ax_slide_coh = self.fig1.add_axes([0.425, 0.85, 0.2, 0.03])  # (left, bottom, width, height)
+                self.ax_slide_coh = self.fig1.add_axes((0.425, 0.85, 0.2, 0.03))  # (left, bottom, width, height)
                 self.sl_coh = widgets.Slider(self.ax_slide_coh,
                                              label='Coherence',
                                              valmin=0.0,
@@ -398,7 +396,7 @@ class TimeSeriesViewer:
                                              valfmt="%.1f")
 
             self.ax_img.imshow(self.temp_coh_img,
-                               cmap=plt.get_cmap("gray"),
+                               cmap=cmc.cm.cmaps["grayC"],
                                vmin=np.round(self.sl_coh.val, decimals=1),
                                vmax=1)
             meta = {"ORBIT_DIRECTION": self.bmap_obj.orbit_direction}
@@ -406,7 +404,7 @@ class TimeSeriesViewer:
             self.ax_img.set_xlabel("Range")
             self.ax_img.set_ylabel("Azimuth")
         if self.rb_backgr.value_selected == "None":
-            self.ax_img.imshow(np.ones_like(self.height, dtype=np.int8), cmap=plt.cm.get_cmap("gray"), vmin=0, vmax=1)
+            self.ax_img.imshow(np.ones_like(self.height, dtype=np.int8), cmap=cmc.cm.cmaps["grayC"], vmin=0, vmax=1)
             meta = {"ORBIT_DIRECTION": self.bmap_obj.orbit_direction}
             auto_flip_direction(meta, ax=self.ax_img, print_msg=False)
             self.ax_img.set_xlabel("Range")
@@ -423,17 +421,19 @@ class TimeSeriesViewer:
             v_range = np.max(np.abs(self.vel * self.scale))
             par = self.vel * self.scale
             cb_ttl = f"[{self.vel_scale}/\nyear]"
-        elif self.rb_par.value_selected == "DEM error":  # show demerr
+            cmap = cmc.cm.cmaps["roma"]
+        elif self.rb_par.value_selected == "DEM correction":  # show demerr
             v_range = np.max(np.abs(self.demerr))
             par = self.demerr
             cb_ttl = "[m]"
+            cmap = cmc.cm.cmaps["vanimo"]
 
         if self.rb_par.value_selected != "None":
             self.sc = self.ax_img.scatter(self.point_obj.coord_xy[:, 1],
                                           self.point_obj.coord_xy[:, 0],
                                           c=par,
                                           s=5,
-                                          cmap=colormaps["jet_r"],
+                                          cmap=cmap,
                                           vmin=-v_range,
                                           vmax=v_range)
 
@@ -441,7 +441,7 @@ class TimeSeriesViewer:
         self.cb = self.fig1.colorbar(self.sc, cax=self.ax_cb, ax=self.ax_img, pad=0.03, shrink=0.8, aspect=10,
                                      orientation='vertical')
 
-        # add back location of selected sarvey point and current reference
+        # add back location of selected time series point and current reference
         if self.ts_refpoint_idx is not None:  # initial value is None
             y, x = self.point_obj.coord_xy[self.ts_refpoint_idx, :]
             self.ts_refpoint_marker = self.ax_img.scatter(x, y, marker='^', facecolors='none', edgecolors='k')

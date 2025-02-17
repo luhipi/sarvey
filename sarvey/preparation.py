@@ -198,7 +198,7 @@ def selectPixels(*, path: str, selection_method: str, thrsh: float,
         cand_mask = quality >= thrsh
         grid_min_val = False
         unit = "Temporal\nCoherence [ ]"
-        cmap = "autumn"
+        cmap = "lajolla"
 
     if selection_method == "miaplpy":
         raise NotImplementedError("This part is not developed yet. MiaplPy data is read in another way.")
@@ -208,7 +208,7 @@ def selectPixels(*, path: str, selection_method: str, thrsh: float,
         # quality = pl_coherence
         # grid_min_val = False
         # unit = "Phase-Linking\nCoherence [ ]"
-        # cmap = "autumn"
+        # cmap = "lajolla"
 
     if grid_size is not None:  # -> sparse pixel selection
         coord_map_obj = CoordinatesMap(file_path=join(path, "coordinates_map.h5"), logger=logger)

@@ -45,7 +45,7 @@ with open("sarvey/version.py") as version_file:
 req = [
     "cython", "numpy", "pyproj", "matplotlib", "numba", "scipy",
     "mintpy", "h5py", "overpy", "miaplpy", "gstools", "shapely", "pandas", "geopandas", "pymaxflow",
-    "pillow", "pydantic<=1.10.10", "importlib_resources", "kamui", "json5"
+    "pillow", "pydantic<=1.10.10", "importlib_resources", "kamui", "json5", "cmcrameri"
 ]
 
 req_setup = []
@@ -55,7 +55,8 @@ req_test = ['pytest>=3', 'pytest-cov', 'pytest-reporter-html1', 'urlchecker']
 req_doc = [
     'sphinx>=4.1.1',
     'sphinx-argparse',
-    'sphinx-autodoc-typehints'
+    'sphinx-autodoc-typehints',
+    'sphinx_rtd_theme'
 ]
 
 req_lint = ['flake8', 'pycodestyle', 'pydocstyle']

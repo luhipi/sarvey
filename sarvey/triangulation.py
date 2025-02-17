@@ -137,7 +137,7 @@ class PointNetworkTriangulation:
             idx = tree.query(self.coord_xy[p1, :], k)[1]
             self.adj_mat[p1, idx] = True
             count += 1
-            prog_bar.update(value=count + 1, every=np.int16(num_points / 250),
+            prog_bar.update(value=count + 1, every=np.int16(num_points / (num_points / 5)),
                             suffix='{}/{} points triangulated'.format(count + 1, num_points + 1))
         prog_bar.close()
         m, s = divmod(time.time() - start_time, 60)
