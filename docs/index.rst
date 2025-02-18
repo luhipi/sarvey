@@ -12,6 +12,7 @@ SARvey documentation
    usage
    preparation
    processing
+   tcs
    demo_datasets
    modules
    contributing
