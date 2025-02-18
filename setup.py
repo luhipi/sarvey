@@ -45,7 +45,7 @@ with open("sarvey/version.py") as version_file:
 req = [
     "cython", "numpy", "pyproj", "matplotlib", "numba", "scipy",
     "mintpy", "h5py", "overpy", "miaplpy", "gstools", "shapely", "pandas", "geopandas", "pymaxflow",
-    "pillow", "pydantic<=1.10.10", "importlib_resources", "kamui", "json5", "cmcrameri", "gdal"
+    "pillow", "pydantic<=1.10.10", "importlib_resources", "kamui", "json5", "cmcrameri"
 ]
 
 req_setup = []
@@ -62,6 +62,8 @@ req_doc = [
 req_lint = ['flake8', 'pycodestyle', 'pydocstyle']
 
 req_dev = ['twine'] + req_setup + req_test + req_doc + req_lint
+
+extra_req = ["gdal"]
 
 setup(
     author="Andreas Piter",
