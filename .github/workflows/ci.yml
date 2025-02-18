@@ -69,6 +69,7 @@ jobs:
           # wget -nv -c -O testdata.zip https://seafile.projekt.uni-hannover.de/f/4b3be399dffa488e98db/?dl=1
           wget -nv -c -O testdata.zip https://seafile.projekt.uni-hannover.de/f/104b499f6f7e4360877d/?dl=1          
           unzip testdata.zip
+          mkdir -p test
           mv testdata tests/
           mamba list
           make pytest

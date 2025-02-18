@@ -13,7 +13,7 @@ SARvey is a cross-platform python-based software and can be installed on
 Linux
 -----
 
-On Linux, SARvey can be installed `Using Mamba (recommended)`_ or `Using Anaconda or Miniconda`_.
+On Linux, SARvey can be installed `Using Mamba (recommended)`_ or `Using Anaconda or Miniconda`_ or `Using Pip`_.
 
 Using Mamba (recommended)
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -43,10 +43,6 @@ Using mamba_ (latest version recommended), **SARvey** is installed as follows:
     pip install .
 
 
-This is the preferred method to install **SARvey**, as it always installs the most recent stable release and
-automatically resolves all the dependencies.
-
-
 Using Anaconda or Miniconda
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -73,6 +69,34 @@ Using conda_ (latest version recommended), **SARvey** is installed as follows:
     conda activate sarvey
     pip install git+https://github.com/insarlab/MiaplPy.git
     pip install .
+
+
+Using pip
+^^^^^^^^^
+
+Using pip_ (latest version recommended), **SARvey** is installed as follows:
+
+1. Create a new environment for **SARvey** (optional but recommended):
+
+   .. code-block:: bash
+
+    conda create -n sarvey pip -y 
+    conda activate sarvey
+
+2. Install **Miaplpy_**
+
+   .. code-block:: bash
+    conda run -n ci_env pip install git+https://github.com/insarlab/MiaplPy.git
+
+3. Install **SARvey**
+
+   .. code-block:: bash
+    conda run -n ci_env pip install git+https://github.com/luhipi/sarvey.git
+
+
+If your are a developer, use the following command to make sure all development requirements are installed.
+    .. code-block:: bash
+     conda run -n ci_env pip install git+https://github.com/luhipi/sarvey.git#egg=sarvey[dev]
 
 
 MacOS ARM (Apple Silicon M2)
@@ -183,4 +207,5 @@ On Windows, SARvey is tested on Windows Subsystem for Linux (WSL_) version 2. Pl
 .. _mamba: https://github.com/mamba-org/mamba
 .. _Conda for Mac: https://docs.conda.io/projects/conda/en/latest/user-guide/install/macos.html
 .. _WSL: https://learn.microsoft.com/en-us/windows/wsl/
+.. _MiaplPy: https://github.com/insarlab/MiaplPy
 
