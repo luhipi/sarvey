@@ -36,6 +36,7 @@ import unittest
 from copy import deepcopy
 from glob import glob
 from os.path import join
+from argparse import Namespace
 
 from sarvey.sarvey_mti import createParser, run
 from sarvey.config import loadConfiguration
@@ -96,69 +97,7 @@ class TestProcessing(unittest.TestCase):
         config.general.apply_temporal_unwrapping = True
         config.filtering.apply_aps_filtering = False
 
-        # preparation
-        args.start = 0
-        args.stop = 0
-
-        run(config=config, args=args, logger=self.logger)
-        assert glob(os.path.join(config.general.output_path, "background_map.h5")), \
-            'Processing failed (background_map.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, "coordinates_map.h5")), \
-            'Processing failed (coordinates_map.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, "ifg_network.h5")), \
-            'Processing failed (ifg_network.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, "ifg_stack.h5")), \
-            'Processing failed (ifg_stack.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, "temporal_coherence.h5")), \
-            'Processing failed (temporal_coherence.h5 not created).'
-
-        # consistencyCheck
-        args.start = 1
-        args.stop = 1
-
-        run(config=config, args=args, logger=self.logger)
-        assert glob(os.path.join(config.general.output_path, "point_network.h5")), \
-            'Processing failed (point_network.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, "point_network_parameter.h5")), \
-            'Processing failed (point_network_parameter.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, "p1_ifg_wr.h5")), \
-            'Processing failed (p1_ifg_wr.h5 not created).'
-
-        # unwrapping
-        args.start = 2
-        args.stop = 2
-
-        run(config=config, args=args, logger=self.logger)
-        assert glob(os.path.join(config.general.output_path, "p1_ifg_unw.h5")), \
-            'Processing failed (p1_ifg_unw.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, "p1_ts.h5")), \
-            'Processing failed (p1_ts.h5 not created).'
-
-        # filtering
-        args.start = 3
-        args.stop = 3
-
-        run(config=config, args=args, logger=self.logger)
-        assert glob(os.path.join(config.general.output_path, "p1_ts_filt.h5")), \
-            'Processing failed (p1_ts_filt.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, "p1_aps.h5")), \
-            'Processing failed (p1_aps.h5 not created).'
-        coh_value = int(config.filtering.coherence_p2 * 100)
-        assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_ifg_wr.h5")), \
-            f'Processing failed (p2_coh{coh_value}_ifg_wr.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_aps.h5")), \
-            f'Processing failed (p2_coh{coh_value}_aps.h5 not created).'
-
-        # densification
-        args.start = 4
-        args.stop = 4
-
-        run(config=config, args=args, logger=self.logger)
-        coh_value = int(config.filtering.coherence_p2 * 100)
-        assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_ifg_unw.h5")), \
-            f'Processing failed (p2_coh{coh_value}_ifg_unw.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_ts.h5")), \
-            f'Processing failed (p2_coh{coh_value}_ts.h5 not created).'
+        runAndCheckAllSteps(config=config, args=args, logger=self.logger)
 
     def testUnwrappingSpace(self):
         """TestUnwrappingTimeAndSpace."""
@@ -169,69 +108,7 @@ class TestProcessing(unittest.TestCase):
         config.general.apply_temporal_unwrapping = False
         config.preparation.ifg_network_type = "sb"
 
-        # preparation
-        args.start = 0
-        args.stop = 0
-
-        run(config=config, args=args, logger=self.logger)
-        assert glob(os.path.join(config.general.output_path, "background_map.h5")), \
-            'Processing failed (background_map.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, "coordinates_map.h5")), \
-            'Processing failed (coordinates_map.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, "ifg_network.h5")), \
-            'Processing failed (ifg_network.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, "ifg_stack.h5")), \
-            'Processing failed (ifg_stack.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, "temporal_coherence.h5")), \
-            'Processing failed (temporal_coherence.h5 not created).'
-
-        # consistencyCheck
-        args.start = 1
-        args.stop = 1
-
-        run(config=config, args=args, logger=self.logger)
-        assert glob(os.path.join(config.general.output_path, "point_network.h5")), \
-            'Processing failed (point_network.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, "point_network_parameter.h5")), \
-            'Processing failed (point_network_parameter.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, "p1_ifg_wr.h5")), \
-            'Processing failed (p1_ifg_wr.h5 not created).'
-
-        # unwrapping
-        args.start = 2
-        args.stop = 2
-
-        run(config=config, args=args, logger=self.logger)
-        assert glob(os.path.join(config.general.output_path, "p1_ifg_unw.h5")), \
-            'Processing failed (p1_ifg_unw.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, "p1_ts.h5")), \
-            'Processing failed (p1_ts.h5 not created).'
-
-        # filtering
-        args.start = 3
-        args.stop = 3
-
-        run(config=config, args=args, logger=self.logger)
-        assert glob(os.path.join(config.general.output_path, "p1_ts_filt.h5")), \
-            'Processing failed (p1_ts_filt.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, "p1_aps.h5")), \
-            'Processing failed (p1_aps.h5 not created).'
-        coh_value = int(config.filtering.coherence_p2 * 100)
-        assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_ifg_wr.h5")), \
-            f'Processing failed (p2_coh{coh_value}_ifg_wr.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_aps.h5")), \
-            f'Processing failed (p2_coh{coh_value}_aps.h5 not created).'
-
-        # densification
-        args.start = 4
-        args.stop = 4
-
-        run(config=config, args=args, logger=self.logger)
-        coh_value = int(config.filtering.coherence_p2 * 100)
-        assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_ifg_unw.h5")), \
-            f'Processing failed (p2_coh{coh_value}_ifg_unw.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_ts.h5")), \
-            f'Processing failed (p2_coh{coh_value}_ts.h5 not created).'
+        runAndCheckAllSteps(config=config, args=args, logger=self.logger)
 
     def testPhaseLinking(self):
         """TestUnwrappingTimeAndSpace."""
@@ -244,69 +121,7 @@ class TestProcessing(unittest.TestCase):
         config.general.apply_temporal_unwrapping = True
         config.filtering.coherence_p2 = 0.75
 
-        # preparation
-        args.start = 0
-        args.stop = 0
-
-        run(config=config, args=args, logger=self.logger)
-        assert glob(os.path.join(config.general.output_path, "background_map.h5")), \
-            'Processing failed (background_map.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, "coordinates_map.h5")), \
-            'Processing failed (coordinates_map.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, "ifg_network.h5")), \
-            'Processing failed (ifg_network.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, "ifg_stack.h5")), \
-            'Processing failed (ifg_stack.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, "temporal_coherence.h5")), \
-            'Processing failed (temporal_coherence.h5 not created).'
-
-        # consistencyCheck
-        args.start = 1
-        args.stop = 1
-
-        run(config=config, args=args, logger=self.logger)
-        assert glob(os.path.join(config.general.output_path, "point_network.h5")), \
-            'Processing failed (point_network.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, "point_network_parameter.h5")), \
-            'Processing failed (point_network_parameter.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, "p1_ifg_wr.h5")), \
-            'Processing failed (p1_ifg_wr.h5 not created).'
-
-        # unwrapping
-        args.start = 2
-        args.stop = 2
-
-        run(config=config, args=args, logger=self.logger)
-        assert glob(os.path.join(config.general.output_path, "p1_ifg_unw.h5")), \
-            'Processing failed (p1_ifg_unw.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, "p1_ts.h5")), \
-            'Processing failed (p1_ts.h5 not created).'
-
-        # filtering
-        args.start = 3
-        args.stop = 3
-
-        run(config=config, args=args, logger=self.logger)
-        assert glob(os.path.join(config.general.output_path, "p1_ts_filt.h5")), \
-            'Processing failed (p1_ts_filt.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, "p1_aps.h5")), \
-            'Processing failed (p1_aps.h5 not created).'
-        coh_value = int(config.filtering.coherence_p2 * 100)
-        assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_ifg_wr.h5")), \
-            f'Processing failed (p2_coh{coh_value}_ifg_wr.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_aps.h5")), \
-            f'Processing failed (p2_coh{coh_value}_aps.h5 not created).'
-
-        # densification
-        args.start = 4
-        args.stop = 4
-
-        run(config=config, args=args, logger=self.logger)
-        coh_value = int(config.filtering.coherence_p2 * 100)
-        assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_ifg_unw.h5")), \
-            f'Processing failed (p2_coh{coh_value}_ifg_unw.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_ts.h5")), \
-            f'Processing failed (p2_coh{coh_value}_ts.h5 not created).'
+        runAndCheckAllSteps(config=config, args=args, logger=self.logger)
 
     def testMasking(self):
         """TestUnwrappingTimeAndSpace."""
@@ -319,66 +134,82 @@ class TestProcessing(unittest.TestCase):
         config.consistency_check.mask_p1_file = "tests/testdata/aoi_mask.h5"
         config.filtering.mask_p2_file = "tests/testdata/aoi_mask.h5"
 
-        # preparation
-        args.start = 0
-        args.stop = 0
+        runAndCheckAllSteps(config=config, args=args, logger=self.logger)
 
-        run(config=config, args=args, logger=self.logger)
-        assert glob(os.path.join(config.general.output_path, "background_map.h5")), \
-            'Processing failed (background_map.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, "coordinates_map.h5")), \
-            'Processing failed (coordinates_map.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, "ifg_network.h5")), \
-            'Processing failed (ifg_network.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, "ifg_stack.h5")), \
-            'Processing failed (ifg_stack.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, "temporal_coherence.h5")), \
-            'Processing failed (temporal_coherence.h5 not created).'
+    def testTemporarilyCoherentScatterer(self):
+        """TestUnwrappingTimeAndSpace."""
+        config = deepcopy(self.configuration)
+        args = deepcopy(self.args)
 
-        # consistencyCheck
-        args.start = 1
-        args.stop = 1
+        # set config
+        config.temporarily_coherent_scatterer.use_temporarily_coherent_scatterers = True
+        config.general.apply_temporal_unwrapping = False
 
-        run(config=config, args=args, logger=self.logger)
-        assert glob(os.path.join(config.general.output_path, "point_network.h5")), \
-            'Processing failed (point_network.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, "point_network_parameter.h5")), \
-            'Processing failed (point_network_parameter.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, "p1_ifg_wr.h5")), \
-            'Processing failed (p1_ifg_wr.h5 not created).'
+        runAndCheckAllSteps(config=config, args=args, logger=self.logger)
 
-        # unwrapping
-        args.start = 2
-        args.stop = 2
 
-        run(config=config, args=args, logger=self.logger)
-        assert glob(os.path.join(config.general.output_path, "p1_ifg_unw.h5")), \
-            'Processing failed (p1_ifg_unw.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, "p1_ts.h5")), \
-            'Processing failed (p1_ts.h5 not created).'
+def runAndCheckAllSteps(*, config, args: Namespace, logger: logging.Logger):
+    """Run and check all steps."""
+    # preparation
+    args.start = 0
+    args.stop = 0
 
-        # filtering
-        args.start = 3
-        args.stop = 3
+    run(config=config, args=args, logger=logger)
+    assert glob(os.path.join(config.general.output_path, "background_map.h5")), \
+        'Processing failed (background_map.h5 not created).'
+    assert glob(os.path.join(config.general.output_path, "coordinates_utm.h5")), \
+        'Processing failed (coordinates_utm.h5 not created).'
+    assert glob(os.path.join(config.general.output_path, "ifg_network.h5")), \
+        'Processing failed (ifg_network.h5 not created).'
+    assert glob(os.path.join(config.general.output_path, "ifg_stack.h5")), \
+        'Processing failed (ifg_stack.h5 not created).'
+    assert glob(os.path.join(config.general.output_path, "temporal_coherence.h5")), \
+        'Processing failed (temporal_coherence.h5 not created).'
 
-        run(config=config, args=args, logger=self.logger)
-        assert glob(os.path.join(config.general.output_path, "p1_ts_filt.h5")), \
-            'Processing failed (p1_ts_filt.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, "p1_aps.h5")), \
-            'Processing failed (p1_aps.h5 not created).'
-        coh_value = int(config.filtering.coherence_p2 * 100)
-        assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_ifg_wr.h5")), \
-            f'Processing failed (p2_coh{coh_value}_ifg_wr.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_aps.h5")), \
-            f'Processing failed (p2_coh{coh_value}_aps.h5 not created).'
+    # consistencyCheck
+    args.start = 1
+    args.stop = 1
 
-        # densification
-        args.start = 4
-        args.stop = 4
+    run(config=config, args=args, logger=logger)
+    assert glob(os.path.join(config.general.output_path, "point_network.h5")), \
+        'Processing failed (point_network.h5 not created).'
+    assert glob(os.path.join(config.general.output_path, "point_network_parameter.h5")), \
+        'Processing failed (point_network_parameter.h5 not created).'
+    assert glob(os.path.join(config.general.output_path, "p1_ifg_wr.h5")), \
+        'Processing failed (p1_ifg_wr.h5 not created).'
 
-        run(config=config, args=args, logger=self.logger)
-        coh_value = int(config.filtering.coherence_p2 * 100)
-        assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_ifg_unw.h5")), \
-            f'Processing failed (p2_coh{coh_value}_ifg_unw.h5 not created).'
-        assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_ts.h5")), \
-            f'Processing failed (p2_coh{coh_value}_ts.h5 not created).'
+    # unwrapping
+    args.start = 2
+    args.stop = 2
+
+    run(config=config, args=args, logger=logger)
+    assert glob(os.path.join(config.general.output_path, "p1_ifg_unw.h5")), \
+        'Processing failed (p1_ifg_unw.h5 not created).'
+    assert glob(os.path.join(config.general.output_path, "p1_ts.h5")), \
+        'Processing failed (p1_ts.h5 not created).'
+
+    # filtering
+    args.start = 3
+    args.stop = 3
+
+    run(config=config, args=args, logger=logger)
+    assert glob(os.path.join(config.general.output_path, "p1_ts_filt.h5")), \
+        'Processing failed (p1_ts_filt.h5 not created).'
+    assert glob(os.path.join(config.general.output_path, "p1_aps.h5")), \
+        'Processing failed (p1_aps.h5 not created).'
+    coh_value = int(config.filtering.coherence_p2 * 100)
+    assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_ifg_wr.h5")), \
+        f'Processing failed (p2_coh{coh_value}_ifg_wr.h5 not created).'
+    assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_aps.h5")), \
+        f'Processing failed (p2_coh{coh_value}_aps.h5 not created).'
+
+    # densification
+    args.start = 4
+    args.stop = 4
+
+    run(config=config, args=args, logger=logger)
+    coh_value = int(config.filtering.coherence_p2 * 100)
+    assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_ifg_unw.h5")), \
+        f'Processing failed (p2_coh{coh_value}_ifg_unw.h5 not created).'
+    assert glob(os.path.join(config.general.output_path, f"p2_coh{coh_value}_ts.h5")), \
+        f'Processing failed (p2_coh{coh_value}_ts.h5 not created).'
