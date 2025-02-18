@@ -64,7 +64,7 @@ jobs:
           source /opt/conda/etc/profile.d/conda.sh
           conda init bash
           source ~/.bashrc
-          conda activate vi_env
+          conda activate ci_env
           rm -rf tests/testdata
           # wget -nv -c -O testdata.zip https://seafile.projekt.uni-hannover.de/f/4b3be399dffa488e98db/?dl=1
           wget -nv -c -O testdata.zip https://seafile.projekt.uni-hannover.de/f/104b499f6f7e4360877d/?dl=1          
@@ -80,7 +80,7 @@ jobs:
         run: |
           conda init bash
           source ~/.bashrc
-          source activate vi_env
+          source activate ci_env
           
           # replace documentation address for tags befro make docs
           IFS='/' read -r OWNER REPO <<< "${GITHUB_REPOSITORY}"
@@ -166,7 +166,7 @@ jobs:
           source /opt/conda/etc/profile.d/conda.sh
           conda init bash
           source ~/.bashrc
-          conda activate vi_env
+          conda activate ci_env
           make lint
         shell: bash
 
@@ -209,7 +209,7 @@ jobs:
           source /opt/conda/etc/profile.d/conda.sh
           conda init bash
           source ~/.bashrc
-          source activate vi_env
+          source activate ci_env
           make urlcheck
         shell: bash
 
