@@ -29,19 +29,21 @@
 
 """Viewer Module for SARvey."""
 import os
-from typing import Any
+from typing import Any, Optional
 from logging import Logger
 import matplotlib.cm as cm
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
-from matplotlib import colormaps, widgets
+from matplotlib.collections import PathCollection
+from matplotlib import widgets
 from matplotlib.backend_bases import MouseButton
 from matplotlib.colors import Normalize
 import numpy as np
 from scipy.spatial import KDTree
 import datetime
+import cmcrameri as cmc
 
-from mintpy.objects.colors import ColormapExt
+from mintpy.objects.colors import ColormapExt  # for DEM_print colormap
 from mintpy.utils import readfile
 from mintpy.utils.plot import auto_flip_direction
 
@@ -49,7 +51,8 @@ from sarvey.objects import AmplitudeImage, Points, BaseStack
 import sarvey.utils as ut
 
 
-def plotIfgs(*, phase: np.ndarray, coord: np.ndarray, spatial_ref_idx: int = None, ttl: str = None, cmap: str = "cmy"):
+def plotIfgs(*, phase: np.ndarray, coord: np.ndarray, spatial_ref_idx: int = None, ttl: str = None,
+             cmap: str = "romaO"):
     """Plot one interferogram per subplot.
 
     Parameters
@@ -63,13 +66,8 @@ def plotIfgs(*, phase: np.ndarray, coord: np.ndarray, spatial_ref_idx: int = Non
     ttl: str
         title for the figure (default: None)
     cmap: str
-        colormap, use "cmy" for wrapped phase data (default) or "?" for unwrapped or residual phase
+        colormap name (default: "romaO")
     """
-    if cmap == "cmy":
-        cmap = ColormapExt('cmy').colormap
-    else:
-        cmap = plt.get_cmap(cmap)
-
     num_ifgs = phase.shape[1]
     min_val = np.min(phase)
     max_val = np.max(phase)
@@ -79,7 +77,7 @@ def plotIfgs(*, phase: np.ndarray, coord: np.ndarray, spatial_ref_idx: int = Non
     for i, ax in enumerate(axs.flat):
         if i < num_ifgs:
             sc = ax.scatter(coord[:, 1], coord[:, 0], c=phase[:, i],
-                            vmin=min_val, vmax=max_val, s=1, cmap=cmap)
+                            vmin=min_val, vmax=max_val, s=1, cmap=cmc.cm.cmaps[cmap])
             ax.axes.set_xticks([])
             ax.axes.set_yticks([])
             if spatial_ref_idx is not None:
@@ -94,7 +92,7 @@ def plotIfgs(*, phase: np.ndarray, coord: np.ndarray, spatial_ref_idx: int = Non
 
 
 def plotScatter(*, value: np.ndarray, coord: np.ndarray, bmap_obj: AmplitudeImage = None, ttl: str = None,
-                unit: str = None, s: float = 5.0, cmap: colormaps = colormaps["jet_r"], symmetric: bool = False,
+                unit: str = None, s: float = 5.0, cmap: str = "batlow", symmetric: bool = False,
                 logger: Logger, **kwargs: Any):
     """Plot a scatter map for given value.
 
@@ -114,7 +112,7 @@ def plotScatter(*, value: np.ndarray, coord: np.ndarray, bmap_obj: AmplitudeImag
     s: float
         size of the scatter points (default: 5.0)
     cmap: str
-        colormap (default: "jet_r")
+        colormap (default: "batlow")
     symmetric: bool
         plot symmetric colormap extend, i.e. abs(vmin) == abs(vmax) (default: False)
     logger: Logger
@@ -140,10 +138,11 @@ def plotScatter(*, value: np.ndarray, coord: np.ndarray, bmap_obj: AmplitudeImag
 
     if symmetric:
         v_range = np.max(np.abs(value.ravel()))
-        sc = ax.scatter(coord[:, 1], coord[:, 0], c=value, s=s, cmap=plt.get_cmap(cmap),
+        sc = ax.scatter(coord[:, 1], coord[:, 0], c=value, s=s, cmap=cmc.cm.cmaps[cmap],
                         vmin=-v_range, vmax=v_range)
     else:
-        sc = ax.scatter(coord[:, 1], coord[:, 0], c=value, s=s, cmap=plt.get_cmap(cmap), **kwargs)
+        sc = ax.scatter(coord[:, 1], coord[:, 0], c=value, s=s, cmap=cmc.cm.cmaps[cmap], **kwargs)
+
     cb = plt.colorbar(sc, ax=ax, pad=0.03, shrink=0.5)
     cb.ax.set_title(unit)
     ax.set_title(ttl)
@@ -152,7 +151,7 @@ def plotScatter(*, value: np.ndarray, coord: np.ndarray, bmap_obj: AmplitudeImag
 
 
 def plotColoredPointNetwork(*, x: np.ndarray, y: np.ndarray, arcs: np.ndarray, val: np.ndarray, ax: plt.Axes = None,
-                            linewidth: float = 2, cmap_name: str = "seismic", clim: tuple = None):
+                            linewidth: float = 2, cmap: str = "vik", clim: tuple = None):
     """Plot a network of points with colored arcs.
 
     Parameters
@@ -169,8 +168,8 @@ def plotColoredPointNetwork(*, x: np.ndarray, y: np.ndarray, arcs: np.ndarray, v
         axis for plotting (default: None)
     linewidth: float
         line width of the arcs (default: 2)
-    cmap_name: str
-        name of the colormap (default: "seismic")
+    cmap: str
+        name of the colormap (default: "vik")
     clim: tuple
         color limits for the colormap (default: None)
 
@@ -182,7 +181,7 @@ def plotColoredPointNetwork(*, x: np.ndarray, y: np.ndarray, arcs: np.ndarray, v
         current colorbar
     """
     if ax is None:
-        fig = plt.figure(figsize=[15, 5])
+        fig = plt.figure(figsize=(15, 5))
         ax = fig.add_subplot()
     else:
         fig = ax.get_figure()
@@ -193,7 +192,7 @@ def plotColoredPointNetwork(*, x: np.ndarray, y: np.ndarray, arcs: np.ndarray, v
     else:
         norm = Normalize(vmin=clim[0], vmax=clim[1])
 
-    mapper = cm.ScalarMappable(norm=norm, cmap=cm.get_cmap(cmap_name))
+    mapper = cm.ScalarMappable(norm=norm, cmap=cmc.cm.cmaps[cmap])
     mapper_list = [mapper.to_rgba(v) for v in val]
     for m in range(arcs.shape[0]):
         x_val = [x[arcs[m, 0]], x[arcs[m, 1]]]
