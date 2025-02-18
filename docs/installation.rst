@@ -13,7 +13,7 @@ SARvey is a cross-platform python-based software and can be installed on
 Linux
 -----
 
-On Linux, SARvey can be installed `Using `Using Mamba (recommended)`_ or `Using Anaconda or Miniconda`_ or Pip`_.
+On Linux, SARvey can be installed `Using Mamba (recommended)`_ or `Using Anaconda or Miniconda`_ or `Using Pip`_.
 
 Using Mamba (recommended)
 ^^^^^^^^^^^^^^^^^^^^^^^^^
