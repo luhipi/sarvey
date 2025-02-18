@@ -65,11 +65,11 @@ def launchPreTriangulateEachIfg(parameters: tuple) -> tuple[np.ndarray, list[np.
     for idx in range(num_ifgs):
         triang_obj = PointNetworkTriangulation(
             coord_xy=coord_xy[lifetime_ifgs[:, idx]],
-            coord_utmxy=None,
+            coord_map_xy=None,
             logger=logging.Logger("unused"),
             verbose=False
         )
-        triang_obj.triangulateGlobal()  # if coord_utm is not given, only global delaunay and knn can be calculated
+        triang_obj.triangulateGlobal()  # if coord_map is not given, only global delaunay and knn can be calculated
         edges_per_ifg.append(triang_obj.getArcsFromAdjMat())
 
         prog_bar.update(value=idx + 1, every=5, suffix=f'{idx + 1}/{num_ifgs} ifgs triangulated')

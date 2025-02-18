@@ -157,8 +157,8 @@ def runAndCheckAllSteps(*, config, args: Namespace, logger: logging.Logger):
     run(config=config, args=args, logger=logger)
     assert glob(os.path.join(config.general.output_path, "background_map.h5")), \
         'Processing failed (background_map.h5 not created).'
-    assert glob(os.path.join(config.general.output_path, "coordinates_utm.h5")), \
-        'Processing failed (coordinates_utm.h5 not created).'
+    assert glob(os.path.join(config.general.output_path, "coordinates_map.h5")), \
+        'Processing failed (coordinates_map.h5 not created).'
     assert glob(os.path.join(config.general.output_path, "ifg_network.h5")), \
         'Processing failed (ifg_network.h5 not created).'
     assert glob(os.path.join(config.general.output_path, "ifg_stack.h5")), \
