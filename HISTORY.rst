@@ -7,6 +7,7 @@ Future version (released soon)
 ------------------------------
 
 * Create the background map and coordinates file each run of step 0.
+* Visualize time series of neighbouring points in sarvey_plot -t.
 
 1.1.0 (2024-11-06)
 ------------------

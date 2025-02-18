@@ -587,7 +587,7 @@ def createSpatialGrid(*, coord_utm_img: np.ndarray, length: int, width: int, gri
 def selectBestPointsInGrid(*, box_list: list, quality: np.ndarray, sel_min: bool = True):
     """Select the best point inside a grid.
 
-    If several pixel fullfil the criteria, the first one is selected.
+    If several pixel fulfill the criteria, the first one is selected.
 
     Parameters
     ----------
