@@ -2,6 +2,12 @@
 History
 =======
 
+
+Future version (released soon)
+------------------------------
+
+* Create the background map and coordinates file each run of step 0.
+
 1.1.0 (2024-11-06)
 ------------------
 
