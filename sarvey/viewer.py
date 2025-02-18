@@ -29,11 +29,12 @@
 
 """Viewer Module for SARvey."""
 import os
-from typing import Any
+from typing import Any, Optional
 from logging import Logger
 import matplotlib.cm as cm
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
+from matplotlib.collections import PathCollection
 from matplotlib import widgets
 from matplotlib.backend_bases import MouseButton
 from matplotlib.colors import Normalize
@@ -251,6 +252,7 @@ class TimeSeriesViewer:
             raise ValueError(f"Invalid argument: '{self.vel_scale}'")
         self.scale = scale_dict[self.vel_scale]
         self.tree = KDTree(self.point_obj.coord_xy)
+        self.tree_utm = KDTree(self.point_obj.coord_utm)
         if point_obj.ifg_net_obj.dates is not None:
             self.times = [datetime.date.fromisoformat(date) for date in point_obj.ifg_net_obj.dates]
         else:  # backwards compatible, if ifg_net_obj does not contain dates
@@ -282,7 +284,6 @@ class TimeSeriesViewer:
         self.initFigureMap()
         self.initFigureTimeseries()
         self.plotMap(val=None)
-        self.plotPointTimeseries(val=None)  # just any point
         self.fig1.canvas.mpl_connect('button_press_event', self.onClick)
         plt.show()
 
@@ -302,23 +303,23 @@ class TimeSeriesViewer:
 
         # add button to select reference point
         self.set_reference_point = False
-        self.ax_button = self.fig1.add_axes((0.125, 0.9, 0.1, 0.08))  # (left, bottom, width, height)
+        self.ax_button = self.fig1.add_axes((0.05, 0.9, 0.1, 0.08))  # (left, bottom, width, height)
         self.button_mask = widgets.Button(ax=self.ax_button, label='Select\nReference', image=None, color='1')
         self.button_mask.on_clicked(self.updateButtonStatus)
 
         # add radiobutton to select parameter
-        self.ax_radio_par = self.fig1.add_axes((0.225, 0.9, 0.2, 0.08))  # (left, bottom, width, height)
+        self.ax_radio_par = self.fig1.add_axes((0.15, 0.9, 0.2, 0.08))  # (left, bottom, width, height)
         self.rb_par = widgets.RadioButtons(self.ax_radio_par, labels=['Velocity', 'DEM correction', 'None'], active=0)
         self.rb_par.on_clicked(self.plotMap)
 
         # add radiobutton to select background image
-        self.ax_radio_backgr = self.fig1.add_axes((0.425, 0.9, 0.2, 0.08))  # (left, bottom, width, height)
+        self.ax_radio_backgr = self.fig1.add_axes((0.35, 0.9, 0.2, 0.08))  # (left, bottom, width, height)
         self.rb_backgr = widgets.RadioButtons(self.ax_radio_backgr, labels=['Amplitude', 'DEM', 'Coherence', 'None'],
                                               active=0)
         self.rb_backgr.on_clicked(self.plotMap)
 
         # add info box with info about velocity and DEM error of selected pixel
-        self.ax_info_box = self.fig1.add_axes((0.625, 0.9, 0.2, 0.08))  # (left, bottom, width, height)
+        self.ax_info_box = self.fig1.add_axes((0.55, 0.9, 0.2, 0.08))  # (left, bottom, width, height)
         self.text_obj_time = self.ax_info_box.text(0.1, 0.1, "")
         self.ax_info_box.set_xticks([], [])
         self.ax_info_box.set_yticks([], [])
@@ -327,6 +328,14 @@ class TimeSeriesViewer:
         self.ax_slide_coh = None
         self.sl_last_val = 0.0
         self.sl_coh = None
+
+        # add neighbourhood markers
+        self.neighb_markers = None
+        self.neighb_ts_lines = list()
+        self.ax_radius = self.fig1.add_axes((0.75, 0.9, 0.1, 0.08))  # (left, bottom, width, height)
+        self.txt_radius = widgets.TextBox(self.ax_radius, 'Radius [m]', label_pad=-1, initial="30")
+        self.txt_radius.on_submit(self.updateNeighbourhood)
+        self.txt_radius.on_submit(self.plotPointTimeseries)
 
     def initFigureTimeseries(self):
         """InitFigureTimeseries."""
@@ -355,6 +364,11 @@ class TimeSeriesViewer:
         self.rb_fit.on_clicked(self.plotPointTimeseries)
         self.rb_baselines.on_clicked(self.plotPointTimeseries)
         self.cbox_par.on_clicked(self.plotPointTimeseries)
+
+        # initialize time series
+        self.ts_line = self.ax_ts.plot(self.times, np.zeros_like(self.times), '.')[0]
+        self.lin_fit_line = self.ax_ts.plot([], [], '-k')[0]
+        self.ax_ts.set_xlim(self.times[0], self.times[-1])
 
     def plotMap(self, val: object):  # val seems to be unused, but its necessary for the function to work.
         """Plot velocity map and time series."""
@@ -417,6 +431,7 @@ class TimeSeriesViewer:
         par = None
         v_range = None
         cb_ttl = ""
+        cmap = None
         if self.rb_par.value_selected == "Velocity":  # show velocity
             v_range = np.max(np.abs(self.vel * self.scale))
             par = self.vel * self.scale
@@ -489,12 +504,27 @@ class TimeSeriesViewer:
                 else:
                     self.ts_point_idx = idx
 
+                    self.updateNeighbourhood(val=None)
                     if self.ts_point_marker is not None:  # initial value is None
                         self.ts_point_marker.remove()
                         y, x = self.point_obj.coord_xy[self.ts_point_idx, :]
                     self.ts_point_marker = self.ax_img.scatter(x, y, facecolors='none', edgecolors='k')
                 self.plotPointTimeseries(val=None)
         return
+
+    def updateNeighbourhood(self, val):
+        """Update the neighbourhood of the selected point."""
+        self.neighb_idx, self.neighb_mask = selectNeighbourhood(
+            searchtree=self.tree_utm,
+            coord_utm=self.point_obj.coord_utm,
+            idx=self.ts_point_idx,
+            radius=float(self.txt_radius.text)
+        )
+        self.neighb_markers = plotNeighbourhoodMap(
+            ax=self.ax_img,
+            neighb_markers=self.neighb_markers,
+            neighb_coord_xy=self.point_obj.coord_xy[self.neighb_mask, :]
+        )
 
     def updateReference(self):
         """Change the phase of all points according to the new reference point.
@@ -509,45 +539,85 @@ class TimeSeriesViewer:
         self.ref_atmo = ref_atmo
         self.plotMap(val=None)
 
-    def plotPointTimeseries(self, val: object):  # val seems to be unused, but its necessary for the function to work.
-        """Plot_point_timeseries."""
-        self.ax_ts.cla()
-
+    def prepareTimeseries(self, *, point_idx: int):
+        """Prepare phase time series for plotting."""
         # transform phase time series into meters
-        resulting_ts = self.point_obj.wavelength / (4 * np.pi) * self.point_obj.phase[self.ts_point_idx, :]
+        resulting_ts = self.point_obj.wavelength / (4 * np.pi) * self.point_obj.phase[point_idx, :]
         cbox_status = self.cbox_par.get_status()
         if not cbox_status[0]:  # Displacement
-            resulting_ts = resulting_ts - self.point_obj.ifg_net_obj.tbase * self.vel[self.ts_point_idx]
+            resulting_ts = resulting_ts - self.point_obj.ifg_net_obj.tbase * self.vel[point_idx]
         if not cbox_status[1]:  # DEM error
-            phase_topo = (self.point_obj.ifg_net_obj.pbase / (self.point_obj.slant_range[self.ts_point_idx] *
-                                                              np.sin(self.point_obj.loc_inc[self.ts_point_idx])) *
-                          self.demerr[self.ts_point_idx])
+            phase_topo = (self.point_obj.ifg_net_obj.pbase / (self.point_obj.slant_range[point_idx] *
+                                                              np.sin(self.point_obj.loc_inc[point_idx])) *
+                          self.demerr[point_idx])
             resulting_ts = resulting_ts - phase_topo
 
+        # compute trend
+        if self.rb_baselines.value_selected == "Temporal baseline":
+            line = self.point_obj.ifg_net_obj.tbase * self.vel[point_idx] + self.ref_atmo[point_idx]
+        elif self.rb_baselines.value_selected == "Perpendicular baseline":
+            line = (self.point_obj.ifg_net_obj.pbase / (self.point_obj.slant_range[point_idx] *
+                                                        np.sin(self.point_obj.loc_inc[point_idx])) *
+                    self.demerr[point_idx] + self.ref_atmo[point_idx])
+        else:
+            line = None
+        return resulting_ts * self.scale, line * self.scale
+
+    def plotNeighbourhoodTimeseries(self):
+        """Plot timeseries neighbouring points."""
+        zorder = 0
+        style = {
+            "c": "grey",
+            "marker": ".",
+            "markersize": 0.5,
+            "linewidth": 0.5,
+            "linestyle": ":",
+        }
+        for line in self.neighb_ts_lines:
+            line[0].remove()
+
+        self.neighb_ts_lines = list()
+        for idx in self.neighb_idx:
+            resulting_ts = self.prepareTimeseries(point_idx=idx)[0]
+
+            if self.rb_baselines.value_selected == "Temporal baseline":
+                self.neighb_ts_lines.append(
+                    self.ax_ts.plot(self.times, resulting_ts, zorder=zorder, **style))
+                valid_idx = np.where(~np.isnan(resulting_ts))[0]
+                self.neighb_ts_lines.append(
+                    self.ax_ts.plot([self.times[valid_idx[0]], self.times[valid_idx[-1]]],
+                                    [resulting_ts[valid_idx[0]], resulting_ts[valid_idx[-1]]],
+                                    '.', zorder=zorder, ** {"c": "grey", "markersize": 3}))
+
+            if self.rb_baselines.value_selected == "Perpendicular baseline":
+                # self.neighb_ts_lines.append(
+                #     self.ax_ts.plot(self.point_obj.ifg_net_obj.pbase, resulting_ts,
+                #                     '.', zorder=zorder, **style))
+                pass
+
+    def plotPointTimeseries(self, val: object):  # val seems to be unused, but it is necessary for the function to work.
+        """Plot_point_timeseries."""
+        ts_query_point, line = self.prepareTimeseries(point_idx=self.ts_point_idx)
         self.ax_ts.set_ylabel(f"Displacement [{self.vel_scale}]")
 
-        # add trend
         if self.rb_fit.value_selected == "Linear fit":
             if self.rb_baselines.value_selected == "Temporal baseline":
-                line = self.point_obj.ifg_net_obj.tbase * self.vel[self.ts_point_idx] + self.ref_atmo[self.ts_point_idx]
-                self.ax_ts.plot(self.times, line * self.scale, '-k')
+                self.lin_fit_line.set_data(self.times, line)
             elif self.rb_baselines.value_selected == "Perpendicular baseline":
-                line = (self.point_obj.ifg_net_obj.pbase / (self.point_obj.slant_range[self.ts_point_idx] *
-                                                            np.sin(self.point_obj.loc_inc[self.ts_point_idx])) *
-                        self.demerr[self.ts_point_idx] + self.ref_atmo[self.ts_point_idx])
-                self.ax_ts.plot(self.point_obj.ifg_net_obj.pbase, line * self.scale, '-k')
+                self.lin_fit_line.set_data(self.point_obj.ifg_net_obj.pbase, line)
+        else:
+            self.lin_fit_line.set_data([], [])
 
-        # set y-lim to [-20, 20] mm except if it exceeds this scale
-        y_max = max([0.02, resulting_ts.max() + 0.005])
-        y_min = min([-0.02, resulting_ts.min() - 0.005])
-
-        self.ax_ts.set_ylim(y_min * self.scale, y_max * self.scale)
         if self.rb_baselines.value_selected == "Temporal baseline":
-            self.ax_ts.plot(self.times, resulting_ts * self.scale, '.')
+            self.ts_line.set_data(self.times, ts_query_point)
+            self.ts_line.set_zorder(2)
             self.ax_ts.set_xlabel("Time [years]")
+            self.ax_ts.set_xlim(self.times[0], self.times[-1])
         if self.rb_baselines.value_selected == "Perpendicular baseline":
-            self.ax_ts.plot(self.point_obj.ifg_net_obj.pbase, resulting_ts * self.scale, '.')
+            self.ts_line.set_data(self.point_obj.ifg_net_obj.pbase, ts_query_point)
+            self.ts_line.set_zorder(2)
             self.ax_ts.set_xlabel("Perpendicular Baseline [m]")
+            self.ax_ts.set_xlim(np.min(self.point_obj.ifg_net_obj.pbase), np.max(self.point_obj.ifg_net_obj.pbase))
 
         self.text_obj_time.remove()
         point_info = "DEM error: {:.0f} m\nVelocity: {:.0f} {:s}/year".format(
@@ -557,6 +627,45 @@ class TimeSeriesViewer:
         )
         self.text_obj_time = self.ax_info_box.text(0.5, 0.5, point_info, ha='center', va='center')
 
+        # plot time series of neighbourhood
+        self.plotNeighbourhoodTimeseries()
+
+        # set y-lim to [-20, 20] mm except if it exceeds these limits
+        y_max = max([0.02 * self.scale, np.nanmax(ts_query_point) + 0.005 * self.scale])
+        y_min = min([-0.02 * self.scale, np.nanmin(ts_query_point) - 0.005 * self.scale])
+        for line in self.neighb_ts_lines:
+            y_min = min([np.nanmin(line[0]._y), y_min])
+            y_max = max([np.nanmax(line[0]._y), y_max])
+        self.ax_ts.set_ylim(y_min, y_max)
+
         # update figure
         self.fig1.canvas.draw()
         self.fig2.canvas.draw()
+
+
+def selectNeighbourhood(searchtree: KDTree, coord_utm: np.ndarray, idx: int, radius: float):
+    """Select points within a certain radius around a point.
+
+    Parameters
+    ----------
+    searchtree: KDTree
+        searchtree for fast nearest neighbour search
+    coord_utm: np.ndarray
+        coordinates of the points (dim: no. points x 2)
+    idx: int
+        index of the point around which the neighbourhood is selected
+    radius: float
+        radius of the neighbourhood in [m]
+    """
+    neighb_idx = searchtree.query_ball_point(coord_utm[idx, :], r=radius)
+    neighb_idx.remove(idx)  # remove the query point
+    neighb_mask = np.array([True if i in neighb_idx else False for i in range(len(coord_utm))])
+    return neighb_idx, neighb_mask
+
+
+def plotNeighbourhoodMap(ax: plt.Axes, neighb_markers: Optional[PathCollection], neighb_coord_xy: np.ndarray):
+    """Plot selected neighbourhood pixels on map."""
+    if neighb_markers is not None:
+        neighb_markers.remove()
+    neighb_markers = ax.scatter(neighb_coord_xy[:, 1], neighb_coord_xy[:, 0], facecolors='none', edgecolors='w')
+    return neighb_markers
