@@ -42,7 +42,7 @@ from mintpy.utils import ptime
 class PointNetworkTriangulation:
     """PointNetworkTriangulation."""
 
-    def __init__(self, *, coord_xy: np.ndarray, coord_map_xy: Optional[np.ndarray], logger: Logger):
+    def __init__(self, *, coord_xy: np.ndarray, coord_map_xy: Optional[np.ndarray], logger: Logger, verbose=True):
         """Triangulate points in space based on distance.
 
         Parameters
@@ -53,17 +53,21 @@ class PointNetworkTriangulation:
             map coordinates of the points.
         logger: Logger
             Logging handler.
+        verbose: bool
+            Print verbose output.
         """
         self.coord_xy = coord_xy
         num_points = self.coord_xy.shape[0]
         self.logger = logger
+        self.verbose = verbose
 
         # create sparse matrix with dim (num_points x num_points), add 1 if connected.
         # create network afterwards once. reduces time.
         self.adj_mat = lil_matrix((num_points, num_points), dtype=np.bool_)
 
         if coord_map_xy is not None:
-            logger.info(msg="create distance matrix between all points...")
+            if self.verbose:
+                logger.info(msg="create distance matrix between all points...")
             self.dist_mat = distance_matrix(coord_map_xy, coord_map_xy)
             # todo: check out alternatives:
             #       scipy.spatial.KDTree.sparse_distance_matrix
@@ -113,7 +117,8 @@ class PointNetworkTriangulation:
 
     def triangulateGlobal(self):
         """Connect the points with a GLOBAL delaunay triangulation."""
-        self.logger.info(msg="Triangulate points with global delaunay.")
+        if self.verbose:
+            self.logger.info(msg="Triangulate points with global delaunay.")
 
         network = Delaunay(points=self.coord_xy)
         for p1, p2, p3 in network.simplices:
@@ -123,7 +128,8 @@ class PointNetworkTriangulation:
 
     def triangulateKnn(self, *, k: int):
         """Connect points to the k-nearest neighbours."""
-        self.logger.info(msg="Triangulate points with {}-nearest neighbours.".format(k))
+        if self.verbose:
+            self.logger.info(msg="Triangulate points with {}-nearest neighbours.".format(k))
         num_points = self.coord_xy.shape[0]
         prog_bar = ptime.progressBar(maxValue=num_points)
         start_time = time.time()
@@ -137,7 +143,7 @@ class PointNetworkTriangulation:
             idx = tree.query(self.coord_xy[p1, :], k)[1]
             self.adj_mat[p1, idx] = True
             count += 1
-            prog_bar.update(value=count + 1, every=np.int16(num_points / 250),
+            prog_bar.update(value=count + 1, every=np.int16(num_points / (num_points / 5)),
                             suffix='{}/{} points triangulated'.format(count + 1, num_points + 1))
         prog_bar.close()
         m, s = divmod(time.time() - start_time, 60)
