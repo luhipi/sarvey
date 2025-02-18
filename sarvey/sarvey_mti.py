@@ -93,6 +93,17 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
                        config_section_default=config_default_dict["general"],
                        logger=logger)
 
+    if (config.phase_linking.use_phase_linking_results &
+       config.temporarily_coherent_scatterer.use_temporarily_coherent_scatterers):
+        logger.error(msg="Phase linking and temporarily coherent scatterers cannot be used together."
+                         "Please choose one of them.")
+        raise NotImplementedError
+
+    if config.temporarily_coherent_scatterer.use_temporarily_coherent_scatterers:
+        printCurrentConfig(config_section=config.temporarily_coherent_scatterer.dict(),
+                           config_section_default=config_default_dict["temporarily_coherent_scatterer"],
+                           logger=logger)
+
     if config.phase_linking.use_phase_linking_results:
         printCurrentConfig(config_section=config.phase_linking.dict(),
                            config_section_default=config_default_dict["phase_linking"],
@@ -160,10 +171,18 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
         printCurrentConfig(config_section=config.densification.dict(),
                            config_section_default=config_default_dict["densification"],
                            logger=logger)
-        if proc_obj.config.general.apply_temporal_unwrapping:
-            proc_obj.runDensificationTimeAndSpace()
+        if config.temporarily_coherent_scatterer.use_temporarily_coherent_scatterers:
+            if config.general.apply_temporal_unwrapping:
+                logger.error(msg="Temporal unwrapping is not supported in combination with temporarily coherent "
+                                 "scatterers.")
+                raise ValueError
+            from sarvey import processing_tcs
+            processing_tcs.runDensificationSpace(path=config.general.output_path, config=config, logger=logger)
         else:
-            proc_obj.runDensificationSpace()
+            if proc_obj.config.general.apply_temporal_unwrapping:
+                proc_obj.runDensificationTimeAndSpace()
+            else:
+                proc_obj.runDensificationSpace()
 
     logger.info(msg="SARvey MTI finished normally.")
     # close log-file to avoid problems with deleting the files
