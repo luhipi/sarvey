@@ -16,7 +16,7 @@ permissions:
 
 env:
     SKIP_DEPLOY: false
-    SKIP_INSTALL: true
+    SKIP_INSTALL: false
     SKIP_TEST: false
 
 jobs:
@@ -202,18 +202,17 @@ jobs:
           run: |
               source /opt/conda/etc/profile.d/conda.sh
               conda activate base
-              mamba env remove --name sarvey_testinstall --yes || echo "Environment sarvey_testinstall does not exist"
-              mamba clean --index-cache --tarballs --packages -y
-              pip install conda-merge
-              export PATH=$HOME/.local/bin:$PATH # workaround conda-merge not found!
-              wget https://raw.githubusercontent.com/insarlab/MiaplPy/main/conda-env.yml
-              conda-merge conda-env.yml tests/CI_docker/context/environment_sarvey.yml > env.yml
-              mamba env create --name sarvey_testinstall -f env.yml
+              
+              conda create -n sarvey_testinstall python=3.10 pip  -y
               conda activate sarvey_testinstall
+              conda install conda-forge::pysolid -y
+              conda install conda-forge::gdal
               pip install git+https://github.com/insarlab/MiaplPy.git
-              pip install .
+              pip install git+https://github.com/mahmud1/sarvey.git@update-runner2
+              pip install sarvey[dev]
+
               OUTPUT=$(pip check) || { echo "$OUTPUT"; true; }
-              cd ..
+              conda list
               python -c "import sarvey; print(sarvey)"
           shell: bash
 
