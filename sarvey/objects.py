@@ -36,6 +36,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pyproj import Proj, CRS
 from logging import Logger
+from cmcrameri import cm
 
 from miaplpy.objects.slcStack import slcStack
 from mintpy.utils import readfile
@@ -128,7 +129,7 @@ class AmplitudeImage:
         if ax is None:
             fig = plt.figure(figsize=(15, 5))
             ax = fig.add_subplot()
-        ax.imshow(self.background_map, cmap=plt.cm.get_cmap("gray"))
+        ax.imshow(self.background_map, cmap=cm.grayC)
         meta = {"ORBIT_DIRECTION": self.orbit_direction}
         auto_flip_direction(meta, ax=ax, print_msg=False)
 

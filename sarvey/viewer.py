@@ -34,8 +34,8 @@ from logging import Logger
 import matplotlib.cm as cm
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
-from matplotlib.collections import PathCollection
 from matplotlib import widgets
+from matplotlib.collections import PathCollection
 from matplotlib.backend_bases import MouseButton
 from matplotlib.colors import Normalize
 import numpy as np
