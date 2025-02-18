@@ -223,6 +223,63 @@ class PhaseLinking(BaseModel, extra=Extra.forbid):
         return v
 
 
+class TemporarilyCoherentScatterer(BaseModel, extra=Extra.forbid):
+    """Template for settings in config file."""
+
+    use_temporarily_coherent_scatterers: bool = Field(
+        title="Use temporarily coherent scatterers.",
+        description="Use pixels selected as temporarily coherent scatterers.",
+        default=False
+    )
+
+    min_lifetime_length: int = Field(
+        title="Minimum lifetime length of a temporarily coherent scatterer.",
+        description="Minimum number of images to be coherent for a temporarily coherent scatterer to be included in the"
+                    " processing.",
+        default=30
+    )
+
+    coherent_lifetime_file: str = Field(
+        title="The path to the coherent lifetime file.",
+        description="Set the path of the coherent lifetime file.",
+        default=""
+    )
+
+    change_index_map_file: str = Field(
+        title="The path to the change index map file.",
+        description="Set the path of the change index map file.",
+        default=""
+    )
+
+    @validator('min_lifetime_length')
+    def checkMinLifetimeLength(cls, v, values):
+        """Check if the minimum lifetime length is valid."""
+        if values["use_temporarily_coherent_scatterers"]:
+            if v <= 0:
+                raise ValueError("Minimum lifetime length must be greater than zero.")
+        return v
+
+    @validator('coherent_lifetime_file')
+    def checkCoherentLifetimePath(cls, v, values):
+        """Check if the path is correct."""
+        if values["use_temporarily_coherent_scatterers"]:
+            if v == "" or v is None:
+                raise ValueError("Empty string is not allowed.")
+            if not os.path.exists(os.path.abspath(v)):
+                raise ValueError(f"coherent_lifetime_file does not exist: {v}")
+        return v
+
+    @validator('change_index_map_file')
+    def checkChangeIndexMapPath(cls, v, values):
+        """Check if the path is correct."""
+        if values["use_temporarily_coherent_scatterers"]:
+            if v == "" or v is None:
+                raise ValueError("Empty string is not allowed.")
+            if not os.path.exists(os.path.abspath(v)):
+                raise ValueError(f"change_index_map_file does not exist: {v}")
+        return v
+
+
 class Preparation(BaseModel, extra=Extra.forbid):
     """Template for settings in config file."""
 
@@ -647,6 +704,9 @@ class Config(BaseModel):
     phase_linking: PhaseLinking = Field(
         title="PhaseLinking", description=""
     )
+    temporarily_coherent_scatterer: TemporarilyCoherentScatterer = Field(
+        title="TemporarilyCoherentScatterer", description=""
+    )
 
     preparation: Preparation = Field(
         title="Preparation", description=""
@@ -669,7 +729,7 @@ class Config(BaseModel):
     )
 
 
-def loadConfiguration(*, path: str) -> dict:
+def loadConfiguration(*, path: str):
     """Load configuration json file.
 
     Parameters

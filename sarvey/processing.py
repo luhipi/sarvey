@@ -470,8 +470,6 @@ class Processing:
             phase=unw_phase,
             num_points=point_obj.num_points,
             ifg_net_obj=point_obj.ifg_net_obj,
-            num_cores=1,  # self.config.general.num_cores,
-            ref_idx=0,
             logger=self.logger
         )
         point_obj = Points(file_path=join(self.path, "p1_ts.h5"), logger=self.logger)
@@ -541,8 +539,6 @@ class Processing:
         # for sbas the ifg network needs to be inverted to get the phase time series
         phase_ts = ut.invertIfgNetwork(phase=unw_phase, num_points=point_obj.num_points,
                                        ifg_net_obj=point_obj.ifg_net_obj,
-                                       num_cores=1,  # self.config.general.num_cores,
-                                       ref_idx=0,
                                        logger=self.logger)
 
         point_obj.phase = phase_ts
@@ -614,7 +610,6 @@ class Processing:
         point1_obj.removePoints(keep_id=keep_id, input_path=self.config.general.input_path)
         point1_obj.writeToFile()  # to be able to load aps1 from this file having the same set of points
 
-        # store plot for quality control during processing
         fig, ax = viewer.plotScatter(value=auto_corr_img[cand_mask_sparse], coord=point1_obj.coord_xy,
                                      bmap_obj=bmap_obj, ttl="Selected pixels for APS estimation",
                                      unit="Auto-correlation\n[ ]", s=5, cmap="lajolla", vmin=0, vmax=1,
@@ -644,7 +639,80 @@ class Processing:
             logger=self.logger
         )  # first-order points are included in second-order points
 
-        if self.config.phase_linking.use_phase_linking_results:
+        slc_stack_obj = slcStack(join(self.config.general.input_path, "slcStack.h5"))
+        slc_stack_obj.open()  # for metadata
+        pix_sel_obj = BaseStack(file=join(self.path, "selection_method.h5"), logger=self.logger)
+        pix_sel_obj.writeToFile(dataset_name="TPC", data=cand_mask2, metadata=slc_stack_obj.metadata, mode="w")
+        pix_sel_obj.prepareDataset(dataset_name="TCS", dshape=(point1_obj.length, point1_obj.width), dtype=np.bool_,
+                                   metadata=slc_stack_obj.metadata, mode="a")
+        pix_sel_obj.prepareDataset(dataset_name="PL", dshape=(point1_obj.length, point1_obj.width), dtype=np.bool_,
+                                   metadata=slc_stack_obj.metadata, mode="a")
+
+        if self.config.temporarily_coherent_scatterer.use_temporarily_coherent_scatterers:
+            self.logger.info(msg="Add Temporarily Coherent Scatterers (TCS).")
+            tcs_coh_obj = BaseStack(file=join(self.config.temporarily_coherent_scatterer.coherent_lifetime_file),
+                                    logger=self.logger)
+            tcs_coh = tcs_coh_obj.read(dataset_name="coherence_map")
+            tcs_length = tcs_coh_obj.read(dataset_name="subset_length_map")
+
+            fig = plt.figure(figsize=(15, 5))
+            ax = fig.add_subplot()
+            im = ax.imshow(tcs_coh, cmap=cmc.cm.cmaps["grayC"], vmin=0, vmax=1)
+            auto_flip_direction(slc_stack_obj.metadata, ax=ax, print_msg=True)
+            ax.set_xlabel("Range")
+            ax.set_ylabel("Azimuth")
+            plt.colorbar(im, pad=0.03, shrink=0.5)
+            plt.title("TCS: Temporal coherence")
+            plt.tight_layout()
+            fig.savefig(join(self.path, "pic", "step_3_tcs_temporal_phase_coherence.png"), dpi=300)
+            plt.close(fig)
+
+            change_idx_obj = BaseStack(file=join(self.config.temporarily_coherent_scatterer.change_index_map_file),
+                                       logger=self.logger)
+            change_idx = change_idx_obj.read(dataset_name="change_index")
+
+            fig = plt.figure(figsize=(15, 5))
+            ax = fig.add_subplot()
+            cmap = cmc.cm.cmaps["batlow"]
+            cmap.set_bad(color='white')  # Set the color for masked values
+            masked_data = np.ma.masked_where(change_idx <= 0, change_idx)
+            im = ax.imshow(masked_data, vmin=0, vmax=slc_stack_obj.numDate, cmap=cmap, interpolation="nearest")
+            auto_flip_direction(slc_stack_obj.metadata, ax=ax, print_msg=True)
+            ax.set_xlabel("Range")
+            ax.set_ylabel("Azimuth")
+            plt.colorbar(im, pad=0.03, shrink=0.5)
+            plt.title("TCS: Change time index")
+            plt.tight_layout()
+            fig.savefig(join(self.path, "pic", "step_3_tcs_change_index.png"), dpi=300)
+            plt.close(fig)
+            del change_idx, change_idx_obj
+
+            cand_mask_tcs = (tcs_coh > self.config.filtering.coherence_p2)
+            cand_mask_tcs = cand_mask_tcs & (
+                tcs_length >= self.config.temporarily_coherent_scatterer.min_lifetime_length)
+
+            pix_sel_obj.writeToFileBlock(dataset_name="TCS", data=cand_mask_tcs)
+
+            # combine TCS pixels with TPC cand_mask2
+            cand_mask2 = cand_mask2 | cand_mask_tcs
+
+            fig = plt.figure(figsize=(15, 5))
+            ax = fig.add_subplot()
+            bmap_obj.plot(ax=ax, logger=self.logger)
+            coord_xy = np.array(np.where(cand_mask_tcs)).transpose()
+            val = np.ones_like(cand_mask_tcs)
+            sc = ax.scatter(coord_xy[:, 1], coord_xy[:, 0], c=val[cand_mask_tcs], s=0.5,
+                            cmap=cmc.cm.cmaps["lajolla_r"],
+                            vmin=1, vmax=2)  # set min, max to ensure that points are yellow
+            cbar = plt.colorbar(sc, pad=0.03, shrink=0.5)
+            cbar.ax.set_visible(False)  # make size of axis consistent with all others
+            plt.tight_layout()
+            plt.title("Temporarily coherent scatterers")
+            fig.savefig(join(self.path, "pic", "step_3_p2_coh{}_tcs.png".format(coh_value)), dpi=300)
+            plt.close(fig)
+
+        if (self.config.phase_linking.use_phase_linking_results &
+           (not self.config.temporarily_coherent_scatterer.use_temporarily_coherent_scatterers)):
             # read PL results
             pl_coh = readfile.read(join(self.config.phase_linking.inverted_path, "phase_series.h5"),
                                    datasetName='temporalCoherence')[0]
@@ -688,7 +756,11 @@ class Processing:
             # combine phase linking coherence with TPC cand_mask2
             cand_mask2 = cand_mask2 | cand_mask_pl
 
+            pix_sel_obj.writeToFileBlock(dataset_name="PL", data=cand_mask_pl)
+
         mask_valid_area = ut.detectValidAreas(bmap_obj=bmap_obj, logger=self.logger)
+
+        pix_sel_obj.writeToFile(dataset_name="valid", data=mask_valid_area, mode="a")
 
         if self.config.filtering.mask_p2_file is not None:
             path_mask_aoi = join(self.config.filtering.mask_p2_file)
@@ -734,7 +806,8 @@ class Processing:
                                                  num_patches=self.config.general.num_patches, cand_mask=cand_mask2,
                                                  point_id_img=point_id_img, logger=self.logger)
 
-        if self.config.phase_linking.use_phase_linking_results:
+        if (self.config.phase_linking.use_phase_linking_results &
+           (not self.config.temporarily_coherent_scatterer.use_temporarily_coherent_scatterers)):
             self.logger.info(msg="read phase from MiaplPy results...")
             phase_linking_obj = BaseStack(
                 file=join(self.config.phase_linking.inverted_path, "phase_series.h5"),
@@ -1033,8 +1106,6 @@ class Processing:
             phase=unw_phase,
             num_points=point2_obj.num_points,
             ifg_net_obj=point2_obj.ifg_net_obj,
-            num_cores=1,  # self.config.general.num_cores,
-            ref_idx=0,
             logger=self.logger)
 
         point_obj = Points(file_path=join(self.path, "p2_coh{}_ts.h5".format(coh_value)), logger=self.logger)
@@ -1093,8 +1164,6 @@ class Processing:
 
         phase_ts = ut.invertIfgNetwork(phase=unw_phase, num_points=point_obj.num_points,
                                        ifg_net_obj=point_obj.ifg_net_obj,
-                                       num_cores=1,  # self.config.general.num_cores,
-                                       ref_idx=0,
                                        logger=self.logger)
 
         point_obj.phase = phase_ts

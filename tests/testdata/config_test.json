@@ -17,6 +17,12 @@
         "use_ps": false,
         "mask_ps_file": "tests/testdata/maskPS.h5"
     },
+    "temporarily_coherent_scatterer":{
+        "use_temporarily_coherent_scatterers": false,
+        "min_lifetime_length": 30,
+        "coherent_lifetime_file": "tests/testdata/outputs_tcs/lifetime_amplitude.h5",
+        "change_index_map_file": "tests/testdata/outputs_tcs/change_map_amplitude.h5"
+    },
     "preparation": {
         "start_date": null,
         "end_date": null,
