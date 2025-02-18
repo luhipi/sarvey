@@ -13,36 +13,10 @@ SARvey is a cross-platform python-based software and can be installed on
 Linux
 -----
 
-On Linux, SARvey can be installed `Using Pip (recommended)`_ or `Using Mamba`_ or `Using Anaconda or Miniconda`_.
+On Linux, SARvey can be installed `Using `Using Mamba (recommended)`_ or `Using Anaconda or Miniconda`_ or Pip`_.
 
-Using pip (recommended)
-^^^^^^^^^^^^^^^^^^^^^^^
-Using pip_ (latest version recommended), **SARvey** is installed as follows:
-
-1. Create a new environment for **SARvey** (optional but recommended):
-   .. code-block:: bash
-
-    conda create -n sarvey pip -y 
-    conda activate sarvey
-
-2. Install **Miaplpy_**
-
-    .. code-block:: bash
-     conda run -n ci_env pip install git+https://github.com/insarlab/MiaplPy.git
-
-3. Install **SARvey**
-    .. code-block:: bash
-     conda run -n ci_env pip install git+https://github.com/luhipi/sarvey.git
-
-
-If your are a developer, use the following command to make sure all development requirements are installed.
-    .. code-block:: bash
-     conda run -n ci_env pip install git+https://github.com/luhipi/sarvey.git#egg=sarvey[dev]
-    
-
-
-Using Mamba
-^^^^^^^^^^^
+Using Mamba (recommended)
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Using mamba_ (latest version recommended), **SARvey** is installed as follows:
 
@@ -95,6 +69,32 @@ Using conda_ (latest version recommended), **SARvey** is installed as follows:
     conda activate sarvey
     pip install git+https://github.com/insarlab/MiaplPy.git
     pip install .
+
+
+Using pip
+^^^^^^^^^
+
+Using pip_ (latest version recommended), **SARvey** is installed as follows:
+
+1. Create a new environment for **SARvey** (optional but recommended):
+   .. code-block:: bash
+
+    conda create -n sarvey pip -y 
+    conda activate sarvey
+
+2. Install **Miaplpy_**
+
+    .. code-block:: bash
+     conda run -n ci_env pip install git+https://github.com/insarlab/MiaplPy.git
+
+3. Install **SARvey**
+    .. code-block:: bash
+     conda run -n ci_env pip install git+https://github.com/luhipi/sarvey.git
+
+
+If your are a developer, use the following command to make sure all development requirements are installed.
+    .. code-block:: bash
+     conda run -n ci_env pip install git+https://github.com/luhipi/sarvey.git#egg=sarvey[dev]
 
 
 MacOS ARM (Apple Silicon M2)
