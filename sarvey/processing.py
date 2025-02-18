@@ -33,6 +33,7 @@ import matplotlib.pyplot as plt
 from matplotlib import colormaps
 import numpy as np
 from logging import Logger
+import cmcrameri as cmc
 
 from miaplpy.objects.slcStack import slcStack
 from mintpy.utils import readfile
@@ -471,8 +472,6 @@ class Processing:
             phase=unw_phase,
             num_points=point_obj.num_points,
             ifg_net_obj=point_obj.ifg_net_obj,
-            num_cores=1,  # self.config.general.num_cores,
-            ref_idx=0,
             logger=self.logger
         )
         point_obj = Points(file_path=join(self.path, "p1_ts.h5"), logger=self.logger)
@@ -542,8 +541,6 @@ class Processing:
         # for sbas the ifg network needs to be inverted to get the phase time series
         phase_ts = ut.invertIfgNetwork(phase=unw_phase, num_points=point_obj.num_points,
                                        ifg_net_obj=point_obj.ifg_net_obj,
-                                       num_cores=1,  # self.config.general.num_cores,
-                                       ref_idx=0,
                                        logger=self.logger)
 
         point_obj.phase = phase_ts
@@ -717,7 +714,7 @@ class Processing:
             plt.close(fig)
 
         if (self.config.phase_linking.use_phase_linking_results &
-            (not self.config.temporarily_coherent_scatterer.use_temporarily_coherent_scatterers)):
+           (not self.config.temporarily_coherent_scatterer.use_temporarily_coherent_scatterers)):
             # read PL results
             pl_coh = readfile.read(join(self.config.phase_linking.inverted_path, "phase_series.h5"),
                                    datasetName='temporalCoherence')[0]
@@ -812,7 +809,7 @@ class Processing:
                                                  point_id_img=point_id_img, logger=self.logger)
 
         if (self.config.phase_linking.use_phase_linking_results &
-            (not self.config.temporarily_coherent_scatterer.use_temporarily_coherent_scatterers)):
+           (not self.config.temporarily_coherent_scatterer.use_temporarily_coherent_scatterers)):
             self.logger.info(msg="read phase from MiaplPy results...")
             phase_linking_obj = BaseStack(
                 file=join(self.config.phase_linking.inverted_path, "phase_series.h5"),
@@ -1109,8 +1106,6 @@ class Processing:
             phase=unw_phase,
             num_points=point2_obj.num_points,
             ifg_net_obj=point2_obj.ifg_net_obj,
-            num_cores=1,  # self.config.general.num_cores,
-            ref_idx=0,
             logger=self.logger)
 
         point_obj = Points(file_path=join(self.path, "p2_coh{}_ts.h5".format(coh_value)), logger=self.logger)
@@ -1169,8 +1164,6 @@ class Processing:
 
         phase_ts = ut.invertIfgNetwork(phase=unw_phase, num_points=point_obj.num_points,
                                        ifg_net_obj=point_obj.ifg_net_obj,
-                                       num_cores=1,  # self.config.general.num_cores,
-                                       ref_idx=0,
                                        logger=self.logger)
 
         point_obj.phase = phase_ts
