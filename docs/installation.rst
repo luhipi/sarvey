@@ -77,6 +77,7 @@ Using pip
 Using pip_ (latest version recommended), **SARvey** is installed as follows:
 
 1. Create a new environment for **SARvey** (optional but recommended):
+
    .. code-block:: bash
 
     conda create -n sarvey pip -y 
@@ -84,12 +85,13 @@ Using pip_ (latest version recommended), **SARvey** is installed as follows:
 
 2. Install **Miaplpy_**
 
-    .. code-block:: bash
-     conda run -n ci_env pip install git+https://github.com/insarlab/MiaplPy.git
+   .. code-block:: bash
+    conda run -n ci_env pip install git+https://github.com/insarlab/MiaplPy.git
 
 3. Install **SARvey**
-    .. code-block:: bash
-     conda run -n ci_env pip install git+https://github.com/luhipi/sarvey.git
+
+   .. code-block:: bash
+    conda run -n ci_env pip install git+https://github.com/luhipi/sarvey.git
 
 
 If your are a developer, use the following command to make sure all development requirements are installed.
