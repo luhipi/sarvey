@@ -28,7 +28,6 @@
 # with this program. If not, see <https://www.gnu.org/licenses/>.
 
 """Utils module for SARvey."""
-import multiprocessing
 import time
 from os.path import exists, join
 
@@ -53,9 +52,11 @@ def convertBboxToBlock(*, bbox: tuple):
     return block
 
 
-def invertIfgNetwork(*, phase: np.ndarray, num_points: int, ifg_net_obj: IfgNetwork, num_cores: int, ref_idx: int,
-                     logger: Logger):
+def invertIfgNetwork(*, phase: np.ndarray, num_points: int, ifg_net_obj: IfgNetwork, logger: Logger,
+                     lifetime_ifgs: np.ndarray = None, lifetime_images: np.ndarray = None):
     """Wrap the ifg network inversion running in parallel.
+
+    This function does not use multiprocessing. Matrix inversion in scipy is already parallelized.
 
     Parameters
     ----------
@@ -65,12 +66,12 @@ def invertIfgNetwork(*, phase: np.ndarray, num_points: int, ifg_net_obj: IfgNetw
         number of points.
     ifg_net_obj: IfgNetwork
         instance of class IfgNetwork.
-    num_cores: int
-        number of cores to use for multiprocessing.
-    ref_idx: int
-        index of temporal reference date for interferogram network inversion.
     logger: Logger
         logging handler
+    lifetime_ifgs: np.ndarray
+        lifetime of each point for each interferogram (optional).
+    lifetime_images: np.ndarray
+        lifetime of each point for each image (optional).
 
     Returns
     -------
@@ -82,85 +83,35 @@ def invertIfgNetwork(*, phase: np.ndarray, num_points: int, ifg_net_obj: IfgNetw
     msg += "#" * 10
     logger.info(msg=msg)
 
+    # for legacy, if only continuously coherent scatterers are processed:
+    if lifetime_ifgs is None:
+        lifetime_ifgs = np.ones((num_points, ifg_net_obj.num_ifgs), dtype=np.bool_)
+    if lifetime_images is None:
+        lifetime_images = np.ones((num_points, ifg_net_obj.num_images), dtype=np.bool_)
+
     start_time = time.time()
     design_mat = ifg_net_obj.getDesignMatrix()
 
-    if num_cores == 1:
-        args = (np.arange(num_points), num_points, phase, design_mat, ifg_net_obj.num_images, ref_idx)
-        idx_range, phase_ts = launchInvertIfgNetwork(parameters=args)
-    else:
-        # use only 10 percent of the cores, because scipy.sparse.linalg.lsqr is already running in parallel
-        num_cores = int(np.floor(num_cores / 10))
-        logger.info(msg="start parallel processing with {} cores.".format(num_cores))
-        pool = multiprocessing.Pool(processes=num_cores)
+    phase_ts = np.zeros((num_points, ifg_net_obj.num_images), dtype=np.float32)
+    phase_ts[~lifetime_images] = np.nan
 
-        phase_ts = np.zeros((num_points, ifg_net_obj.num_images), dtype=np.float32)
+    prog_bar = ptime.progressBar(maxValue=num_points)
+    for p in range(num_points):
+        mask_coherent = lifetime_images[p, :].copy()
+        ref_idx = np.where(mask_coherent)[0][0]  # first coherent images of the point
+        mask_coherent[ref_idx] = False
 
-        num_cores = num_points if num_cores > num_points else num_cores  # avoids having more samples than cores
-        idx = splitDatasetForParallelProcessing(num_samples=num_points, num_cores=num_cores)
-        args = [(
-            idx_range,
-            idx_range.shape[0],
-            phase[idx_range, :],
-            design_mat,
-            ifg_net_obj.num_images,
-            ref_idx) for idx_range in idx]
+        design_mat_adjusted = design_mat[lifetime_ifgs[p, :], :]
+        design_mat_adjusted = design_mat_adjusted[:, lifetime_images[p, :]]
+        # remove reference date, caution: reference date is always the first date inside the cropped design matrix.
+        design_mat_adjusted = np.delete(design_mat_adjusted, 0, axis=1)
 
-        results = pool.map(func=launchInvertIfgNetwork, iterable=args)
-
-        # retrieve results
-        for i, phase_i in results:
-            phase_ts[i, :] = phase_i
+        phase_ts[p, mask_coherent] = lsqr(design_mat_adjusted, phase[p, lifetime_ifgs[p, :]])[0]
+        prog_bar.update(value=p + 1, every=np.ceil(num_points / 100), suffix='{}/{} points'.format(p + 1, num_points))
 
     m, s = divmod(time.time() - start_time, 60)
     logger.debug(msg='time used: {:02.0f} mins {:02.1f} secs.'.format(m, s))
     return phase_ts
-
-
-def launchInvertIfgNetwork(parameters: tuple):
-    """Launch the inversion of the interferogram network in parallel.
-
-    Parameters
-    ----------
-    parameters: tuple
-        parameters for inversion
-
-        Tuple contains:
-            idx_range: np.ndarray
-                range of point indices to be processed
-            num_points: int
-                number of points
-            phase: np.ndarray
-                interferometric phases of the points
-            design_mat: np.ndarray
-                design matrix
-            num_images: int
-                number of images
-            ref_idx: int
-                index of temporal reference date for interferogram network inversion
-
-    Returns
-    -------
-        idx_range: np.ndarray
-            range of indices of the points processed
-        phase_ts: np.ndarray
-            inverted phase time series
-    """
-    # Unpack the parameters
-    (idx_range, num_points, phase, design_mat, num_images, ref_idx) = parameters
-
-    design_mat = np.delete(arr=design_mat, obj=ref_idx, axis=1)  # remove reference date
-    idx = np.ones((num_images,), dtype=np.bool_)
-    idx[ref_idx] = False
-    phase_ts = np.zeros((num_points, num_images), dtype=np.float32)
-
-    prog_bar = ptime.progressBar(maxValue=num_points)
-    for i in range(num_points):
-        phase_ts[i, idx] = lsqr(design_mat, phase[i, :])[0]
-        prog_bar.update(value=i + 1, every=np.ceil(num_points / 100),
-                        suffix='{}/{} points'.format(i + 1, num_points))
-
-    return idx_range, phase_ts
 
 
 def predictPhase(*, obj: [NetworkParameter, Points], vel: np.ndarray = None, demerr: np.ndarray = None,
@@ -390,15 +341,17 @@ def estimateParameters(*, obj: Union[Points, Network], estimate_ref_atmo: bool =
     a[:, 1] = 4 * np.pi / obj.wavelength * tbase  # velocity
 
     for p in range(obj.num_points):
-        obv_vec = obj.phase[p, :]
+        coherent_time = ~np.isnan(obj.phase)[p, :]  # identify incoherent images/ifgs
+        obv_vec = obj.phase[p, coherent_time]
         a[:, 0] = 4 * np.pi / obj.wavelength * pbase / (obj.slant_range[p] * np.sin(obj.loc_inc[p]))  # demerr
 
-        x_hat, omega[p] = np.linalg.lstsq(a, obv_vec, rcond=None)[0:2]
+        x_hat = np.linalg.lstsq(a[coherent_time, :], obv_vec, rcond=None)[0]
         demerr[p] = x_hat[0]
         vel[p] = x_hat[1]
         if estimate_ref_atmo:
             ref_atmo[p] = x_hat[2]
-        v_hat[p, :] = obv_vec - np.matmul(a, x_hat)
+        v_hat[p, coherent_time] = obv_vec - np.matmul(a[coherent_time, :], x_hat)
+        omega[p] = np.dot(v_hat[p, coherent_time], v_hat[p, coherent_time].transpose())
         coherence[p] = np.abs(np.mean(np.exp(1j * v_hat[p, :])))
 
     if not estimate_ref_atmo:
@@ -826,7 +779,7 @@ def setReferenceToPeakOfHistogram(*, phase: np.ndarray, vel: np.ndarray, num_bin
     mask = (vel >= bin_edges[max_idx]) & (vel < bin_edges[max_idx + 1])
 
     # determine reference phase from mean of the phase time series of the selected points
-    ref_phase = np.mean(phase[mask, :], axis=0)
+    ref_phase = np.nanmean(phase[mask, :], axis=0)
 
     # adjust the phases by the reference sarvey
     phase -= ref_phase

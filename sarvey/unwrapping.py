@@ -41,6 +41,7 @@ from scipy.sparse.csgraph import structural_rank
 from scipy.sparse.linalg import lsqr
 from scipy.optimize import minimize
 from logging import Logger
+import cmcrameri as cmc
 
 from mintpy.utils import ptime
 
@@ -388,7 +389,7 @@ def launchSpatialUnwrapping(parameters: tuple) -> tuple[np.ndarray, np.ndarray]:
     Parameters
     ----------
     parameters: tuple
-        idx_range, num_ifgs, num_points, edges, phase
+        idx_range, num_ifgs, num_points, method, edges_per_ifg, phase, lifetime_ifgs
 
     Returns
     -------
@@ -396,18 +397,17 @@ def launchSpatialUnwrapping(parameters: tuple) -> tuple[np.ndarray, np.ndarray]:
     unw_phase: np.ndarray
     """
     # Unpack the parameters
-    (idx_range, num_ifgs, num_points, method, edges, phase) = parameters
+    (idx_range, num_ifgs, num_points, method, edges_per_ifg, phase, lifetime_ifgs) = parameters
 
     prog_bar = ptime.progressBar(maxValue=num_ifgs)
-
     unw_phase = np.zeros((num_points, num_ifgs), dtype=np.float32)
 
-    # Perform the PUMA phase unwrapping
-    for i in range(num_ifgs):
+    for idx in range(num_ifgs):
+        coherent_points_idx = lifetime_ifgs[:, idx]
         if method == "puma":
-            unw_phase[:, i] = unwrap_arbitrary(
-                psi=phase[:, i],
-                edges=edges,
+            unw_phase[coherent_points_idx, idx] = unwrap_arbitrary(
+                psi=phase[coherent_points_idx, idx],
+                edges=edges_per_ifg[idx],
                 simplices=None,
                 method="gc",
                 period=2*np.pi,
@@ -415,23 +415,23 @@ def launchSpatialUnwrapping(parameters: tuple) -> tuple[np.ndarray, np.ndarray]:
                 p=0.2
             )
         else:
-            unw_phase[:, i] = unwrap_arbitrary(
-                psi=phase[:, i],
-                edges=edges,
+            unw_phase[coherent_points_idx, idx] = unwrap_arbitrary(
+                psi=phase[coherent_points_idx, idx],
+                edges=edges_per_ifg[idx],
                 simplices=None,  # todo: compute simplices for ILP
                 method="ilp",
                 period=2*np.pi,
                 start_i=0,
             )
-        prog_bar.update(value=i + 1, every=1,
-                        suffix='{}/{} ifgs unwrapped. '.format(i + 1, num_ifgs))
-
-    unw_phase = unw_phase - np.mean(unw_phase, axis=0)
+        prog_bar.update(value=idx + 1, every=1, suffix='{}/{} ifgs unwrapped. '.format(idx + 1, num_ifgs))
+    unw_phase[~lifetime_ifgs] = np.nan
+    unw_phase = unw_phase - np.nanmean(unw_phase, axis=0)
     return idx_range, unw_phase
 
 
-def spatialUnwrapping(*, num_ifgs: int, num_points: int, phase: np.ndarray, edges: np.ndarray, method: str,
-                      num_cores: int, logger: Logger):
+def spatialUnwrapping(*, num_ifgs: int, num_points: int, phase: np.ndarray, method: str, num_cores: int,
+                      edges: Union[np.ndarray, list[np.ndarray]], logger: Logger,
+                      lifetime_ifgs: np.ndarray = None):
     """Spatial unwrapping of interferograms for a set of points.
 
     Parameters
@@ -442,8 +442,12 @@ def spatialUnwrapping(*, num_ifgs: int, num_points: int, phase: np.ndarray, edge
         Number of points.
     phase: np.ndarray
         Phase of the interferograms at the points.
-    edges: np.ndarray
-        Edges/arcs of the graph.
+    lifetime_ifgs: np.ndarray
+        Interferograms which are coherent for the scatterers (boolean, num_points x num_ifgs), default is None. If None,
+        all points are considered coherent in all ifgs.
+    edges:
+        Edges for unwrapping interferograms (for TCS: the set of points and thus the edges are different in each
+        interferogram. For CCS: the same arcs are used for each interferogram).
     method: str
         Method for spatial unwrapping (puma or ilp).
     num_cores: int
@@ -463,6 +467,12 @@ def spatialUnwrapping(*, num_ifgs: int, num_points: int, phase: np.ndarray, edge
 
     start_time = time.time()
 
+    # for legacy, if only continuously coherent scatterers are processed:
+    if lifetime_ifgs is None:
+        lifetime_ifgs = np.ones((num_points, num_ifgs), dtype=bool)
+    if isinstance(edges, np.ndarray):
+        edges = [edges] * num_ifgs
+
     if num_cores == 1:
         parameters = (
             np.arange(num_ifgs),
@@ -470,7 +480,8 @@ def spatialUnwrapping(*, num_ifgs: int, num_points: int, phase: np.ndarray, edge
             num_points,
             method,
             edges,
-            phase
+            phase,
+            lifetime_ifgs
         )
         idx_range, unw_phase = launchSpatialUnwrapping(parameters=parameters)
     else:
@@ -487,8 +498,9 @@ def spatialUnwrapping(*, num_ifgs: int, num_points: int, phase: np.ndarray, edge
             idx_range.shape[0],
             num_points,
             method,
-            edges,
-            phase[:, idx_range]) for idx_range in idx]
+            edges[idx_range[0]:idx_range[-1] + 1],
+            phase[:, idx_range],
+            lifetime_ifgs[:, idx_range]) for idx_range in idx]
         results = pool.map(func=launchSpatialUnwrapping, iterable=args)
 
         # retrieve results
@@ -1001,7 +1013,7 @@ def parameterBasedNoisyPointRemoval(*, net_par_obj: NetworkParameter, point_id: 
             # vel
             ax = bmap_obj.plot(logger=logger)
             sc = ax.scatter(coord_xy[:, 1], coord_xy[:, 0], c=rmse_vel * 1000, s=3.5,
-                            cmap=plt.cm.get_cmap("autumn_r"), vmin=0, vmax=rmse_thrsh * 1000)
+                            cmap=cmc.cm.cmaps["lajolla"], vmin=0, vmax=rmse_thrsh * 1000)
             plt.colorbar(sc, pad=0.03, shrink=0.5)
             ax.set_title("{}. iteration\nmean velocity - RMSE per point in [mm / year]".format(it_count))
             fig = ax.get_figure()
@@ -1012,8 +1024,7 @@ def parameterBasedNoisyPointRemoval(*, net_par_obj: NetworkParameter, point_id: 
 
             # demerr
             ax = bmap_obj.plot(logger=logger)
-            sc = ax.scatter(coord_xy[:, 1], coord_xy[:, 0], c=rmse_demerr, s=3.5,
-                            cmap=plt.cm.get_cmap("autumn_r"))
+            sc = ax.scatter(coord_xy[:, 1], coord_xy[:, 0], c=rmse_demerr, s=3.5, cmap=cmc.cm.cmaps["lajolla"])
             plt.colorbar(sc, pad=0.03, shrink=0.5)
             ax.set_title("{}. iteration\nDEM correction - RMSE per point in [m]".format(it_count))
             fig = ax.get_figure()
