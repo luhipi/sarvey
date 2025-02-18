@@ -45,7 +45,7 @@ with open("sarvey/version.py") as version_file:
 req = [
     "cython", "numpy", "pyproj", "matplotlib", "numba", "scipy",
     "mintpy", "h5py", "overpy", "miaplpy", "gstools", "shapely", "pandas", "geopandas", "pymaxflow",
-    "pillow", "pydantic<=1.10.10", "importlib_resources", "kamui", "json5", "cmcrameri"
+    "pillow", "pydantic<=1.10.10", "importlib_resources", "kamui", "json5", "cmcrameri", "gdal"
 ]
 
 req_setup = []
