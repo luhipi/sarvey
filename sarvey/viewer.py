@@ -240,7 +240,16 @@ def plotGridFromBoxList(*, box_list: list, ax: plt.Axes = None, edgecolor: str =
 
 
 class LineSelector:
+    """LineSelector."""
+
     def __init__(self, ax):
+        """Init.
+
+        Parameters
+        ----------
+        ax: plt.Axes
+            axis
+        """
         self.ax = ax
         self.unselected_color = 'k'
         self.points = []
@@ -251,6 +260,15 @@ class LineSelector:
         self.line_point_indices = [None, None]
 
     def plotImageAcquisitions(self, slc_stack_obj: slcStack, date_list: list):
+        """Initialize figure by plotting the baseline plot of the image acquisitions.
+
+        Parameters
+        ----------
+        slc_stack_obj: slcStack
+            instance of slcStack
+        date_list: list
+            list of dates
+        """
         for date_idx in range(slc_stack_obj.numDate):
             point = self.ax.plot(date_list[date_idx], slc_stack_obj.pbase[date_idx], "ko")[0]
             self.points.append(point)
@@ -259,6 +277,13 @@ class LineSelector:
         self.ax.set_ylabel("Perpendicular baseline [m]")
 
     def onClick(self, event):
+        """Select amplitude or interferogram.
+
+        Parameters
+        ----------
+        event: MouseEvent
+            mouse event
+        """
         if event.inaxes != self.ax:
             return None, None
 
@@ -302,6 +327,13 @@ class LineSelector:
             return self.line_point_indices[0], self.line_point_indices[1]
 
     def onCheck(self, label):
+        """Check if amplitude or interferogram is selected.
+
+        Parameters
+        ----------
+        label: str
+            label of the radio button
+        """
         if label == 'Amplitude':
             self.select_amplitude = True
             # remove line
@@ -321,8 +353,18 @@ class LineSelector:
 
 
 class ImageViewer:
-    """Viewer"""
+    """ImageViewer."""
+
     def __init__(self, slc_stack_obj: slcStack, line_selector: LineSelector):
+        """Init.
+
+        Parameters
+        ----------
+        slc_stack_obj: slcStack
+            instance of slcStack
+        line_selector: LineSelector
+            instance of LineSelector
+        """
         self.slc_stack_obj = slc_stack_obj
         self.line_selector = line_selector
 
@@ -337,7 +379,13 @@ class ImageViewer:
         self.ax_img.set_ylabel("Azimuth")
 
     def plotImage(self, event):
-        """PlotImage."""
+        """Plot either amplitude image or interferogram.
+
+        Parameters
+        ----------
+        event: MouseEvent
+            mouse event
+        """
         date1_idx, date2_idx = self.line_selector.onClick(event)
         if date1_idx is None:
             return
