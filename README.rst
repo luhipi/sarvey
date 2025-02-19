@@ -12,6 +12,11 @@ Documentation
 The documentation with installation instructions, processing steps, and examples with a demo dataset can be found at:
 https://luhipi.github.io/sarvey/main/docs/
 
+Discussion
+----------
+
+Use the Q&A in discussion_ to ask questions and get help from the community.
+Report bugs and request features in the issue_ tracker.
 
 
 Status
@@ -208,3 +213,5 @@ This package was created with Cookiecutter_ and the `fernlab/cookiecutter-python
 .. _`Institute of Photogrammetry and GeoInformation`: https://www.ipi.uni-hannover.de/en/
 .. _`Landesamt fuer Vermessung und Geoinformation Schleswig-Holstein`: https://www.schleswig-holstein.de/DE/landesregierung/ministerien-behoerden/LVERMGEOSH/lvermgeosh_node.html
 .. _`Landesbetrieb Strassenbau und Verkehr Schleswig-Holstein`: https://www.schleswig-holstein.de/DE/Landesregierung/LBVSH/lbvsh_node.html
+.. _discussion: https://github.com/luhipi/sarvey/discussions
+.. _issue: https://github.com/luhipi/sarvey/issues
