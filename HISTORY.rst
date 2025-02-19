@@ -3,11 +3,17 @@ History
 =======
 
 
-Future version (released soon)
-------------------------------
+Future minor version (release soon)
+-----------------------------------
+
+
+1.2.0 (2025-02-19)
+------------------
 
 * Create the background map and coordinates file each run of step 0.
 * Visualize time series of neighbouring points in sarvey_plot -t.
+* Ensure that specified grid size is bigger than study area.
+* Update runner.
 
 1.1.0 (2024-11-06)
 ------------------
