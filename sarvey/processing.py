@@ -598,7 +598,8 @@ class Processing:
 
         box_list, num_box = ut.createSpatialGrid(coord_utm_img=coord_utm_obj.coord_utm, length=point1_obj.length,
                                                  width=point1_obj.width,
-                                                 grid_size=self.config.filtering.grid_size)
+                                                 grid_size=self.config.filtering.grid_size,
+                                                 logger=self.logger)
 
         cand_mask_sparse = ut.selectBestPointsInGrid(box_list=box_list, quality=auto_corr_img, sel_min=True)
 
@@ -607,6 +608,9 @@ class Processing:
             self.logger.warning(msg=f"Only {num_p1_points_for_filtering} points for APS filtering selected. Filtering "
                                     f"results are probably not reliable. You can e.g. increase 'max_auto_corr' or try "
                                     f"to increase the number of first-order points during step 1 and 2.")
+            if num_p1_points_for_filtering == 0:
+                self.logger.error("No points selected for APS filtering.")
+                raise ValueError
 
         point_id_img = np.arange(0, point1_obj.length * point1_obj.width).reshape(
             (point1_obj.length, point1_obj.width))

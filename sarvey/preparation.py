@@ -216,7 +216,8 @@ def selectPixels(*, path: str, selection_method: str, thrsh: float,
         box_list = ut.createSpatialGrid(coord_utm_img=coord_utm_obj.coord_utm,
                                         length=coord_utm_obj.coord_utm.shape[1],
                                         width=coord_utm_obj.coord_utm.shape[2],
-                                        grid_size=grid_size)[0]
+                                        grid_size=grid_size,
+                                        logger=logger)[0]
         cand_mask_sparse = ut.selectBestPointsInGrid(box_list=box_list, quality=quality, sel_min=grid_min_val)
         cand_mask &= cand_mask_sparse
 
