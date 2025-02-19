@@ -375,6 +375,7 @@ class ImageViewer:
         self.img = self.ax_img.imshow(np.zeros((self.slc_stack_obj.length, self.slc_stack_obj.width), dtype=np.float32),
                                       interpolation="nearest")
         auto_flip_direction(self.slc_stack_obj.metadata, ax=self.ax_img, print_msg=True)
+        self.cb = plt.colorbar(self.img, ax=self.ax_img, pad=0.03, shrink=0.5)
         self.ax_img.set_xlabel("Range")
         self.ax_img.set_ylabel("Azimuth")
 
