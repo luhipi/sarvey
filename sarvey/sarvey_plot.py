@@ -32,23 +32,24 @@ import argparse
 import time
 import os
 from os.path import join, basename, dirname
+import datetime
 import matplotlib
 import matplotlib.pyplot as plt
+from matplotlib.widgets import RadioButtons
 import numpy as np
 import logging
 from logging import Logger
 import sys
 import cmcrameri as cmc
 
-from mintpy.utils import ptime
-from mintpy.utils.plot import auto_flip_direction
+from miaplpy.objects.slcStack import slcStack
 
-from sarvey.ifg_network import IfgNetwork
-from sarvey.objects import Points, AmplitudeImage, BaseStack
+from sarvey.objects import Points, AmplitudeImage
 from sarvey import console
 from sarvey import viewer
 from sarvey.config import loadConfiguration
 import sarvey.utils as ut
+from sarvey.viewer import LineSelector, ImageViewer
 
 try:
     matplotlib.use('QtAgg')
@@ -60,9 +61,10 @@ EXAMPLE = """Example:
   sarvey_plot outputs/p2_coh80_ts.h5 -m -a             # plot velocity map and DEM correction interactively
   sarvey_plot outputs/p2_coh80_ts.h5 -r -n 0 5         # plot residuals for image 0 to 5
   sarvey_plot outputs/p2_coh80_ifg_wr.h5 -p -n 0 1 -a  # plot wrapped phase of final point selection for interferogram 0
-  sarvey_plot outputs/p1_ifg_wr.h5 -p -n 0 1 -a     # plot wrapped phase of the first order network
-  sarvey_plot -i -a outputs/ifg_stack.h5            # interactively plot interferograms
-  sarvey_plot -i outputs/ifg_stack.h5               # store interferograms as png files
+  sarvey_plot outputs/p1_ifg_wr.h5 -p -n 0 1 -a        # plot wrapped phase of the first order network
+
+  # plot amplitude images and interferograms interactively
+  sarvey_plot -i inputs/slcStack.h5
   [...]
 """
 
@@ -262,83 +264,52 @@ def plotResidualPhase(*, obj_name: str, save_path: str, image_range: tuple, inte
         plt.show()
 
 
-def plotAllIfgs(*, obj_name: str, save_path: str, interactive: bool = False, logger: Logger):
-    """Plot all interferograms inside the ifg_stack.h5 file.
+def plotAmplitudeAndInterferogram(*, obj_name: str, logger: Logger):
+    """Plot amplitude images and interferograms interactivately.
 
-    If interactivity is enabled, the plots are shown and figures are not saved. Otherwise, the figures are
-    not shown but saved as png files.
-    If the ifg_network.h5 file is available, the baselines are displayed in the title of each interferogram.
+    Reads from the original slcStack.h5 file and plots the amplitude image or interferograms.
+    User can select an image by clicking on the point in the baseline plot.
 
     Parameters
     ----------
     obj_name : str
-        Path to the ifg_stack.h5 file.
+        Path to the slcStack.h5 file.
     save_path : str
         Path to the directory where the figures are saved.
-    interactive : bool
-        If True, the plots will be shown interactively.
     logger : Logger
         Logger object.
     """
-    console.showLogoSARvey(logger=logger, step="Plot interferograms")
+    console.showLogoSARvey(logger=logger, step="Plot Ampl. and Ifg")
 
-    if obj_name.split("/")[-1] != "ifg_stack.h5":
+    if obj_name.split("/")[-1] != "slcStack.h5":
         logger.warning(msg="Cannot plot ifgs from {}".format(obj_name))
         return
 
-    ifg_stack_obj = BaseStack(file=obj_name, logger=logger)
-    ifgs = ifg_stack_obj.read(dataset_name="ifgs")
+    slc_stack_obj = slcStack(obj_name)
+    slc_stack_obj.open()
 
-    path_ifg_net = join(dirname(obj_name), "ifg_network.h5")
-    if os.path.exists(path_ifg_net):
-        ifg_net_obj = IfgNetwork()
-        ifg_net_obj.open(path=path_ifg_net)
-    else:
-        logger.warning(msg="'ifg_network.h5' is not available in the same directory as 'ifg_stack.h5'. "
-                           "No baseline information available.")
-        ifg_net_obj = None
+    date_list = [datetime.date(year=int(d[:4]), month=int(d[4:6]), day=int(d[6:])) for d in slc_stack_obj.dateList]
 
-    num_ifgs = ifgs.shape[2]
+    fig, ax = plt.subplots()
+    fig.subplots_adjust(top=0.85)
+    line_selector = LineSelector(ax)
+    rb_ax = plt.axes((0.33, 0.9, 0.33, 0.1))  # [left, bottom, width, height]
+    rb_img_ifg = RadioButtons(
+        ax=rb_ax,
+        labels=['Amplitude', 'Interferogram'],
+        active=0
+    )
+    rb_img_ifg.on_clicked(line_selector.onCheck)
 
-    prog_bar = ptime.progressBar(maxValue=num_ifgs)
-    start_time = time.time()
-    logger.info(msg="plot and save figures of ifgs.")
-    for i in range(num_ifgs):
-        fig = plt.figure(figsize=(15, 5))
-        ax = fig.add_subplot()
-        ifg = np.angle(ifgs[:, :, i])
-        ifg[ifg == 0] = np.nan
-        im = plt.imshow(ifg, cmap=cmc.cm.cmaps["romaO"], interpolation='nearest', vmin=-np.pi, vmax=np.pi)
-        auto_flip_direction(ifg_stack_obj.metadata, ax=ax, print_msg=False)
-        ax.set_xlabel("Range")
-        ax.set_ylabel("Azimuth")
-        plt.colorbar(im, ax=ax, label="[rad]", pad=0.03, shrink=0.5)
-        if ifg_net_obj is not None:
-            if ifg_net_obj.dates is not None:
-                date1 = ifg_net_obj.dates[ifg_net_obj.ifg_list[i][0]]
-                date2 = ifg_net_obj.dates[ifg_net_obj.ifg_list[i][1]]
-                ttl = "{date1} - {date2}\nbaselines: {tbase} days, {pbase} m".format(
-                    date1=date1,
-                    date2=date2,
-                    tbase=int(np.round(ifg_net_obj.tbase_ifg[i] * 365.25)),
-                    pbase=int(np.round(ifg_net_obj.pbase_ifg[i]))
-                )
-            else:
-                ttl = "baselines: {tbase} days, {pbase} m".format(
-                    tbase=int(np.round(ifg_net_obj.tbase_ifg[i] * 365.25)),
-                    pbase=int(np.round(ifg_net_obj.pbase_ifg[i]))
-                )
-            plt.title(ttl)
-        plt.tight_layout()
-        if interactive:
-            plt.show()
-        else:
-            fig.savefig(join(save_path, "{}_ifg".format(i)), dpi=300)
-            plt.close(fig)
-        prog_bar.update(value=i + 1, every=1, suffix='{}/{} ifgs'.format(i + 1, num_ifgs))
-    prog_bar.close()
-    m, s = divmod(time.time() - start_time, 60)
-    logger.debug(msg='time used: {:02.0f} mins {:02.1f} secs.'.format(m, s))
+    # transfer the images to the LineSelector
+    line_selector.plotImageAcquisitions(slc_stack_obj=slc_stack_obj, date_list=date_list)
+
+    viewer = ImageViewer(slc_stack_obj=slc_stack_obj, line_selector=line_selector)
+    viewer.initializeImage()
+    fig.canvas.mpl_connect('button_press_event', viewer.plotImage)
+
+    # todo: add colorbar for amplitude and phase
+    plt.show()
 
 
 def createParser():
@@ -362,15 +333,15 @@ def createParser():
     parser.add_argument('-m', '--plot-map', default=False, dest="plotMap", action="store_true",
                         help='Plots the velocity map and DEM correction.')
 
-    parser.add_argument('-i', '--plot-all-ifgs', default=False, dest="plotAllIfgs", action="store_true",
-                        help='Plots all ifgs.')
+    parser.add_argument('-i', '--plot-images', default=False, dest="plot_images", action="store_true",
+                        help='Creates an interactive visualization of either amplitude image or interferograms.')
 
     parser.add_argument('-n', '--image_range', default=None, dest="image_range", nargs=2, type=int,
                         help='Reduces the number of phase images to the given range. Has no effect on -m and -t. Tuple.'
                              '(default: all images).')
 
     parser.add_argument('-a', '--interactive', default=False, dest="interactive", action="store_true",
-                        help='Enables interactive visualisation of figures. Is always ON for plot-ts.')
+                        help='Enables interactive visualisation of figures. Is always ON for -t and -i.')
 
     parser.add_argument('-w', '--workdir', default=None, dest="workdir",
                         help='Working directory (default: current directory).')
@@ -408,30 +379,30 @@ def main(iargs=None):
     logger.info("Working directory: {}".format(args.workdir))
     args.input_file = join(args.workdir, args.input_file)
 
-    config_file_path = os.path.abspath(join(args.workdir, dirname(args.input_file), "config.json"))
+    if not args.plot_images:  # skip reading config file only if -i was selected.
+        config_file_path = os.path.abspath(join(args.workdir, dirname(args.input_file), "config.json"))
 
-    if not os.path.exists(config_file_path):
-        # check if any config file is available in upper directory (backward compatibility)
-        files = np.array([os.path.abspath(f) for f in os.listdir(join(dirname(config_file_path), ".."))
-                          if os.path.isfile(f)])
-        potential_configs = np.array([(basename(f).split(".")[-1] == "json") and ("config" in basename(f))
-                                      for f in files])
-        if potential_configs[potential_configs].shape[0] == 0:
-            raise FileNotFoundError(f"Backup configuration file not found: {config_file_path}!")
-        else:
-            logger.warning(msg=f"Backup configuration file not found: {config_file_path}!")
-            logger.warning(msg=f"Other configuration files automatically detected: {files[potential_configs]}!")
-            logger.warning(msg=f"Automatically selected configuration file: {files[potential_configs][0]}!")
-            config_file_path = files[potential_configs][0]
+        if not os.path.exists(config_file_path):
+            # check if any config file is available in upper directory (backward compatibility)
+            files = np.array([os.path.abspath(f) for f in os.listdir(join(dirname(config_file_path), ".."))
+                              if os.path.isfile(f)])
+            potential_configs = np.array([(basename(f).split(".")[-1] == "json") and ("config" in basename(f))
+                                          for f in files])
+            if potential_configs[potential_configs].shape[0] == 0:
+                raise FileNotFoundError(f"Backup configuration file not found: {config_file_path}!")
+            else:
+                logger.warning(msg=f"Backup configuration file not found: {config_file_path}!")
+                logger.warning(msg=f"Other configuration files automatically detected: {files[potential_configs]}!")
+                logger.warning(msg=f"Automatically selected configuration file: {files[potential_configs][0]}!")
+                config_file_path = files[potential_configs][0]
 
-    config = loadConfiguration(path=config_file_path)
+        config = loadConfiguration(path=config_file_path)
 
     folder_name = "p1" if "p1" in basename(args.input_file) else basename(args.input_file)[:8]
-    folder_name = "ifgs" if "ifg_stack" in basename(args.input_file) else folder_name
 
     save_path = join(dirname(args.input_file), "pic", folder_name)
     if not os.path.exists(save_path):
-        if not args.plotTS:  # not needed for interactive time series
+        if not (args.plotTS or args.plot_images):
             os.mkdir(save_path)
 
     selected = False
@@ -455,8 +426,8 @@ def main(iargs=None):
                 input_path=config.general.input_path, logger=logger)
         selected = True
 
-    if args.plotAllIfgs:
-        plotAllIfgs(obj_name=args.input_file, save_path=save_path, interactive=args.interactive, logger=logger)
+    if args.plot_images:
+        plotAmplitudeAndInterferogram(obj_name=args.input_file, logger=logger)
         selected = True
 
     if not selected:
