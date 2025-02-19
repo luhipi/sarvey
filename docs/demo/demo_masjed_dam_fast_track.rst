@@ -81,7 +81,7 @@ Export the data to Shapefiles using the following command.
 
     sarvey_export outputs/p2_coh80_ts.h5 -o outputs/shp/p2_coh80_ts.shp
 
-You can visualize the data in any GIS software. If you use QGIS, you can use the `PS Time Series Viewer <https://plugins.qgis.org/plugins/pstimeseries/>`_ plugin to draw the time series.
+You can visualize the data in any GIS software. If you use QGIS, you can use the `InSAR Explorer <https://luhipi.github.io/insar-explorer/>`_ plugin to draw the time series.
 
 
 
