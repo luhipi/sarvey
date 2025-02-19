@@ -83,19 +83,23 @@ Using pip_ (latest version recommended), **SARvey** is installed as follows:
     conda create -n sarvey pip -y 
     conda activate sarvey
 
-2. Install **Miaplpy_**
+2. Install **Miaplpy**
 
    .. code-block:: bash
+
     conda run -n ci_env pip install git+https://github.com/insarlab/MiaplPy.git
 
 3. Install **SARvey**
 
    .. code-block:: bash
+
     conda run -n ci_env pip install git+https://github.com/luhipi/sarvey.git
 
 
 If your are a developer, use the following command to make sure all development requirements are installed.
+
     .. code-block:: bash
+
      conda run -n ci_env pip install git+https://github.com/luhipi/sarvey.git#egg=sarvey[dev]
 
 
