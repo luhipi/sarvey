@@ -669,7 +669,7 @@ class Config(BaseModel):
     )
 
 
-def loadConfiguration(*, path: str) -> dict:
+def loadConfiguration(*, path: str):
     """Load configuration json file.
 
     Parameters

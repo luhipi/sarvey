@@ -14,6 +14,7 @@ Future minor version (release soon)
 * Visualize time series of neighbouring points in sarvey_plot -t.
 * Ensure that specified grid size is bigger than study area.
 * Update runner.
+* Visualize amplitude images and interferograms interactively with sarvey_plot -i.
 
 1.1.0 (2024-11-06)
 ------------------
