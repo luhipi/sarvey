@@ -83,25 +83,30 @@ Using pip_ (latest version recommended), **SARvey** is installed as follows:
     conda create -n sarvey pip -y 
     conda activate sarvey
 
-2. Install **Miaplpy**
+2. Install dependencies
 
    .. code-block:: bash
 
-    conda run -n ci_env pip install git+https://github.com/insarlab/MiaplPy.git
+    conda install conda-forge::pysolid
+    conda install conda-forge::pysolid
 
-3. Install **SARvey**
+
+3. Install **Miaplpy**
 
    .. code-block:: bash
 
-    conda run -n ci_env pip install git+https://github.com/luhipi/sarvey.git
+    pip install git+https://github.com/insarlab/MiaplPy.git
+
+4. Install **SARvey**
+
+   .. code-block:: bash
+
+    pip install git+https://github.com/luhipi/sarvey.git
 
 
 If your are a developer, use the following command to make sure all development requirements are installed.
 
-    .. code-block:: bash
-
-     conda run -n ci_env pip install git+https://github.com/luhipi/sarvey.git#egg=sarvey[dev]
-
+    #### TODO: add dev installation.
 
 MacOS ARM (Apple Silicon M2)
 ----------------------------
