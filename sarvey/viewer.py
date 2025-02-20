@@ -2,7 +2,7 @@
 
 # SARvey - A multitemporal InSAR time series tool for the derivation of displacements.
 #
-# Copyright (C) 2021-2024 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
+# Copyright (C) 2021-2025 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
 #
 # This software was developed together with FERN.Lab (fernlab@gfz-potsdam.de) in the context
 # of the SAR4Infra project with funds of the German Federal Ministry for Digital and
@@ -34,10 +34,11 @@ from logging import Logger
 import matplotlib.cm as cm
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
-from matplotlib import widgets
 from matplotlib.collections import PathCollection
+from matplotlib import widgets
 from matplotlib.backend_bases import MouseButton
 from matplotlib.colors import Normalize
+from matplotlib.lines import Line2D
 import numpy as np
 from scipy.spatial import KDTree
 import datetime
@@ -46,9 +47,13 @@ import cmcrameri as cmc
 from mintpy.objects.colors import ColormapExt  # for DEM_print colormap
 from mintpy.utils import readfile
 from mintpy.utils.plot import auto_flip_direction
+from miaplpy.objects.slcStack import slcStack
 
 from sarvey.objects import AmplitudeImage, Points, BaseStack
 import sarvey.utils as ut
+
+
+
 
 
 def plotIfgs(*, phase: np.ndarray, coord: np.ndarray, spatial_ref_idx: int = None, ttl: str = None,
@@ -232,6 +237,188 @@ def plotGridFromBoxList(*, box_list: list, ax: plt.Axes = None, edgecolor: str =
                                  edgecolor=edgecolor, facecolor="none")
         ax.add_patch(rect)
     return ax
+
+
+class LineSelector:
+    """LineSelector."""
+
+    def __init__(self, ax):
+        """Init.
+
+        Parameters
+        ----------
+        ax: plt.Axes
+            axis
+        """
+        self.ax = ax
+        self.unselected_color = 'k'
+        self.points = []
+        self.first_point = None
+        self.second_point = None
+        self.select_amplitude = True
+        self.line = None
+        self.line_point_indices = [None, None]
+
+    def plotImageAcquisitions(self, slc_stack_obj: slcStack, date_list: list):
+        """Initialize figure by plotting the baseline plot of the image acquisitions.
+
+        Parameters
+        ----------
+        slc_stack_obj: slcStack
+            instance of slcStack
+        date_list: list
+            list of dates
+        """
+        for date_idx in range(slc_stack_obj.numDate):
+            point = self.ax.plot(date_list[date_idx], slc_stack_obj.pbase[date_idx], "ko")[0]
+            self.points.append(point)
+        self.ax.set_title("Image acquistions")
+        self.ax.set_xlabel("Date")
+        self.ax.set_ylabel("Perpendicular baseline [m]")
+
+    def onClick(self, event):
+        """Select amplitude or interferogram.
+
+        Parameters
+        ----------
+        event: MouseEvent
+            mouse event
+        """
+        if event.inaxes != self.ax:
+            return None, None
+
+        if self.select_amplitude:
+            selected_date_idx = None
+            for date_idx in range(len(self.points)):
+                point = self.points[date_idx]
+                if point.contains(event)[0]:
+                    point.set_color('r')
+                    selected_date_idx = date_idx
+                else:
+                    point.set_color(self.unselected_color)
+            plt.draw()
+            return selected_date_idx, None
+
+        else:  # select interferograms
+            for date_idx in range(len(self.points)):
+                point = self.points[date_idx]
+                if point.contains(event)[0]:
+                    if event.button == 1:  # left click
+                        self.first_point = point
+                        self.line_point_indices[0] = date_idx
+                    if event.button == 3:  # right click
+                        self.second_point = point
+                        self.line_point_indices[1] = date_idx
+                    break
+
+            if (self.line_point_indices[0] is not None) and (self.line_point_indices[1] is not None):
+                line_coord = [[self.first_point.get_xdata(), self.second_point.get_xdata()],
+                              [self.first_point.get_ydata(), self.second_point.get_ydata()]]
+
+                if self.line is None:  # only for first plot
+                    self.line = Line2D(line_coord[0], line_coord[1], color='b')
+                    self.ax.add_line(self.line)
+                else:
+                    self.line.set_data(line_coord[0], line_coord[1])
+                plt.draw()
+            else:
+                print("First image is selected. Now select the second image.")
+
+            return self.line_point_indices[0], self.line_point_indices[1]
+
+    def onCheck(self, label):
+        """Check if amplitude or interferogram is selected.
+
+        Parameters
+        ----------
+        label: str
+            label of the radio button
+        """
+        if label == 'Amplitude':
+            self.select_amplitude = True
+            # remove line
+            if self.line is not None:
+                self.line.remove()
+                self.line = None
+                self.line_point_indices = [None, None]
+                plt.draw()
+        else:
+            self.select_amplitude = False
+            print("Create interferograms by clicking on acquisitions."
+                  "\nFirst acquistion: LEFT mouse click"
+                  "\nSecond acquistion: RIGHT mouse click\n")
+            print("Start with selecting the first image.")
+            for point in self.points:
+                point.set_color(self.unselected_color)
+
+
+class ImageViewer:
+    """ImageViewer."""
+
+    def __init__(self, slc_stack_obj: slcStack, line_selector: LineSelector):
+        """Init.
+
+        Parameters
+        ----------
+        slc_stack_obj: slcStack
+            instance of slcStack
+        line_selector: LineSelector
+            instance of LineSelector
+        """
+        self.slc_stack_obj = slc_stack_obj
+        self.line_selector = line_selector
+
+    def initializeImage(self):
+        """InitializeImage."""
+        self.fig_img = plt.figure()
+        self.ax_img = plt.subplot()
+        self.img = self.ax_img.imshow(np.zeros((self.slc_stack_obj.length, self.slc_stack_obj.width), dtype=np.float32),
+                                      interpolation="nearest")
+        auto_flip_direction(self.slc_stack_obj.metadata, ax=self.ax_img, print_msg=True)
+        self.cb = plt.colorbar(self.img, ax=self.ax_img, pad=0.03, shrink=0.5)
+        self.ax_img.set_xlabel("Range")
+        self.ax_img.set_ylabel("Azimuth")
+
+    def plotImage(self, event):
+        """Plot either amplitude image or interferogram.
+
+        Parameters
+        ----------
+        event: MouseEvent
+            mouse event
+        """
+        date1_idx, date2_idx = self.line_selector.onClick(event)
+        if date1_idx is None:
+            return
+        if self.line_selector.select_amplitude:
+            slc = self.slc_stack_obj.read(datasetName=self.slc_stack_obj.dateList[date1_idx], print_msg=False)
+            ampl = np.abs(slc)
+            ampl[ampl == 0] = np.nan
+            ampl = np.log10(ampl)
+            self.img.set_data(ampl)
+            self.img.set_clim(np.nanmin(ampl), np.nanmax(ampl))
+            self.img.set_cmap('gray')
+            d = self.slc_stack_obj.dateList[date1_idx]
+            d = datetime.date(year=int(d[:4]), month=int(d[4:6]), day=int(d[6:]))
+            self.ax_img.set_title(f"{d}")
+        else:
+            if (date1_idx is None) or (date2_idx is None):
+                return
+            slc1 = self.slc_stack_obj.read(datasetName=self.slc_stack_obj.dateList[date1_idx], print_msg=False)
+            slc2 = self.slc_stack_obj.read(datasetName=self.slc_stack_obj.dateList[date2_idx], print_msg=False)
+            ifg = slc2 * np.conjugate(slc1)
+            self.img.set_data(np.angle(ifg))
+            self.img.set_clim(-np.pi, np.pi)
+            self.img.set_cmap(cmc.cm.cmaps["romaO"])
+
+            d1 = self.slc_stack_obj.dateList[date1_idx]
+            d2 = self.slc_stack_obj.dateList[date2_idx]
+            d1 = datetime.date(year=int(d1[:4]), month=int(d1[4:6]), day=int(d1[6:]))
+            d2 = datetime.date(year=int(d2[:4]), month=int(d2[4:6]), day=int(d2[6:]))
+            days = self.slc_stack_obj.tbase[date2_idx] - self.slc_stack_obj.tbase[date1_idx]
+            perp_base = np.abs(self.slc_stack_obj.pbase[date2_idx] - self.slc_stack_obj.pbase[date1_idx])
+            self.ax_img.set_title(f"Interferogram:\n{d1}   -   {d2}\n{int(days)} days, {int(perp_base)} m")
+        self.fig_img.canvas.draw()
 
 
 class TimeSeriesViewer:
