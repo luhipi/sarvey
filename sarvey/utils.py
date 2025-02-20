@@ -2,7 +2,7 @@
 
 # SARvey - A multitemporal InSAR time series tool for the derivation of displacements.
 #
-# Copyright (C) 2021-2024 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
+# Copyright (C) 2021-2025 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
 #
 # This software was developed together with FERN.Lab (fernlab@gfz-potsdam.de) in the context
 # of the SAR4Infra project with funds of the German Federal Ministry for Digital and
@@ -548,7 +548,7 @@ def splitDatasetForParallelProcessing(*, num_samples: int, num_cores: int):
     return idx
 
 
-def createSpatialGrid(*, coord_map_img: np.ndarray, length: int, width: int, grid_size: int):
+def createSpatialGrid(*, coord_map_img: np.ndarray, length: int, width: int, grid_size: int, logger: Logger):
     """Create a spatial grid over the image.
 
     Parameters
@@ -561,6 +561,8 @@ def createSpatialGrid(*, coord_map_img: np.ndarray, length: int, width: int, gri
         number of pixels in width of the image
     grid_size: int
         size of the grid in [m]
+    logger: Logger
+        logging handler
 
     Returns
     -------
@@ -574,20 +576,28 @@ def createSpatialGrid(*, coord_map_img: np.ndarray, length: int, width: int, gri
     p2 = coord_map_img[:, -1, 0]
     dist_width = np.linalg.norm(p0 - p1)
     dist_length = np.linalg.norm(p0 - p2)
+
+    if (dist_width < grid_size) or (dist_length < grid_size):
+        logger.warning(f"The selected grid size ({grid_size}m) is larger than the spatial coverage of the image "
+                       f"({dist_width}m x {dist_length}m).")
     num_box_az = int(np.round(dist_width / grid_size))
     num_box_rng = int(np.round(dist_length / grid_size))
+
+    # avoid division by zero
+    num_box_az = 1 if num_box_az == 0 else num_box_az
+    num_box_rng = 1 if num_box_rng == 0 else num_box_rng
 
     # split image into different parts
     box_list, num_box = splitImageIntoBoxesRngAz(length=length, width=width,
                                                  num_box_az=num_box_az, num_box_rng=num_box_rng)
-
+    logger.info(msg=f"{num_box} grid cells created.")
     return box_list, num_box
 
 
 def selectBestPointsInGrid(*, box_list: list, quality: np.ndarray, sel_min: bool = True):
     """Select the best point inside a grid.
 
-    If several pixel fullfil the criteria, the first one is selected.
+    If several pixel fulfill the criteria, the first one is selected.
 
     Parameters
     ----------

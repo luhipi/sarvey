@@ -2,7 +2,7 @@
 
 # SARvey - A multitemporal InSAR time series tool for the derivation of displacements.
 #
-# Copyright (C) 2021-2024 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
+# Copyright (C) 2021-2025 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
 #
 # This software was developed together with FERN.Lab (fernlab@gfz-potsdam.de) in the context
 # of the SAR4Infra project with funds of the German Federal Ministry for Digital and
@@ -216,7 +216,8 @@ def selectPixels(*, path: str, selection_method: str, thrsh: float,
         box_list = ut.createSpatialGrid(coord_map_img=coord_map_obj.coord_map,
                                         length=coord_map_obj.coord_map.shape[1],
                                         width=coord_map_obj.coord_map.shape[2],
-                                        grid_size=grid_size)[0]
+                                        grid_size=grid_size,
+                                        logger=logger)[0]
         cand_mask_sparse = ut.selectBestPointsInGrid(box_list=box_list, quality=quality, sel_min=grid_min_val)
         cand_mask &= cand_mask_sparse
 
