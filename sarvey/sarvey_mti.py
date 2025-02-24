@@ -100,6 +100,12 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
         raise NotImplementedError
 
     if config.temporarily_coherent_scatterer.use_temporarily_coherent_scatterers:
+        if config.preparation.ifg_network_type == "star":
+            logger.error(msg="Star interferogram network is not supported in combination with temporarily coherent "
+                             "scatterers. Use any of the redudant interferogram networks.")
+            raise ValueError
+
+    if config.temporarily_coherent_scatterer.use_temporarily_coherent_scatterers:
         printCurrentConfig(config_section=config.temporarily_coherent_scatterer.dict(),
                            config_section_default=config_default_dict["temporarily_coherent_scatterer"],
                            logger=logger)
