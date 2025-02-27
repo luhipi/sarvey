@@ -1,0 +1,5 @@
+sphinx>=4.1.1
+sphinx-argparse
+sphinx-autodoc-typehints
+sphinxcontrib-jquery
+sphinx_rtd_theme
