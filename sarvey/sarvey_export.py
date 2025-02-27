@@ -93,6 +93,9 @@ def exportDataToGisFormat(*, file_path: str, output_path: str, input_path: str,
                       demerr[i])
         defo_ts[i, :] = point_obj.phase[i, :] - phase_topo
 
+    mask_ccs = np.isnan(point_obj.phase).sum(axis=1) == 0
+    sc_type = np.where(mask_ccs, "CCS", "TCS")
+
     # transform into meters
     defo_ts *= 1000  # in [mm]
 
@@ -159,6 +162,7 @@ def exportDataToGisFormat(*, file_path: str, output_path: str, input_path: str,
     df_points.insert(4, 'st_consistency', stc * 1000)  # in [mm]
     df_points.insert(5, 'dem_error', demerr)  # in [m]
     df_points.insert(6, 'dem', point_obj.height)  # in [m]
+    df_points.insert(7, 'sc_type', sc_type)  # either CCS or TCS
 
     df_points.columns = [col[:10] for col in df_points.columns]
 
