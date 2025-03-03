@@ -32,10 +32,6 @@ Status
         :target: https://doi.org/10.5281/zenodo.12544130
         :alt: DOI
 
-
-See also the latest coverage_ report and the pytest_ HTML report.
-
-
 License
 -------
 
@@ -191,8 +187,6 @@ This package was created with Cookiecutter_ and the `fernlab/cookiecutter-python
 
 .. _Cookiecutter: https://github.com/audreyr/cookiecutter
 .. _`fernlab/cookiecutter-python-package`: https://git.gfz-potsdam.de/fernlab/products/cookiecutters/cookiecutter-python-package
-.. _coverage: https://luhipi.github.io/sarvey/main/coverage/
-.. _pytest: https://luhipi.github.io/sarvey/main/test_reports/report.html
 .. _processing: https://luhipi.github.io/sarvey/main/docs/processing.html
 .. _`processing steps`: https://luhipi.github.io/sarvey/main/docs/processing.html#processing-steps-for-two-step-unwrapping-workflow
 .. _preparation: https://luhipi.github.io/sarvey/main/docs/preparation.html
