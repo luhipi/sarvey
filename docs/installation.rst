@@ -87,8 +87,7 @@ Using pip_ (latest version recommended), **SARvey** is installed as follows:
 
    .. code-block:: bash
 
-    conda install conda-forge::pysolid
-    conda install conda-forge::pysolid
+    conda install -c conda-forge pysolid gdal
 
 
 3. Install **Miaplpy**
