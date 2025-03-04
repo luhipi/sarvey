@@ -430,8 +430,8 @@ def splitImageIntoBoxesRngAz(*, length: int, width: int, num_box_az: int, num_bo
     num_box: int
         number of boxes
     """
-    y_step = int(np.rint((length / num_box_rng) / 10) * 10)
-    x_step = int(np.rint((width / num_box_az) / 10) * 10)
+    y_step = int(length / num_box_rng)
+    x_step = int(width / num_box_az)
 
     box_list = []
     y0 = 0

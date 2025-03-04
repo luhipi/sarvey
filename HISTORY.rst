@@ -6,6 +6,7 @@ History
 Future minor version (release soon)
 -----------------------------------
 
+* Fix numerical problems when computing grid size.
 
 1.2.0 (2025-02-19)
 ------------------
