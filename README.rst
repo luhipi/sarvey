@@ -10,7 +10,7 @@ Open-source InSAR time series analysis software developed within the project SAR
 Documentation
 -------------
 The documentation with installation instructions, processing steps, and examples with a demo dataset can be found at:
-https://luhipi.github.io/sarvey/main/docs/
+https://luhipi.github.io/sarvey/main
 
 Discussion
 ----------
@@ -26,7 +26,7 @@ Status
         :target: https://github.com/luhipi/sarvey/actions
         :alt: Pipelines
 .. image:: https://img.shields.io/static/v1?label=Documentation&message=GitHub%20Pages&color=blue
-        :target: https://luhipi.github.io/sarvey/main/docs/
+        :target: https://luhipi.github.io/sarvey/main
         :alt: Documentation
 .. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.12544130.svg
         :target: https://doi.org/10.5281/zenodo.12544130
@@ -187,13 +187,13 @@ This package was created with Cookiecutter_ and the `fernlab/cookiecutter-python
 
 .. _Cookiecutter: https://github.com/audreyr/cookiecutter
 .. _`fernlab/cookiecutter-python-package`: https://git.gfz-potsdam.de/fernlab/products/cookiecutters/cookiecutter-python-package
-.. _processing: https://luhipi.github.io/sarvey/main/docs/processing.html
-.. _`processing steps`: https://luhipi.github.io/sarvey/main/docs/processing.html#processing-steps-for-two-step-unwrapping-workflow
-.. _preparation: https://luhipi.github.io/sarvey/main/docs/preparation.html
-.. _`Two-step unwrapping`: https://luhipi.github.io/sarvey/main/docs/processing.html#processing-steps-for-two-step-unwrapping-workflow
-.. _`One-step unwrapping`: https://luhipi.github.io/sarvey/main/docs/processing.html#processing-steps-for-one-step-unwrapping-workflow
-.. _`installation instruction`: https://luhipi.github.io/sarvey/main/docs/installation.html
-.. _`history`: https://luhipi.github.io/sarvey/main/docs/history.html
+.. _processing: https://luhipi.github.io/sarvey/main/processing.html
+.. _`processing steps`: https://luhipi.github.io/sarvey/main/processing.html#processing-steps-for-two-step-unwrapping-workflow
+.. _preparation: https://luhipi.github.io/sarvey/main/preparation.html
+.. _`Two-step unwrapping`: https://luhipi.github.io/sarvey/main/processing.html#processing-steps-for-two-step-unwrapping-workflow
+.. _`One-step unwrapping`: https://luhipi.github.io/sarvey/main/processing.html#processing-steps-for-one-step-unwrapping-workflow
+.. _`installation instruction`: https://luhipi.github.io/sarvey/main/installation.html
+.. _`history`: https://luhipi.github.io/sarvey/main/history.html
 .. _MiaplPy: https://github.com/insarlab/MiaplPy
 .. _MintPy: https://github.com/insarlab/MintPy
 .. _ISCE: https://github.com/isce-framework/isce2
