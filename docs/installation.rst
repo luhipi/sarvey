@@ -21,7 +21,7 @@ Using Mamba (recommended)
 Using mamba_ (latest version recommended), **SARvey** is installed as follows:
 
 
-1. Clone the SARvey source code and install SARvey and all dependencies from the environment_sarvey.yml file:
+1. Clone the SARvey source code and install SARvey and all dependencies from the environment.yml file:
 
    .. code-block:: bash
 
@@ -35,7 +35,7 @@ Using mamba_ (latest version recommended), **SARvey** is installed as follows:
 
     pip install conda-merge
     wget https://raw.githubusercontent.com/insarlab/MiaplPy/main/conda-env.yml
-    conda-merge conda-env.yml tests/CI_docker/context/environment_sarvey.yml > env.yml
+    conda-merge conda-env.yml environment.yml > env.yml
     mamba env create -n sarvey -f env.yml
     rm env.yml conda-env.yml
     mamba activate sarvey
@@ -49,7 +49,7 @@ Using Anaconda or Miniconda
 Using conda_ (latest version recommended), **SARvey** is installed as follows:
 
 
-1. Then clone the **SARvey** source code and install **SARvey** and all dependencies from the environment_sarvey.yml file:
+1. Then clone the **SARvey** source code and install **SARvey** and all dependencies from the environment.yml file:
 
    .. code-block:: bash
 
@@ -63,7 +63,7 @@ Using conda_ (latest version recommended), **SARvey** is installed as follows:
 
     pip install conda-merge
     wget https://raw.githubusercontent.com/insarlab/MiaplPy/main/conda-env.yml
-    conda-merge conda-env.yml tests/CI_docker/context/environment_sarvey.yml > env.yml
+    conda-merge conda-env.yml environment.yml > env.yml
     conda env create -n sarvey -f env.yml
     rm env.yml conda-env.yml
     conda activate sarvey
@@ -83,21 +83,30 @@ Using pip_ (latest version recommended), **SARvey** is installed as follows:
     conda create -n sarvey pip -y 
     conda activate sarvey
 
-2. Install **Miaplpy_**
+2. Install dependencies
 
    .. code-block:: bash
-    conda run -n ci_env pip install git+https://github.com/insarlab/MiaplPy.git
 
-3. Install **SARvey**
+    conda install conda-forge::pysolid
+    conda install conda-forge::pysolid
+
+
+3. Install **Miaplpy**
 
    .. code-block:: bash
-    conda run -n ci_env pip install git+https://github.com/luhipi/sarvey.git
+
+    pip install git+https://github.com/insarlab/MiaplPy.git
+
+4. Install **SARvey**
+
+   .. code-block:: bash
+
+    pip install git+https://github.com/luhipi/sarvey.git
 
 
 If your are a developer, use the following command to make sure all development requirements are installed.
-    .. code-block:: bash
-     conda run -n ci_env pip install git+https://github.com/luhipi/sarvey.git#egg=sarvey[dev]
 
+    #### TODO: add dev installation.
 
 MacOS ARM (Apple Silicon M2)
 ----------------------------
@@ -144,12 +153,12 @@ Using conda_ (latest version recommended), SARvey is installed as follows:
         git clone https://github.com/luhipi/sarvey.git
         cd sarvey
 
-   2.2 Open `tests/CI_docker/context/environment_sarvey.yml` in an editor of your choice and comment out the lines `isce2` and `gcc_linux-64`. Alternatively, you can run the following commands.
+   2.2 Open `environment.yml` in an editor of your choice and comment out the lines `isce2` and `gcc_linux-64`. Alternatively, you can run the following commands.
 
     .. code-block:: bash
 
-         sed -i '' '/isce2/s/^/# /' tests/CI_docker/context/environment_sarvey.yml
-         sed -i '' '/gcc_linux-64/s/^/# /' tests/CI_docker/context/environment_sarvey.yml
+         sed -i '' '/isce2/s/^/# /' environment.yml
+         sed -i '' '/gcc_linux-64/s/^/# /' environment.yml
 
     Note: As of the time of creation of this document, `isce2` for MacOS ARM64 is not available in Conda repositories. Therefore, it is skipped, but it should not cause any problems for running SARvey. Also, `gcc_linux-64` is not required on ARM64.
 
@@ -157,7 +166,7 @@ Using conda_ (latest version recommended), SARvey is installed as follows:
 
     .. code-block:: bash
 
-        conda env update --name sarvey -f tests/CI_docker/context/environment_sarvey.yml
+        conda env update --name sarvey -f environment.yml
         conda activate sarvey
         pip install .
 
