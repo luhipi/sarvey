@@ -15,7 +15,7 @@ permissions:
   contents: write
 
 env:
-    SKIP_DEPLOY: false
+    SKIP_DEPLOY: true
     SKIP_INSTALL: true
     SKIP_TEST: false
 
