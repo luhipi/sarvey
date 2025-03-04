@@ -104,9 +104,12 @@ Using pip_ (latest version recommended), **SARvey** is installed as follows:
     pip install git+https://github.com/luhipi/sarvey.git
 
 
-If your are a developer, use the following command to make sure all development requirements are installed.
+If your are a developer, install the development requirements using the following command.
 
-    #### TODO: add dev installation.
+   .. code-block:: bash
+
+    pip install sarvey[dev]
+
 
 MacOS ARM (Apple Silicon M2)
 ----------------------------
