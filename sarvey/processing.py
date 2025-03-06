@@ -654,6 +654,8 @@ class Processing:
 
         if self.config.temporarily_coherent_scatterer.use_temporarily_coherent_scatterers:
             self.logger.info(msg="Add Temporarily Coherent Scatterers (TCS).")
+            coh_value_tcs = int(self.config.temporarily_coherent_scatterer.coherence_p2_tcs * 100)
+
             tcs_coh_obj = BaseStack(file=join(self.config.temporarily_coherent_scatterer.coherent_lifetime_file),
                                     logger=self.logger)
             tcs_coh = tcs_coh_obj.read(dataset_name="coherence_map")
@@ -712,7 +714,7 @@ class Processing:
             cbar.ax.set_visible(False)  # make size of axis consistent with all others
             plt.tight_layout()
             plt.title("Temporarily coherent scatterers")
-            fig.savefig(join(self.path, "pic", "step_3_p2_coh{}_tcs.png".format(coh_value)), dpi=300)
+            fig.savefig(join(self.path, "pic", "step_3_tcs_coh{}.png".format(coh_value_tcs)), dpi=300)
             plt.close(fig)
 
         if (self.config.phase_linking.use_phase_linking_results &
@@ -792,10 +794,18 @@ class Processing:
         cbar.ax.set_visible(False)  # make size of axis consistent with all others
         plt.tight_layout()
         plt.title("Mask for dense point set")
-        fig.savefig(join(self.path, "pic", "step_3_mask_p2_coh{}.png".format(coh_value)), dpi=300)
+        if self.config.temporarily_coherent_scatterer.use_temporarily_coherent_scatterers:
+            fig_name = f"step_3_mask_p2_coh{coh_value}-{coh_value_tcs}.png"
+        else:
+            fig_name = f"step_3_mask_p2_coh{coh_value}.png"
+        fig.savefig(join(self.path, "pic", fig_name), dpi=300)
         plt.close(fig)
 
-        point2_obj = Points(file_path=join(self.path, "p2_coh{}_ifg_wr.h5".format(coh_value)), logger=self.logger)
+        if self.config.temporarily_coherent_scatterer.use_temporarily_coherent_scatterers:
+            fname = f"p2_coh{coh_value}-{coh_value_tcs}_ifg_wr.h5"
+        else:
+            fname = f"p2_coh{coh_value}_ifg_wr.h5"
+        point2_obj = Points(file_path=join(self.path, fname), logger=self.logger)
         coord_xy = np.array(np.where(cand_mask2)).transpose()
         point_id2 = point_id_img[cand_mask2]
         point2_obj.prepare(
@@ -850,9 +860,15 @@ class Processing:
         point2_obj.writeToFile()
         del point2_obj, ifg_stack_obj
 
-        aps2_obj = Points(file_path=join(self.path, "p2_coh{}_aps.h5".format(coh_value)), logger=self.logger)
+        if self.config.temporarily_coherent_scatterer.use_temporarily_coherent_scatterers:
+            fname = f"p2_coh{coh_value}-{coh_value_tcs}_aps.h5"
+            fname_other_file = f"p2_coh{coh_value}-{coh_value_tcs}_ifg_wr.h5"
+        else:
+            fname = f"p2_coh{coh_value}_aps.h5"
+            fname_other_file = f"p2_coh{coh_value}_ifg_wr.h5"
+        aps2_obj = Points(file_path=join(self.path, fname), logger=self.logger)
         aps2_obj.open(
-            other_file_path=join(self.path, "p2_coh{}_ifg_wr.h5".format(coh_value)),
+            other_file_path=join(self.path, fname_other_file),
             input_path=self.config.general.input_path
         )
 
