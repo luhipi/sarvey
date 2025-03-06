@@ -53,9 +53,6 @@ from sarvey.objects import AmplitudeImage, Points, BaseStack
 import sarvey.utils as ut
 
 
-
-
-
 def plotIfgs(*, phase: np.ndarray, coord: np.ndarray, spatial_ref_idx: int = None, ttl: str = None,
              cmap: str = "romaO"):
     """Plot one interferogram per subplot.
