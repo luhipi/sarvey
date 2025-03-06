@@ -165,7 +165,12 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
                            logger=logger)
         proc_obj.runFiltering()
     coh_value = int(config.filtering.coherence_p2 * 100)
-    required_files.extend(["p1_aps.h5", f"p2_coh{coh_value}_ifg_wr.h5", f"p2_coh{coh_value}_aps.h5"])
+    if config.temporarily_coherent_scatterer.use_temporarily_coherent_scatterers:
+        coh_value_tcs = int(config.temporarily_coherent_scatterer.coherence_p2_tcs * 100)
+        required_files.extend(["p1_aps.h5", f"p2_coh{coh_value}-{coh_value_tcs}_ifg_wr.h5",
+                               f"p2_coh{coh_value}-{coh_value_tcs}_aps.h5"])
+    else:
+        required_files.extend(["p1_aps.h5", f"p2_coh{coh_value}_ifg_wr.h5", f"p2_coh{coh_value}_aps.h5"])
 
     if 4 in steps:
         checkIfRequiredFilesExist(
