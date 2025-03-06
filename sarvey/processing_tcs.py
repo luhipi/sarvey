@@ -41,7 +41,7 @@ from sarvey.config import Config
 def runDensificationSpace(*, path: str, config: Config, logger: Logger):
     """RunDensification."""
     coh_value = int(config.filtering.coherence_p2 * 100)
-    coh_value_tcs = int(config.temporarily_coherent_scatterer.coherence_tcs * 100)
+    coh_value_tcs = int(config.temporarily_coherent_scatterer.coherence_p2_tcs * 100)
 
     point_obj = Points(file_path=join(path, f"p2_coh{coh_value}-{coh_value_tcs}_ifg_unw.h5"), logger=logger)
     point_obj.open(
