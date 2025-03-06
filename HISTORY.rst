@@ -6,6 +6,9 @@ History
 Future minor version (release soon)
 -----------------------------------
 
+* Update CI docker builder
+* Update runner to test installation
+* Update documentation with new instruction for installation including pip
 * Fix numerical problems when computing grid size.
 
 1.2.0 (2025-02-19)
