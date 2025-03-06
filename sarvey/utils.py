@@ -778,7 +778,12 @@ def setReferenceToPeakOfHistogram(*, phase: np.ndarray, vel: np.ndarray, num_bin
     phase: np.ndarray
         phase time series adjusted by the new reference phase
     """
-    if phase.shape[0] < 40:  # the method will not give meaningfull results if too few points are available
+    # for TCS phase unwrapping: use only CCS points for reference phase
+    mask_ccs = np.isnan(phase).sum(axis=1) == 0
+    phase_ccs = phase[mask_ccs, :]
+    vel = vel[mask_ccs]
+
+    if phase_ccs.shape[0] < 40:  # the method will not give meaningfull results if too few points are available
         num_bins = 10
 
     # find most frequent velocity
@@ -789,7 +794,7 @@ def setReferenceToPeakOfHistogram(*, phase: np.ndarray, vel: np.ndarray, num_bin
     mask = (vel >= bin_edges[max_idx]) & (vel < bin_edges[max_idx + 1])
 
     # determine reference phase from mean of the phase time series of the selected points
-    ref_phase = np.nanmean(phase[mask, :], axis=0)
+    ref_phase = np.nanmean(phase_ccs[mask, :], axis=0)
 
     # adjust the phases by the reference sarvey
     phase -= ref_phase
