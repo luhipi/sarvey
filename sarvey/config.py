@@ -232,6 +232,12 @@ class TemporarilyCoherentScatterer(BaseModel, extra=Extra.forbid):
         default=False
     )
 
+    coherence_p2_tcs: float = Field(
+        title="Temporal coherence threshold for selecting temporarily coherent scatterer as second-order points",
+        description="Set the temporal coherence threshold for temporarily coherent scatterer.",
+        default=0.8
+    )
+
     min_lifetime_length: int = Field(
         title="Minimum lifetime length of a temporarily coherent scatterer.",
         description="Minimum number of images to be coherent for a temporarily coherent scatterer to be included in the"
@@ -257,6 +263,15 @@ class TemporarilyCoherentScatterer(BaseModel, extra=Extra.forbid):
         if values["use_temporarily_coherent_scatterers"]:
             if v <= 0:
                 raise ValueError("Minimum lifetime length must be greater than zero.")
+        return v
+
+    @validator('coherence_p2_tcs')
+    def checkCoherenceP2TCS(cls, v):
+        """Check if the temporal coherence threshold is valid."""
+        if v < 0:
+            raise ValueError("Temporal coherence threshold cannot be negative.")
+        if v > 1:
+            raise ValueError("Temporal coherence threshold cannot be greater than 1.")
         return v
 
     @validator('coherent_lifetime_file')

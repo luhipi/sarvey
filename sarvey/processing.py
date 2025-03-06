@@ -691,7 +691,7 @@ class Processing:
             plt.close(fig)
             del change_idx, change_idx_obj
 
-            cand_mask_tcs = (tcs_coh > self.config.filtering.coherence_p2)
+            cand_mask_tcs = (tcs_coh > self.config.temporarily_coherent_scatterer.coherence_p2_tcs)
             cand_mask_tcs = cand_mask_tcs & (
                 tcs_length >= self.config.temporarily_coherent_scatterer.min_lifetime_length)
 
