@@ -49,7 +49,7 @@
     },
     "densification": {
         "coherence_p2": 0.9,
-        "num_connections_p1": 5,
+        "num_connections_to_p1": 5,
         "mask_p2_file": null,
         "max_distance_to_p1": 2000,
         "velocity_bound": 0.15,

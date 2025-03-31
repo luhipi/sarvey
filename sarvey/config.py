@@ -542,7 +542,7 @@ class Densification(BaseModel, extra=Extra.forbid):
         default=""
     )
 
-    num_connections_p1: int = Field(
+    num_connections_to_p1: int = Field(
         title="Number of connections in temporal unwrapping.",
         description="Set number of connections between second-order point and closest first-order points for temporal "
                     "unwrapping.",
@@ -599,11 +599,11 @@ class Densification(BaseModel, extra=Extra.forbid):
                 raise ValueError(f"mask_p2_file path is invalid: {v}")
         return v
 
-    @validator('num_connections_p1')
+    @validator('num_connections_to_p1')
     def checkNumConn1(cls, v):
-        """Check if num_connections_p1 are valid."""
+        """Check if num_connections_to_p1 are valid."""
         if v <= 0:
-            raise ValueError(f"num_connections_p1 must be greater than 0: {v}")
+            raise ValueError(f"num_connections_to_p1 must be greater than 0: {v}")
         return v
 
     @validator('max_distance_to_p1')
