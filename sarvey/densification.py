@@ -35,9 +35,11 @@ import numpy as np
 from scipy.spatial import KDTree
 from logging import Logger
 import matplotlib.pyplot as plt
+import cmcrameri as cmc
 
 from mintpy.utils import ptime, readfile
 from miaplpy.objects.slcStack import slcStack
+
 
 from sarvey.unwrapping import oneDimSearchTemporalCoherence
 from sarvey.objects import Points, AmplitudeImage, BaseStack, ApsParameters
@@ -356,12 +358,12 @@ def selectP2(*, output_path: str, config: Config, logger: Logger):
 
             fig = plt.figure(figsize=(15, 5))
             ax = fig.add_subplot()
-            ax.imshow(mask_pl_aoi, cmap=plt.cm.get_cmap("gray"), alpha=0.5, zorder=10, vmin=0, vmax=1)
+            ax.imshow(mask_pl_aoi, cmap=cmc.cm.cmaps["grayC"], alpha=0.5, zorder=10, vmin=0, vmax=1)
             bmap_obj.plot(ax=ax, logger=logger)
             coord_xy = np.array(np.where(cand_mask_pl)).transpose()
             val = np.ones_like(cand_mask_pl)
             sc = ax.scatter(coord_xy[:, 1], coord_xy[:, 0], c=val[cand_mask_pl], s=0.5,
-                            cmap=plt.get_cmap("autumn_r"),
+                            cmap=cmc.cm.cmaps["lajolla_r"],
                             vmin=1, vmax=2)  # set min, max to ensure that points are yellow
             cbar = plt.colorbar(sc, pad=0.03, shrink=0.5)
             cbar.ax.set_visible(False)  # make size of axis consistent with all others
@@ -397,12 +399,12 @@ def selectP2(*, output_path: str, config: Config, logger: Logger):
 
     fig = plt.figure(figsize=(15, 5))
     ax = fig.add_subplot()
-    ax.imshow(mask_valid_area, cmap=plt.cm.get_cmap("gray"), alpha=0.5, zorder=10, vmin=0, vmax=1)
+    ax.imshow(mask_valid_area, cmap=cmc.cm.cmaps["grayC"], alpha=0.5, zorder=10, vmin=0, vmax=1)
     bmap_obj.plot(ax=ax, logger=logger)
     coord_xy = np.array(np.where(cand_mask2)).transpose()
     val = np.ones_like(cand_mask2)
-    sc = ax.scatter(coord_xy[:, 1], coord_xy[:, 0], c=val[cand_mask2], s=0.5, cmap=plt.get_cmap("autumn_r"),
-                    vmin=1, vmax=2)  # set min, max to ensure that points are yellow
+    sc = ax.scatter(coord_xy[:, 1], coord_xy[:, 0], c=val[cand_mask2], s=0.5, cmap=cmc.cm.cmaps["lajolla_r"],
+                    vmin=0, vmax=10)  # set min, max to ensure that points are yellow
     cbar = plt.colorbar(sc, pad=0.03, shrink=0.5)
     cbar.ax.set_visible(False)  # make size of axis consistent with all others
     plt.tight_layout()
