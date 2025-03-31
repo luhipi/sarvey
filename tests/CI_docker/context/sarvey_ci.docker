@@ -1,4 +1,7 @@
-FROM condaforge/mambaforge:latest as conda
+FROM condaforge/miniforge3:latest
+
+# Set Mamba root prefix
+ENV MAMBA_ROOT_PREFIX="/opt/conda"
 
 # update base environment
 RUN --mount=type=cache,target=/opt/conda/pkgs \
@@ -8,21 +11,15 @@ RUN --mount=type=cache,target=/opt/conda/pkgs \
 ARG DEBIAN_FRONTEND=noninteractive
 
 RUN mkdir actions-runner; cd actions-runner && \
-    apt-get update && apt-get install -y curl
+    apt-get update && apt-get install -y curl gfortran build-essential openssh-client
 
 WORKDIR /actions-runner
 
-RUN curl -o actions-runner-linux-x64-2.317.0.tar.gz -L https://github.com/actions/runner/releases/download/v2.317.0/actions-runner-linux-x64-2.317.0.tar.gz && \
-    tar xzf ./actions-runner-linux-x64-2.317.0.tar.gz && \
+RUN curl -o actions-runner-linux-x64.tar.gz -L  https://github.com/actions/runner/releases/download/v2.322.0/actions-runner-linux-x64-2.322.0.tar.gz&& \
+    tar xzf ./actions-runner-linux-x64.tar.gz && \
     ./bin/installdependencies.sh && \
     useradd -m runneruser && \
     chown -R runneruser:runneruser /actions-runner
-
-USER runneruser
-
-RUN  ./config.sh --url https://github.com/luhipi/sarvey --token <TOKEN>  --unattended --replace --name mefe2_sarvey_ci_1.0.0 --labels self-hosted
-
-USER root
 
 # install some needed packages
 RUN --mount=type=cache,target=/opt/conda/pkgs \
@@ -31,22 +28,29 @@ RUN --mount=type=cache,target=/opt/conda/pkgs \
 # use bash shell instead of sh shell for all docker commands
 SHELL ["/bin/bash", "-c"]
 
-# copy some needed stuff to /root
-COPY ../environment_sarvey.yml .
 
-# create ci_env environment
+# Create ci_env environment with pip installed
 RUN --mount=type=cache,target=/opt/conda/pkgs \
-    pip install conda-merge && \
-    wget https://raw.githubusercontent.com/insarlab/MiaplPy/main/conda-env.yml && \
-    conda-merge conda-env.yml environment_sarvey.yml > env.yml && \
-    mamba env create -n ci_env -f env.yml && \
-    source /opt/conda/bin/activate ci_env && \
-    pip install git+https://github.com/insarlab/MiaplPy.git && \
-    conda list && \
+    conda create -n ci_env python=3.10 pip  -y && \
     conda clean -afy
 
-USER runneruser
+# Install additional packages using mamba and pip
+RUN --mount=type=cache,target=/opt/conda/pkgs \
+    conda install -n ci_env conda-forge::pysolid -y && \
+    conda install -n ci_env conda-forge::gdal && \
+    conda run -n ci_env pip install git+https://github.com/insarlab/MiaplPy.git && \
+    # TODO: replace the followong with the main branch
+    #conda run -n ci_env pip install git+https://github.com/luhipi/sarvey.git@main && \
+    conda run -n ci_env pip install git+https://github.com/mahmud1/sarvey.git@update-runner2 && \
+    conda run -n ci_env pip install sarvey[dev] && \
+    conda run -n ci_env pip install sphinx_rtd_theme && \
+    conda clean -afy
 
+COPY ../entrypoint.sh .
+RUN chown runneruser:runneruser entrypoint.sh
+RUN chmod +x entrypoint.sh
+
+USER runneruser
 RUN chmod +x /actions-runner/run.sh
 
-ENTRYPOINT ["/actions-runner/run.sh"]
+ENTRYPOINT ["./entrypoint.sh"]

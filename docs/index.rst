@@ -12,6 +12,7 @@ SARvey documentation
    usage
    preparation
    processing
+   visualization
    demo_datasets
    modules
    contributing

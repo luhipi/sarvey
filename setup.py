@@ -2,7 +2,7 @@
 
 # SARvey - A multitemporal InSAR time series tool for the derivation of displacements.
 #
-# Copyright (C) 2021-2024 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
+# Copyright (C) 2021-2025 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
 #
 # This software was developed together with FERN.Lab (fernlab@gfz-potsdam.de) in the context
 # of the SAR4Infra project with funds of the German Federal Ministry for Digital and
@@ -43,9 +43,9 @@ with open("sarvey/version.py") as version_file:
     exec(version_file.read(), version)
 
 req = [
-    "cython", "numpy", "pyproj", "matplotlib", "numba", "scipy",
+    "cython", "numpy<=1.26", "pyproj", "matplotlib", "numba", "scipy",
     "mintpy", "h5py", "overpy", "miaplpy", "gstools", "shapely", "pandas", "geopandas", "pymaxflow",
-    "pillow", "pydantic<=1.10.10", "importlib_resources", "kamui", "json5"
+    "pillow", "pydantic<=1.10.10", "importlib_resources", "kamui", "json5", "cmcrameri"
 ]
 
 req_setup = []
@@ -55,12 +55,15 @@ req_test = ['pytest>=3', 'pytest-cov', 'pytest-reporter-html1', 'urlchecker']
 req_doc = [
     'sphinx>=4.1.1',
     'sphinx-argparse',
-    'sphinx-autodoc-typehints'
+    'sphinx-autodoc-typehints',
+    'sphinx_rtd_theme'
 ]
 
 req_lint = ['flake8', 'pycodestyle', 'pydocstyle']
 
 req_dev = ['twine'] + req_setup + req_test + req_doc + req_lint
+
+extra_req = ["gdal"]
 
 setup(
     author="Andreas Piter",

@@ -10,8 +10,13 @@ Open-source InSAR time series analysis software developed within the project SAR
 Documentation
 -------------
 The documentation with installation instructions, processing steps, and examples with a demo dataset can be found at:
-https://luhipi.github.io/sarvey/docs/
+https://luhipi.github.io/sarvey/main
 
+Discussion
+----------
+
+Use the Q&A in discussion_ to ask questions and get help from the community.
+Report bugs and request features in the issue_ tracker.
 
 
 Status
@@ -21,15 +26,11 @@ Status
         :target: https://github.com/luhipi/sarvey/actions
         :alt: Pipelines
 .. image:: https://img.shields.io/static/v1?label=Documentation&message=GitHub%20Pages&color=blue
-        :target: https://luhipi.github.io/sarvey/docs/
+        :target: https://luhipi.github.io/sarvey/main
         :alt: Documentation
-.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.12544131.svg
-        :target: https://doi.org/10.5281/zenodo.12544131
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.12544130.svg
+        :target: https://doi.org/10.5281/zenodo.12544130
         :alt: DOI
-
-
-See also the latest coverage_ report and the pytest_ HTML report.
-
 
 License
 -------
@@ -54,7 +55,7 @@ If you use **SARvey** in your research, please cite the following.
 
 2. The software itself. Please specify the version you use:
 
-   Piter A, Haghshenas Haghighi M, FERN.Lab, Motagh M (2024). SARvey - survey with SAR [version]. Zenodo. https://doi.org/10.5281/zenodo.12544131
+   Piter A, Haghshenas Haghighi M, FERN.Lab, Motagh M (2024). SARvey - survey with SAR [version]. Zenodo. https://doi.org/10.5281/zenodo.12544130
 
 3. If you use the PUMA method for unwrapping in your research, please cite the following publication as indicated in the license:
 
@@ -181,30 +182,30 @@ The scientific and methodological development was carried out by Andreas Piter (
 The `FERN.Lab`_ (fernlab@gfz-potsdam.de) contributed to the development, documentation, continuous integration, and testing of the package.
 
 
-This package was created with Cookiecutter_ and the `fernlab/cookiecutter-pypackage`_ project template.
+This package was created with Cookiecutter_ and the `fernlab/cookiecutter-python-package`_ project template.
 
 
 .. _Cookiecutter: https://github.com/audreyr/cookiecutter
-.. _`fernlab/cookiecutter-pypackage`: https://github.com/fernlab/cookiecutter-pypackage
-.. _coverage: https://luhipi.github.io/sarvey/coverage/
-.. _pytest: https://luhipi.github.io/sarvey/test_reports/report.html
-.. _processing: https://luhipi.github.io/sarvey/docs/processing.html
-.. _`processing steps`: https://luhipi.github.io/sarvey/docs/processing.html#processing-steps-for-two-step-unwrapping-workflow
-.. _preparation: https://luhipi.github.io/sarvey/docs/preparation.html
-.. _`Two-step unwrapping`: https://luhipi.github.io/sarvey/docs/processing.html#processing-steps-for-two-step-unwrapping-workflow
-.. _`One-step unwrapping`: https://luhipi.github.io/sarvey/docs/processing.html#processing-steps-for-one-step-unwrapping-workflow
-.. _`installation instruction`: https://luhipi.github.io/sarvey/docs/installation.html
-.. _`history`: https://luhipi.github.io/sarvey/docs/history.html
+.. _`fernlab/cookiecutter-python-package`: https://git.gfz-potsdam.de/fernlab/products/cookiecutters/cookiecutter-python-package
+.. _processing: https://luhipi.github.io/sarvey/main/processing.html
+.. _`processing steps`: https://luhipi.github.io/sarvey/main/processing.html#processing-steps-for-two-step-unwrapping-workflow
+.. _preparation: https://luhipi.github.io/sarvey/main/preparation.html
+.. _`Two-step unwrapping`: https://luhipi.github.io/sarvey/main/processing.html#processing-steps-for-two-step-unwrapping-workflow
+.. _`One-step unwrapping`: https://luhipi.github.io/sarvey/main/processing.html#processing-steps-for-one-step-unwrapping-workflow
+.. _`installation instruction`: https://luhipi.github.io/sarvey/main/installation.html
+.. _`history`: https://luhipi.github.io/sarvey/main/history.html
 .. _MiaplPy: https://github.com/insarlab/MiaplPy
 .. _MintPy: https://github.com/insarlab/MintPy
 .. _ISCE: https://github.com/isce-framework/isce2
 .. _SNAP: https://step.esa.int/main/toolboxes/snap
 .. _Shapefiles: https://doc.arcgis.com/en/arcgis-online/reference/shapefiles.htm
 .. _QGIS: https://qgis.org/en/site/
-.. _`PS Time Series Viewer`: https://plugins.qgis.org/plugins/pstimeseries/
+.. _`InSAR Explorer`: https://luhipi.github.io/insar-explorer/
 .. _OSM: https://www.openstreetmap.org/
 .. _WSL: https://learn.microsoft.com/en-us/windows/wsl/
 .. _FERN.Lab: https://fernlab.gfz-potsdam.de/
 .. _`Institute of Photogrammetry and GeoInformation`: https://www.ipi.uni-hannover.de/en/
 .. _`Landesamt fuer Vermessung und Geoinformation Schleswig-Holstein`: https://www.schleswig-holstein.de/DE/landesregierung/ministerien-behoerden/LVERMGEOSH/lvermgeosh_node.html
 .. _`Landesbetrieb Strassenbau und Verkehr Schleswig-Holstein`: https://www.schleswig-holstein.de/DE/Landesregierung/LBVSH/lbvsh_node.html
+.. _discussion: https://github.com/luhipi/sarvey/discussions
+.. _issue: https://github.com/luhipi/sarvey/issues
