@@ -380,7 +380,7 @@ class BaseStack:
                 block[4]:block[5],
                 block[6]:block[7]] = data
 
-            if len(block) == 6:
+            elif len(block) == 6:
                 f[dataset_name][block[0]:block[1],
                                 block[2]:block[3],
                                 block[4]:block[5]] = data
