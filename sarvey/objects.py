@@ -236,6 +236,14 @@ class BaseStack:
             dshape = f[dataset_name].shape
         return dshape
 
+    def datasetExists(self, *, dataset_name: str):
+        """Check if dataset exists in file."""
+        with h5py.File(self.file, 'r') as f:
+            if dataset_name in f:
+                return True
+            else:
+                return False
+
     def read(self, *, dataset_name: str, box: Optional[tuple] = None, print_msg: bool = True):
         """Read dataset from slc file.
 
