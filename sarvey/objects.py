@@ -401,7 +401,7 @@ class BaseStack:
         Parameters
         ----------
         data: np.ndarray
-            3D data array.
+            nD data array.
         dataset_name: str
             name of dataset.
         metadata: dict
@@ -411,7 +411,7 @@ class BaseStack:
         chunks: tuple
             chunk size ('True'/'False' or tuple specifying the dimension of the chunks)
         """
-        # 3D dataset
+        # nD dataset
         self.logger.info(msg='create HDF5 file: {} with w mode'.format(self.file))
         self.f = h5py.File(self.file, mode)
         if dataset_name not in self.f:
