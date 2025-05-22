@@ -280,10 +280,10 @@ class BaseStack:
                 if len(box) == 6:
                     data = ds[box[1]:box[4], box[0]:box[3], box[2]:box[5]]
             elif len(ds.shape) == 4:
-                    if len(box) == 4:
-                        data = ds[box[1]:box[3], box[0]:box[2], :, :]
-                    if len(box) == 8:
-                        data = ds[box[1]:box[5], box[0]:box[4], box[3]:box[7], box[2]: box[6]]
+                if len(box) == 4:
+                    data = ds[box[1]:box[3], box[0]:box[2], :, :]
+                if len(box) == 8:
+                    data = ds[box[1]:box[5], box[0]:box[4], box[3]:box[7], box[2]: box[6]]
             else:
                 if len(box) == 6:
                     raise IndexError("Cannot read 3D box from 2D data.")
@@ -389,9 +389,9 @@ class BaseStack:
 
             if len(block) == 8:
                 f[dataset_name][block[0]:block[1],
-                block[2]:block[3],
-                block[4]:block[5],
-                block[6]:block[7]] = data
+                                block[2]:block[3],
+                                block[4]:block[5],
+                                block[6]:block[7]] = data
 
             elif len(block) == 6:
                 f[dataset_name][block[0]:block[1],
