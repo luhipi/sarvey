@@ -273,7 +273,7 @@ class BaseStack:
             if len(ds.shape) == 3:
                 self.length, self.width, self.num_time = ds.shape
             elif len(ds.shape) == 4:
-                # metada for dimension the last two dimensions are not stored
+                # metadata for dimension the last two dimensions are not stored
                 self.length, self.width = ds.shape[0], ds.shape[1]
             else:
                 self.length, self.width = ds.shape
