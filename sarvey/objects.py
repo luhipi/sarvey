@@ -331,11 +331,12 @@ class BaseStack:
         Parameters
         ----------
         data: np.ndarray
-            1/2/3D matrix.
+            1/2/3/4D matrix.
         dataset_name: str
             dataset name.
         block: list
-            the list can contain 2, 4 or 6 integers indicating: [zStart, zEnd, yStart, yEnd, xStart, xEnd].
+            the list can contain 2, 4, 6 or 8 integers indicating: [zStart, zEnd, yStart, yEnd, xStart, xEnd] or
+            [yStart, yEnd, xStart, xEnd, kyStart, kyEnd, kxStart, kxEnd]
         mode: str
             open mode ('w' for writing new file or 'a' for appending to existing file).
         print_msg: bool
@@ -362,11 +363,23 @@ class BaseStack:
                 block = [0, shape[0],
                          0, shape[1],
                          0, shape[2]]
+            elif len(shape) == 4:
+                block = [0, shape[0],
+                         0, shape[1],
+                         0, shape[2],
+                         0, shape[3]]
 
         with h5py.File(self.file, mode) as f:
 
             if print_msg:
                 self.logger.info(msg="writing dataset /{:<25} block: {}".format(dataset_name, block))
+
+            if len(block) == 8:
+                f[dataset_name][block[0]:block[1],
+                block[2]:block[3],
+                block[4]:block[5],
+                block[6]:block[7]] = data
+
             if len(block) == 6:
                 f[dataset_name][block[0]:block[1],
                                 block[2]:block[3],
