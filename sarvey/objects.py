@@ -246,13 +246,14 @@ class BaseStack:
         box: tuple
             tuple of 4 int, indicating x0,y0,x1,y1 of range, or
             tuple of 6 int, indicating x0,y0,z0,x1,y1,z1 of range
+            tuple of 8 int, indicating x0,y0,kx0,ky0,x1,y1,kx1,ky1 of range
         print_msg: bool
             print message.
 
         Returns
         -------
         data: np.ndarray
-            2D or 3D dataset
+            2D , 3D, or 4D dataset
         """
         if print_msg:
             self.logger.info(msg='reading box {} from file: {} ...'.format(box, self.file))
@@ -263,6 +264,9 @@ class BaseStack:
             ds = f[dataset_name]
             if len(ds.shape) == 3:
                 self.length, self.width, self.num_time = ds.shape
+            elif len(ds.shape) == 4:
+                # metada for dimension the last two dimensions are not stored
+                self.length, self.width = ds.shape[0], ds.shape[1]
             else:
                 self.length, self.width = ds.shape
 
@@ -275,6 +279,11 @@ class BaseStack:
                     data = ds[box[1]:box[3], box[0]:box[2], :]
                 if len(box) == 6:
                     data = ds[box[1]:box[4], box[0]:box[3], box[2]:box[5]]
+            elif len(ds.shape) == 4:
+                    if len(box) == 4:
+                        data = ds[box[1]:box[3], box[0]:box[2], :, :]
+                    if len(box) == 8:
+                        data = ds[box[1]:box[5], box[0]:box[4], box[3]:box[7], box[2]: box[6]]
             else:
                 if len(box) == 6:
                     raise IndexError("Cannot read 3D box from 2D data.")
