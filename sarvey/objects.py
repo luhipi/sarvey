@@ -330,7 +330,7 @@ class BaseStack:
                 s=dshape))
 
             if dataset_name in f:
-                self.logger.warning(msg="Dataset {} already exists with. Overwriting it.".format(dataset_name))
+                self.logger.warning(msg="Dataset {} already exists. Overwriting it.".format(dataset_name))
                 del f[dataset_name]
 
             f.create_dataset(dataset_name,
