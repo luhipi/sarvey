@@ -236,6 +236,14 @@ class BaseStack:
             dshape = f[dataset_name].shape
         return dshape
 
+    def datasetExists(self, *, dataset_name: str):
+        """Check if dataset exists in file."""
+        with h5py.File(self.file, 'r') as f:
+            if dataset_name in f:
+                return True
+            else:
+                return False
+
     def read(self, *, dataset_name: str, box: Optional[tuple] = None, print_msg: bool = True):
         """Read dataset from slc file.
 
@@ -246,13 +254,14 @@ class BaseStack:
         box: tuple
             tuple of 4 int, indicating x0,y0,x1,y1 of range, or
             tuple of 6 int, indicating x0,y0,z0,x1,y1,z1 of range
+            tuple of 8 int, indicating x0,y0,kx0,ky0,x1,y1,kx1,ky1 of range
         print_msg: bool
             print message.
 
         Returns
         -------
         data: np.ndarray
-            2D or 3D dataset
+            2D , 3D, or 4D dataset
         """
         if print_msg:
             self.logger.info(msg='reading box {} from file: {} ...'.format(box, self.file))
@@ -263,6 +272,9 @@ class BaseStack:
             ds = f[dataset_name]
             if len(ds.shape) == 3:
                 self.length, self.width, self.num_time = ds.shape
+            elif len(ds.shape) == 4:
+                # metadata for dimension the last two dimensions are not stored
+                self.length, self.width = ds.shape[0], ds.shape[1]
             else:
                 self.length, self.width = ds.shape
 
@@ -275,6 +287,11 @@ class BaseStack:
                     data = ds[box[1]:box[3], box[0]:box[2], :]
                 if len(box) == 6:
                     data = ds[box[1]:box[4], box[0]:box[3], box[2]:box[5]]
+            elif len(ds.shape) == 4:
+                if len(box) == 4:
+                    data = ds[box[1]:box[3], box[0]:box[2], :, :]
+                if len(box) == 8:
+                    data = ds[box[1]:box[5], box[0]:box[4], box[3]:box[7], box[2]: box[6]]
             else:
                 if len(box) == 6:
                     raise IndexError("Cannot read 3D box from 2D data.")
@@ -312,6 +329,10 @@ class BaseStack:
                 t=str(dtype),
                 s=dshape))
 
+            if dataset_name in f:
+                self.logger.warning(msg="Dataset {} already exists. Overwriting it.".format(dataset_name))
+                del f[dataset_name]
+
             f.create_dataset(dataset_name,
                              shape=dshape,
                              dtype=dtype,
@@ -331,11 +352,12 @@ class BaseStack:
         Parameters
         ----------
         data: np.ndarray
-            1/2/3D matrix.
+            1/2/3/4D matrix.
         dataset_name: str
             dataset name.
         block: list
-            the list can contain 2, 4 or 6 integers indicating: [zStart, zEnd, yStart, yEnd, xStart, xEnd].
+            the list can contain 2, 4, 6 or 8 integers indicating: [zStart, zEnd, yStart, yEnd, xStart, xEnd] or
+            [yStart, yEnd, xStart, xEnd, kyStart, kyEnd, kxStart, kxEnd]
         mode: str
             open mode ('w' for writing new file or 'a' for appending to existing file).
         print_msg: bool
@@ -362,12 +384,24 @@ class BaseStack:
                 block = [0, shape[0],
                          0, shape[1],
                          0, shape[2]]
+            elif len(shape) == 4:
+                block = [0, shape[0],
+                         0, shape[1],
+                         0, shape[2],
+                         0, shape[3]]
 
         with h5py.File(self.file, mode) as f:
 
             if print_msg:
                 self.logger.info(msg="writing dataset /{:<25} block: {}".format(dataset_name, block))
-            if len(block) == 6:
+
+            if len(block) == 8:
+                f[dataset_name][block[0]:block[1],
+                                block[2]:block[3],
+                                block[4]:block[5],
+                                block[6]:block[7]] = data
+
+            elif len(block) == 6:
                 f[dataset_name][block[0]:block[1],
                                 block[2]:block[3],
                                 block[4]:block[5]] = data
@@ -388,7 +422,7 @@ class BaseStack:
         Parameters
         ----------
         data: np.ndarray
-            3D data array.
+            nD data array.
         dataset_name: str
             name of dataset.
         metadata: dict
@@ -398,7 +432,7 @@ class BaseStack:
         chunks: tuple
             chunk size ('True'/'False' or tuple specifying the dimension of the chunks)
         """
-        # 3D dataset
+        # nD dataset
         self.logger.info(msg='create HDF5 file: {} with w mode'.format(self.file))
         self.f = h5py.File(self.file, mode)
         if dataset_name not in self.f:
