@@ -214,7 +214,7 @@ Step 3: Filtering
 
 In this step, the atmospheric phase screen (APS) is estimated from the displacement time series of the first-order points.
 Afterwards, the APS is interpolated to the location of the second-order points.
-The filtering can be skipped by setting **filtering:apply_aps_filtering** to True.
+The filtering can be skipped by setting **filtering:apply_aps_filtering** to False.
 However, the step 3 has to be executed as the second-order points are selected during this step.
 
 - Selecting pixels with no or linear displacement:
