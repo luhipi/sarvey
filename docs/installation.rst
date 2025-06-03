@@ -80,7 +80,7 @@ Using pip_ (latest version recommended), **SARvey** is installed as follows:
 
    .. code-block:: bash
 
-    conda create -n sarvey pip -y 
+    conda create -n sarvey pip -y
     conda activate sarvey
 
 2. Install dependencies
@@ -89,14 +89,7 @@ Using pip_ (latest version recommended), **SARvey** is installed as follows:
 
     conda install -c conda-forge pysolid gdal
 
-
-3. Install **Miaplpy**
-
-   .. code-block:: bash
-
-    pip install git+https://github.com/insarlab/MiaplPy.git
-
-4. Install **SARvey**
+3. Install **SARvey**
 
    .. code-block:: bash
 
