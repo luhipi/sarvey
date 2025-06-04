@@ -245,9 +245,6 @@ def densifyNetwork(*, point1_obj: Points, vel_p1: np.ndarray, demerr_p1: np.ndar
                 if results.ready():
                     results = results.get()
                     break
-            # needed to make coverage work in multiprocessing (not sure what that means. copied from package Arosics).
-            pool.close()
-            pool.join()
 
         demerr_p2 = np.zeros((point2_obj.num_points,), dtype=np.float32)
         vel_p2 = np.zeros((point2_obj.num_points,), dtype=np.float32)

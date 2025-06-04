@@ -214,7 +214,6 @@ def estimateAtmosphericPhaseScreen(*, residuals: np.ndarray, coord_utm1: np.ndar
         _, aps1, aps2 = launchSpatialFiltering(parameters=args)
     else:
         logger.info(msg="start parallel processing with {} cores.".format(num_cores))
-        pool = multiprocessing.Pool(processes=num_cores)
 
         aps1 = np.zeros((num_points1, num_time), dtype=np.float32)
         aps2 = np.zeros((num_points2, num_time), dtype=np.float32)
@@ -232,7 +231,8 @@ def estimateAtmosphericPhaseScreen(*, residuals: np.ndarray, coord_utm1: np.ndar
             False,
             logger) for idx_range in idx]
 
-        results = pool.map(func=launchSpatialFiltering, iterable=args)
+        with multiprocessing.Pool(processes=num_cores) as pool:
+            results = pool.map(func=launchSpatialFiltering, iterable=args)
 
         # retrieve results
         for i, aps1_i, aps2_i in results:
