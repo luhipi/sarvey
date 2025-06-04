@@ -368,7 +368,7 @@ def temporalUnwrapping(*, ifg_net_obj: IfgNetwork, net_obj: Network,  wavelength
             demerr_bound,
             num_samples) for idx_range in idx]
 
-        with    multiprocessing.Pool(processes=num_cores) as pool:
+        with multiprocessing.Pool(processes=num_cores) as pool:
             results = pool.map(func=launchAmbiguityFunctionSearch, iterable=args)
 
         # retrieve results
