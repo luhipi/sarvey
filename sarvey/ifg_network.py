@@ -128,7 +128,7 @@ class IfgNetwork:
         if os.path.exists(path):
             os.remove(path)
 
-        dates = np.array(self.dates, dtype=bytes)
+        dates = np.array(self.dates, dtype=np.bytes_)
 
         with h5py.File(path, 'w') as f:
             f.attrs["num_images"] = self.num_images
