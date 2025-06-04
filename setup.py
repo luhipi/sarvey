@@ -44,8 +44,9 @@ with open("sarvey/version.py") as version_file:
 
 req = [
     "cython", "numpy<=1.26", "pyproj", "matplotlib", "numba", "scipy",
-    "mintpy", "h5py", "overpy", "miaplpy", "gstools", "shapely", "pandas", "geopandas", "pymaxflow",
-    "pillow", "pydantic<=1.10.10", "importlib_resources", "kamui", "json5", "cmcrameri"
+    "mintpy", "h5py", "overpy", "gstools", "shapely", "pandas", "geopandas", "pymaxflow",
+    "pillow", "importlib_resources", "kamui", "json5", "cmcrameri", 'pydantic<=1.10.10',
+    "miaplpy @ git+https://github.com/insarlab/MiaplPy.git"
 ]
 
 req_setup = []
