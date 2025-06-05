@@ -9,6 +9,24 @@ Open-source InSAR time series analysis software developed within the project SAR
 
 Documentation
 -------------
+Installation
+------------
+There are two ways to set up the environment using conda.
+
+**For users (runtime only):**
+
+.. code-block:: bash
+
+    conda env create -f environment.yml
+    conda activate sarvey
+
+**For developers (includes testing, linting, docs, deployment tools):**
+
+.. code-block:: bash
+
+    conda env create -f environment_dev.yml
+    conda activate sarvey-dev
+
 The documentation with installation instructions, processing steps, and examples with a demo dataset can be found at:
 https://luhipi.github.io/sarvey/main
 

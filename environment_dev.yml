@@ -1,5 +1,4 @@
-name: sarvey
-
+name: sarvey-dev
 channels:
   - conda-forge
 dependencies:
@@ -25,6 +24,23 @@ dependencies:
   - json5
   - pillow
 
+  # Setup / test / lint / docs / deploy
+  - tox
+  - pytest
+  - pytest-cov
+  - urlchecker
+  - flake8
+  - pycodestyle
+  - pydocstyle
+  - pylint
+  - sphinx>=4.1.1
+  - sphinx-argparse
+  - sphinx-autodoc-typehints
+  - sphinxcontrib-jquery
+  - sphinx_rtd_theme
+  - twine
+
   - pip:
       - kamui[extra]
       - cmcrameri
+      - pytest-reporter-html1
