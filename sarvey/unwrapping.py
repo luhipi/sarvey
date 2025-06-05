@@ -347,7 +347,6 @@ def temporalUnwrapping(*, ifg_net_obj: IfgNetwork, net_obj: Network,  wavelength
         arc_idx_range, demerr, vel, gamma = launchAmbiguityFunctionSearch(parameters=args)
     else:
         logger.info(msg="start parallel processing with {} cores.".format(num_cores))
-        pool = multiprocessing.Pool(processes=num_cores)
 
         demerr = np.zeros((net_obj.num_arcs, 1), dtype=np.float32)
         vel = np.zeros((net_obj.num_arcs, 1), dtype=np.float32)
@@ -369,7 +368,8 @@ def temporalUnwrapping(*, ifg_net_obj: IfgNetwork, net_obj: Network,  wavelength
             demerr_bound,
             num_samples) for idx_range in idx]
 
-        results = pool.map(func=launchAmbiguityFunctionSearch, iterable=args)
+        with multiprocessing.Pool(processes=num_cores) as pool:
+            results = pool.map(func=launchAmbiguityFunctionSearch, iterable=args)
 
         # retrieve results
         for i, demerr_i, vel_i, gamma_i in results:
@@ -476,7 +476,6 @@ def spatialUnwrapping(*, num_ifgs: int, num_points: int, phase: np.ndarray, edge
         idx_range, unw_phase = launchSpatialUnwrapping(parameters=parameters)
     else:
         logger.info(msg="start parallel processing with {} cores.".format(num_cores))
-        pool = multiprocessing.Pool(processes=num_cores)
 
         unw_phase = np.zeros((num_points, num_ifgs), dtype=np.float32)
         num_cores = num_ifgs if num_cores > num_ifgs else num_cores
@@ -490,7 +489,9 @@ def spatialUnwrapping(*, num_ifgs: int, num_points: int, phase: np.ndarray, edge
             method,
             edges,
             phase[:, idx_range]) for idx_range in idx]
-        results = pool.map(func=launchSpatialUnwrapping, iterable=args)
+
+        with multiprocessing.Pool(processes=num_cores) as pool:
+            results = pool.map(func=launchSpatialUnwrapping, iterable=args)
 
         # retrieve results
         for i, phase in results:
