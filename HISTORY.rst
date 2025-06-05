@@ -6,6 +6,7 @@ History
 Future minor version (release soon)
 -----------------------------------
 
+* Enhance proper resource cleanup in multiprocessing
 * Update CI docker builder
 * Update runner to test installation
 * Update documentation with new instruction for installation including pip
