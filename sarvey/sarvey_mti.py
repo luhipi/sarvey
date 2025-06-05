@@ -181,6 +181,10 @@ def generateTemplateFromConfigModel():
     top_level_dict = dict()
 
     # map attribute name <-> class name (title)
+    # example: ConsistencyCheck <-> consistency_check
+    # This mapping is necessary to uses attribute names as keys in the config file.
+    # The section definitions in Pydantic v2 are referenced by their class name (in config.py).
+    # Not sure if there is a better way to handle this.
     attr_to_title = {attr: field_info.title for attr, field_info in Config.model_fields.items()}
     title_to_attr = {v: k for k, v in attr_to_title.items()}
 
