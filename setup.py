@@ -47,7 +47,7 @@ req = [
     "mintpy", "h5py", "overpy", "gstools", "shapely", "pandas", "geopandas", "pymaxflow",
     "pillow", "importlib_resources", "json5", "cmcrameri", 'pydantic',
     "miaplpy @ git+https://github.com/insarlab/MiaplPy.git",
-    "kamui @ git+https://github.com/mahmud1/kamui.git@numpy"
+    "kamui @ git+https://github.com/yoyolicoris/kamui.git@84c10df2fa89091a0aa4ecf12049a70d0d01391f"
 ]
 
 req_setup = []
