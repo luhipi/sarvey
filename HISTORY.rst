@@ -6,6 +6,7 @@ History
 Future minor version (release soon)
 -----------------------------------
 
+* Migrate from Pydantic v1 to v2 and update environment requirements.
 * Enhance proper resource cleanup in multiprocessing
 * Update CI docker builder
 * Update runner to test installation
