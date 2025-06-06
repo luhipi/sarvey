@@ -40,7 +40,8 @@ import sys
 import logging
 import time
 from logging import Logger
-from pydantic.schema import schema
+from pydantic import TypeAdapter
+
 
 from sarvey.console import printStep, printCurrentConfig, showLogoSARvey
 from sarvey.processing import Processing
@@ -176,9 +177,18 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
 
 def generateTemplateFromConfigModel():
     """GenerateTemplateFromConfigModel."""
-    top_level_schema = schema([Config])
+    top_level_schema = TypeAdapter(Config).json_schema()
     top_level_dict = dict()
-    for sec_name, sec_def in top_level_schema['definitions'].items():
+
+    # map attribute name <-> class name (title)
+    # example: ConsistencyCheck <-> consistency_check
+    # This mapping is necessary to uses attribute names as keys in the config file.
+    # The section definitions in Pydantic v2 are referenced by their class name (in config.py).
+    # Not sure if there is a better way to handle this.
+    attr_to_title = {attr: field_info.title for attr, field_info in Config.model_fields.items()}
+    title_to_attr = {v: k for k, v in attr_to_title.items()}
+
+    for sec_name, sec_def in top_level_schema['$defs'].items():
         if sec_name == "Config":
             # substitute the class names of subsections in top_level_dict by the name of the sections in class Config
             for subsec_name, subsec_def in sec_def["properties"].items():
@@ -190,7 +200,9 @@ def generateTemplateFromConfigModel():
                 sec_dict.update({subsec_name: None})
             else:
                 sec_dict.update({subsec_name: subsec_def["default"]})
-        top_level_dict.update({sec_name: sec_dict})
+
+        attr_name = title_to_attr.get(sec_name, sec_name)
+        top_level_dict.update({attr_name: sec_dict})
 
     return top_level_dict
 
@@ -260,7 +272,7 @@ def main(iargs=None):
         return 0
 
     if args.print_config_explanation:
-        top_level_schema = schema([Config])
+        top_level_schema = TypeAdapter(Config).json_schema()
         print(json5.dumps(top_level_schema, indent=2))
         return 0
 
