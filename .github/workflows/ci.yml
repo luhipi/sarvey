@@ -23,7 +23,7 @@ env:
 
 jobs:
   test_sarvey:
-    runs-on: self-hosted
+    runs-on: [self-hosted, sarvey_ci_1.3.0b]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -124,7 +124,7 @@ jobs:
           path: report.xml
 
   test_styles:
-    runs-on: self-hosted
+    runs-on: [self-hosted, sarvey_ci_1.3.0b]
     needs: test_sarvey
     steps:
       - name: Checkout code
@@ -167,7 +167,7 @@ jobs:
           path: tests/linting/pydocstyle.log
 
   test_urls:
-    runs-on: self-hosted
+    runs-on: [self-hosted, sarvey_ci_1.3.0b]
     needs: test_sarvey
     steps:
       - name: Checkout code
@@ -189,7 +189,7 @@ jobs:
         shell: bash
 
   test_sarvey_install:
-    runs-on: self-hosted
+    runs-on: [self-hosted, sarvey_ci_1.3.0b]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -240,7 +240,7 @@ jobs:
           shell: bash
 
   # deploy_pages:
-  #   runs-on: self-hosted
+  #   runs-on: [self-hosted, sarvey_ci_1.3.0b]
 
   #   needs: 
   #     - test_sarvey
