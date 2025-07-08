@@ -529,7 +529,7 @@ def splitDatasetForParallelProcessing(*, num_samples: int, num_cores: int):
     """
     rest = np.mod(num_samples, num_cores)
     avg_num_samples_per_core = int((num_samples - rest) / num_cores)
-    num_samples_per_core = np.zeros((num_cores,), dtype=np.int16)
+    num_samples_per_core = np.zeros((num_cores,), dtype=np.uint64)
     num_samples_per_core[:] = avg_num_samples_per_core
     c = rest
     i = 0
