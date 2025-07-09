@@ -2,7 +2,7 @@
 
 # SARvey - A multitemporal InSAR time series tool for the derivation of displacements.
 #
-# Copyright (C) 2021-2024 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
+# Copyright (C) 2021-2025 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
 #
 # This software was developed together with FERN.Lab (fernlab@gfz-potsdam.de) in the context
 # of the SAR4Infra project with funds of the German Federal Ministry for Digital and
@@ -82,7 +82,7 @@ class AmplitudeImage:
 
         self.background_map = img
 
-        logger.info(f"write data to {self.file_path}...")
+        logger.info(msg="write data to {}...".format(self.file_path))
 
         if exists(self.file_path):
             os.remove(self.file_path)
@@ -122,10 +122,10 @@ class AmplitudeImage:
             try:
                 self.open()
             except OSError as e:
-                logger.error(f"Could not open file: {e}")
+                logger.error(msg="Could not open file: {}".format(e))
                 fig = plt.figure(figsize=(15, 5))
                 ax = fig.add_subplot()
-                logger.error("Orbit direction not available.")
+                logger.error(msg="Orbit direction not available.")
                 return ax
 
         if ax is None:
@@ -170,7 +170,7 @@ class CoordinatesUTM:
         lat = readfile.read(input_path, datasetName='latitude')[0]
         lon = readfile.read(input_path, datasetName='longitude')[0]
 
-        log.info("Transform coordinates from latitude and longitude (WGS84) to North and East (UTM).")
+        log.info(msg="Transform coordinates from latitude and longitude (WGS84) to North and East (UTM).")
         # noinspection PyTypeChecker
         utm_crs_list = query_utm_crs_info(
             datum_name="WGS 84",
@@ -184,7 +184,7 @@ class CoordinatesUTM:
         lola2utm = Proj(utm_crs)
         self.coord_utm = np.array(lola2utm(lon, lat))
 
-        log.info(f"write data to {self.file_path}...")
+        log.info(msg="write data to {}...".format(self.file_path))
 
         if exists(self.file_path):
             os.remove(self.file_path)
@@ -224,9 +224,9 @@ class BaseStack:
         try:
             self.f.close()
             if print_msg:
-                self.logger.info(f"close file: {basename(self.file)}")
+                self.logger.info(msg='close file: {}'.format(basename(self.file)))
         except Exception as e:
-            self.logger.exception(e)
+            self.logger.exception(msg=e)
             pass
         return None
 
@@ -235,6 +235,14 @@ class BaseStack:
         with h5py.File(self.file, 'r') as f:
             dshape = f[dataset_name].shape
         return dshape
+
+    def datasetExists(self, *, dataset_name: str):
+        """Check if dataset exists in file."""
+        with h5py.File(self.file, 'r') as f:
+            if dataset_name in f:
+                return True
+            else:
+                return False
 
     def read(self, *, dataset_name: str, box: Optional[tuple] = None, print_msg: bool = True):
         """Read dataset from slc file.
@@ -246,16 +254,17 @@ class BaseStack:
         box: tuple
             tuple of 4 int, indicating x0,y0,x1,y1 of range, or
             tuple of 6 int, indicating x0,y0,z0,x1,y1,z1 of range
+            tuple of 8 int, indicating x0,y0,kx0,ky0,x1,y1,kx1,ky1 of range
         print_msg: bool
             print message.
 
         Returns
         -------
         data: np.ndarray
-            2D or 3D dataset
+            2D , 3D, or 4D dataset
         """
         if print_msg:
-            self.logger.info(f"reading box {box} from file: {self.file} ...")
+            self.logger.info(msg='reading box {} from file: {} ...'.format(box, self.file))
 
         with h5py.File(self.file, 'r') as f:
             self.metadata = dict(f.attrs)
@@ -263,6 +272,9 @@ class BaseStack:
             ds = f[dataset_name]
             if len(ds.shape) == 3:
                 self.length, self.width, self.num_time = ds.shape
+            elif len(ds.shape) == 4:
+                # metadata for dimension the last two dimensions are not stored
+                self.length, self.width = ds.shape[0], ds.shape[1]
             else:
                 self.length, self.width = ds.shape
 
@@ -275,6 +287,11 @@ class BaseStack:
                     data = ds[box[1]:box[3], box[0]:box[2], :]
                 if len(box) == 6:
                     data = ds[box[1]:box[4], box[0]:box[3], box[2]:box[5]]
+            elif len(ds.shape) == 4:
+                if len(box) == 4:
+                    data = ds[box[1]:box[3], box[0]:box[2], :, :]
+                if len(box) == 8:
+                    data = ds[box[1]:box[5], box[0]:box[4], box[3]:box[7], box[2]: box[6]]
             else:
                 if len(box) == 6:
                     raise IndexError("Cannot read 3D box from 2D data.")
@@ -307,7 +324,14 @@ class BaseStack:
             chunk size ('True'/'False' or tuple specifying the dimension of the chunks)
         """
         with h5py.File(self.file, mode) as f:
-            self.logger.info(f"Prepare dataset: {dataset_name:<25} of {str(dtype):<25} in size of {dshape}")
+            self.logger.info(msg="Prepare dataset: {d:<25} of {t:<25} in size of {s}".format(
+                d=dataset_name,
+                t=str(dtype),
+                s=dshape))
+
+            if dataset_name in f:
+                self.logger.warning(msg="Dataset {} already exists. Overwriting it.".format(dataset_name))
+                del f[dataset_name]
 
             f.create_dataset(dataset_name,
                              shape=dshape,
@@ -328,11 +352,12 @@ class BaseStack:
         Parameters
         ----------
         data: np.ndarray
-            1/2/3D matrix.
+            1/2/3/4D matrix.
         dataset_name: str
             dataset name.
         block: list
-            the list can contain 2, 4 or 6 integers indicating: [zStart, zEnd, yStart, yEnd, xStart, xEnd].
+            the list can contain 2, 4, 6 or 8 integers indicating: [zStart, zEnd, yStart, yEnd, xStart, xEnd] or
+            [yStart, yEnd, xStart, xEnd, kyStart, kyEnd, kxStart, kxEnd]
         mode: str
             open mode ('w' for writing new file or 'a' for appending to existing file).
         print_msg: bool
@@ -359,12 +384,24 @@ class BaseStack:
                 block = [0, shape[0],
                          0, shape[1],
                          0, shape[2]]
+            elif len(shape) == 4:
+                block = [0, shape[0],
+                         0, shape[1],
+                         0, shape[2],
+                         0, shape[3]]
 
         with h5py.File(self.file, mode) as f:
 
             if print_msg:
-                self.logger.info(f"writing dataset /{dataset_name:<25} block: {block}")
-            if len(block) == 6:
+                self.logger.info(msg="writing dataset /{:<25} block: {}".format(dataset_name, block))
+
+            if len(block) == 8:
+                f[dataset_name][block[0]:block[1],
+                                block[2]:block[3],
+                                block[4]:block[5],
+                                block[6]:block[7]] = data
+
+            elif len(block) == 6:
                 f[dataset_name][block[0]:block[1],
                                 block[2]:block[3],
                                 block[4]:block[5]] = data
@@ -385,7 +422,7 @@ class BaseStack:
         Parameters
         ----------
         data: np.ndarray
-            3D data array.
+            nD data array.
         dataset_name: str
             name of dataset.
         metadata: dict
@@ -395,14 +432,18 @@ class BaseStack:
         chunks: tuple
             chunk size ('True'/'False' or tuple specifying the dimension of the chunks)
         """
-        # 3D dataset
-        self.logger.info(f"create HDF5 file: {self.file} with w mode")
+        # nD dataset
+        self.logger.info(msg='create HDF5 file: {} with w mode'.format(self.file))
         self.f = h5py.File(self.file, mode)
         if dataset_name not in self.f:
-            self.logger.info(f"create dataset /{dataset_name} of {str(data.dtype):<10} in size of {data.shape}.")
+            self.logger.info(msg='create dataset /{n} of {t:<10} in size of {s}.'.format(n=dataset_name,
+                                                                                         t=str(data.dtype),
+                                                                                         s=data.shape))
             self.f.create_dataset(dataset_name, data=data, chunks=chunks)
         else:
-            self.logger.info(f"overwrite dataset /{dataset_name} of {str(data.dtype):<10} in size of {data.shape}.")
+            self.logger.info(msg='overwrite dataset /{n} of {t:<10} in size of {s}.'.format(n=dataset_name,
+                                                                                            t=str(data.dtype),
+                                                                                            s=data.shape))
             self.f[dataset_name] = data
 
         # Attributes
@@ -412,7 +453,7 @@ class BaseStack:
                 self.f.attrs[key] = str(value)
 
         self.f.close()
-        self.logger.info(f"finished writing to {self.file}")
+        self.logger.info(msg='finished writing to {}'.format(self.file))
         return
 
 
@@ -474,7 +515,7 @@ class Points:
 
     def writeToFile(self):
         """Write data to .h5 file (num_points, coord_xy, point_id, phase)."""
-        self.logger.info(f"write data to {self.file_path}...")
+        self.logger.info(msg="write data to {}...".format(self.file_path))
 
         if exists(self.file_path):
             os.remove(self.file_path)
@@ -504,7 +545,7 @@ class Points:
             path = other_file_path
         else:
             path = self.file_path
-        self.logger.info(f"read from {format(path)}.")
+        self.logger.info(msg="read from {}".format(path))
 
         with h5py.File(path, 'r') as f:
             self.num_points = f.attrs["num_points"]
@@ -651,7 +692,7 @@ class Network:
 
     def writeToFile(self):
         """Write all existing data to psNetwork.h5 file."""
-        self.logger.info(f"write data to {self.file_path} ...")
+        self.logger.info(msg="write data to {}...".format(self.file_path))
 
         if exists(self.file_path):
             os.remove(self.file_path)

@@ -2,7 +2,7 @@
 
 # SARvey - A multitemporal InSAR time series tool for the derivation of displacements.
 #
-# Copyright (C) 2021-2024 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
+# Copyright (C) 2021-2025 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
 #
 # This software was developed together with FERN.Lab (fernlab@gfz-potsdam.de) in the context
 # of the SAR4Infra project with funds of the German Federal Ministry for Digital and
@@ -91,8 +91,7 @@ def invertIfgNetwork(*, phase: np.ndarray, num_points: int, ifg_net_obj: IfgNetw
     else:
         # use only 10 percent of the cores, because scipy.sparse.linalg.lsqr is already running in parallel
         num_cores = int(np.floor(num_cores / 10))
-        logger.info(f"start parallel processing with {num_cores} cores.")
-        pool = multiprocessing.Pool(processes=num_cores)
+        logger.info("start parallel processing with {} cores.".format(num_cores))
 
         phase_ts = np.zeros((num_points, ifg_net_obj.num_images), dtype=np.float32)
 
@@ -106,14 +105,15 @@ def invertIfgNetwork(*, phase: np.ndarray, num_points: int, ifg_net_obj: IfgNetw
             ifg_net_obj.num_images,
             ref_idx) for idx_range in idx]
 
-        results = pool.map(func=launchInvertIfgNetwork, iterable=args)
+        with multiprocessing.Pool(processes=num_cores) as pool:
+            results = pool.map(func=launchInvertIfgNetwork, iterable=args)
 
         # retrieve results
         for i, phase_i in results:
             phase_ts[i, :] = phase_i
 
     m, s = divmod(time.time() - start_time, 60)
-    logger.debug(f"time used: {m:02.0f} mins {s:02.1f} secs.")
+    logger.debug('time used: {:02.0f} mins {:02.1f} secs.'.format(m, s))
     return phase_ts
 
 
@@ -430,8 +430,8 @@ def splitImageIntoBoxesRngAz(*, length: int, width: int, num_box_az: int, num_bo
     num_box: int
         number of boxes
     """
-    y_step = int(np.rint((length / num_box_rng) / 10) * 10)
-    x_step = int(np.rint((width / num_box_az) / 10) * 10)
+    y_step = int(length / num_box_rng)
+    x_step = int(width / num_box_az)
 
     box_list = []
     y0 = 0
@@ -531,7 +531,7 @@ def splitDatasetForParallelProcessing(*, num_samples: int, num_cores: int):
     """
     rest = np.mod(num_samples, num_cores)
     avg_num_samples_per_core = int((num_samples - rest) / num_cores)
-    num_samples_per_core = np.zeros((num_cores,), dtype=np.int16)
+    num_samples_per_core = np.zeros((num_cores,), dtype=np.int64)
     num_samples_per_core[:] = avg_num_samples_per_core
     c = rest
     i = 0
@@ -550,7 +550,7 @@ def splitDatasetForParallelProcessing(*, num_samples: int, num_cores: int):
     return idx
 
 
-def createSpatialGrid(*, coord_utm_img: np.ndarray, length: int, width: int, grid_size: int):
+def createSpatialGrid(*, coord_utm_img: np.ndarray, length: int, width: int, grid_size: int, logger: Logger):
     """Create a spatial grid over the image.
 
     Parameters
@@ -563,6 +563,8 @@ def createSpatialGrid(*, coord_utm_img: np.ndarray, length: int, width: int, gri
         number of pixels in width of the image
     grid_size: int
         size of the grid in [m]
+    logger: Logger
+        logging handler
 
     Returns
     -------
@@ -576,20 +578,28 @@ def createSpatialGrid(*, coord_utm_img: np.ndarray, length: int, width: int, gri
     p2 = coord_utm_img[:, -1, 0]
     dist_width = np.linalg.norm(p0 - p1)
     dist_length = np.linalg.norm(p0 - p2)
+
+    if (dist_width < grid_size) or (dist_length < grid_size):
+        logger.warning(f"The selected grid size ({grid_size}m) is larger than the spatial coverage of the image "
+                       f"({dist_width}m x {dist_length}m).")
     num_box_az = int(np.round(dist_width / grid_size))
     num_box_rng = int(np.round(dist_length / grid_size))
+
+    # avoid division by zero
+    num_box_az = 1 if num_box_az == 0 else num_box_az
+    num_box_rng = 1 if num_box_rng == 0 else num_box_rng
 
     # split image into different parts
     box_list, num_box = splitImageIntoBoxesRngAz(length=length, width=width,
                                                  num_box_az=num_box_az, num_box_rng=num_box_rng)
-
+    logger.info(msg=f"{num_box} grid cells created.")
     return box_list, num_box
 
 
 def selectBestPointsInGrid(*, box_list: list, quality: np.ndarray, sel_min: bool = True):
     """Select the best point inside a grid.
 
-    If several pixel fullfil the criteria, the first one is selected.
+    If several pixel fulfill the criteria, the first one is selected.
 
     Parameters
     ----------
@@ -880,4 +890,4 @@ def checkIfRequiredFilesExist(*, path_to_files: str, required_files: list, logge
         if not exists(join(path_to_files, file)):
             logger.error(f"File from previous step(s) is missing: {file}.")
             raise FileNotFoundError
-    logger.debug(f"All required files exist.")
+    logger.debug("All required files exist.")

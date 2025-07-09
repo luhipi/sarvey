@@ -2,7 +2,7 @@
 
 # SARvey - A multitemporal InSAR time series tool for the derivation of displacements.
 #
-# Copyright (C) 2021-2024 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
+# Copyright (C) 2021-2025 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
 #
 # This software was developed together with FERN.Lab (fernlab@gfz-potsdam.de) in the context
 # of the SAR4Infra project with funds of the German Federal Ministry for Digital and
@@ -261,7 +261,7 @@ class Processing:
 
         if self.config.consistency_check.mask_p1_file is not None:
             path_mask_aoi = join(self.config.consistency_check.mask_p1_file)
-            log.info(f"Loading mask_p1_file...: {path_mask_aoi}.")
+            self.logger.info(msg="load mask for area of interest from: {}.".format(path_mask_aoi))
             mask_aoi = readfile.read(path_mask_aoi, datasetName='mask')[0].astype(np.bool_)
             log.debug(f"Number of pixels in the mask_p1_file: {np.sum(mask_aoi)}/{total_num_pixels}")
             mask_valid_area &= mask_aoi
@@ -354,23 +354,19 @@ class Processing:
 
         # 3) spatial unwrapping of the arc network and removal of outliers (arcs and points)
         bmap_obj = AmplitudeImage(file_path=join(self.path, "background_map.h5"))
-        thrsh_visualisation = 0.7
 
         try:
             ax = bmap_obj.plot(logger=log)
-            arc_mask = net_par_obj.gamma.reshape(-1) <= thrsh_visualisation
             ax, cbar = viewer.plotColoredPointNetwork(x=point_obj.coord_xy[:, 1], y=point_obj.coord_xy[:, 0],
-                                                      arcs=net_par_obj.arcs[arc_mask, :],
-                                                      val=net_par_obj.gamma[arc_mask],
+                                                      arcs=net_par_obj.arcs,
+                                                      val=net_par_obj.gamma,
                                                       ax=ax, linewidth=1, cmap="lajolla", clim=(0, 1))
-            ax.set_title("Coherence from temporal unwrapping\n"
-                         r"(only arcs with $\gamma \leq$ {} "
-                         "shown)\nBefore outlier removal".format(thrsh_visualisation))
+            ax.set_title("Coherence from temporal unwrapping\nBefore outlier removal")
             fig = ax.get_figure()
             plt.tight_layout()
             fig.savefig(join(self.path, "pic", "step_1_arc_coherence.png"), dpi=300)
         except BaseException as e:
-            log.exception(f"NOT POSSIBLE TO PLOT SPATIAL NETWORK OF POINTS. {e}")
+            log.exception(msg="NOT POSSIBLE TO PLOT SPATIAL NETWORK OF POINTS. {}".format(e))
 
         net_par_obj, point_id, coord_xy, design_mat = removeGrossOutliers(
             net_obj=net_par_obj,
@@ -383,19 +379,17 @@ class Processing:
 
         try:
             ax = bmap_obj.plot(logger=log)
-            arc_mask = net_par_obj.gamma.reshape(-1) <= thrsh_visualisation
             ax, cbar = viewer.plotColoredPointNetwork(x=coord_xy[:, 1], y=coord_xy[:, 0],
-                                                      arcs=net_par_obj.arcs[arc_mask, :],
-                                                      val=net_par_obj.gamma[arc_mask],
+                                                      arcs=net_par_obj.arcs,
+                                                      val=net_par_obj.gamma,
                                                       ax=ax, linewidth=1, cmap="lajolla", clim=(0, 1))
-            ax.set_title("Coherence from temporal unwrapping\n"
-                         r"(only arcs with $\gamma \leq$ {} "
-                         "shown)\nAfter outlier removal".format(thrsh_visualisation))
+            ax.set_title("Coherence from temporal unwrapping\nAfter outlier removal")
+
             fig = ax.get_figure()
             plt.tight_layout()
             fig.savefig(join(self.path, "pic", "step_1_arc_coherence_reduced.png"), dpi=300)
         except BaseException as e:
-            log.exception(f"NOT POSSIBLE TO PLOT SPATIAL NETWORK OF POINTS. {e}")
+            log.exception(msg="NOT POSSIBLE TO PLOT SPATIAL NETWORK OF POINTS. {}".format(e))
 
         spatial_ref_id, point_id, net_par_obj = parameterBasedNoisyPointRemoval(
             net_par_obj=net_par_obj,
@@ -643,15 +637,19 @@ class Processing:
 
         box_list, num_box = ut.createSpatialGrid(coord_utm_img=coord_utm_obj.coord_utm, length=point1_obj.length,
                                                  width=point1_obj.width,
-                                                 grid_size=self.config.filtering.grid_size)
+                                                 grid_size=self.config.filtering.grid_size,
+                                                 logger=self.logger)
 
         cand_mask_sparse = ut.selectBestPointsInGrid(box_list=box_list, quality=auto_corr_img, sel_min=True)
 
         num_p1_points_for_filtering = cand_mask_sparse[cand_mask_sparse].shape[0]
         if num_p1_points_for_filtering < 10:
-            self.logger.warning(f"Only {num_p1_points_for_filtering} points for APS filtering selected. Filtering "
-                                f"results are probably not reliable. You can e.g. increase 'max_auto_corr' or try "
-                                f"to increase the number of first-order points during step 1 and 2.")
+            self.logger.warning(msg=f"Only {num_p1_points_for_filtering} points for APS filtering selected. Filtering "
+                                    f"results are probably not reliable. You can e.g. increase 'max_auto_corr' or try "
+                                    f"to increase the number of first-order points during step 1 and 2.")
+            if num_p1_points_for_filtering == 0:
+                self.logger.error("No points selected for APS filtering.")
+                raise ValueError
 
         point_id_img = np.arange(0, point1_obj.length * point1_obj.width).reshape(
             (point1_obj.length, point1_obj.width))
@@ -708,7 +706,7 @@ class Processing:
 
             if self.config.phase_linking.mask_phase_linking_file is not None:
                 path_mask_pl_aoi = join(self.config.phase_linking.mask_phase_linking_file)
-                self.logger.info(f"load mask for area of interest from: {path_mask_pl_aoi}.")
+                self.logger.info(msg="load mask for area of interest from: {}.".format(path_mask_pl_aoi))
                 mask_pl_aoi = readfile.read(path_mask_pl_aoi, datasetName='mask')[0].astype(np.bool_)
 
                 fig = plt.figure(figsize=(15, 5))
@@ -737,7 +735,7 @@ class Processing:
 
         if self.config.filtering.mask_p2_file is not None:
             path_mask_aoi = join(self.config.filtering.mask_p2_file)
-            self.logger.info(f"load mask for area of interest from: {path_mask_aoi}.")
+            self.logger.info(msg="load mask for area of interest from: {}.".format(path_mask_aoi))
             mask_aoi = readfile.read(path_mask_aoi, datasetName='mask')[0].astype(np.bool_)
             mask_valid_area &= mask_aoi
             # todo: add unstable points from p1 for densification

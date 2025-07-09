@@ -22,7 +22,7 @@ dependencies:
   - shapely
   - geopandas
   - gstools
-  - pydantic=1.10.*
+  - pydantic
   - json5
   # setup requirements
   - tox
@@ -41,6 +41,7 @@ dependencies:
   - sphinx-argparse
   - sphinx-autodoc-typehints
   - sphinxcontrib-jquery
+  - sphinx_rtd_theme
   # deployment requirements
   - twine
 

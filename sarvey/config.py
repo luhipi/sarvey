@@ -2,7 +2,7 @@
 
 # SARvey - A multitemporal InSAR time series tool for the derivation of displacements.
 #
-# Copyright (C) 2021-2024 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
+# Copyright (C) 2021-2025 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
 #
 # This software was developed together with FERN.Lab (fernlab@gfz-potsdam.de) in the context
 # of the SAR4Infra project with funds of the German Federal Ministry for Digital and
@@ -33,10 +33,10 @@ import json5
 from datetime import date
 from json import JSONDecodeError
 from typing import Optional
-from pydantic import BaseModel, Field, validator, Extra
+from pydantic import BaseModel, Field, field_validator
 
 
-class General(BaseModel, extra=Extra.forbid):
+class General(BaseModel, extra="forbid"):
     """Template for settings in config file."""
 
     input_path: str = Field(
@@ -87,7 +87,7 @@ class General(BaseModel, extra=Extra.forbid):
         default="logfiles/"
     )
 
-    @validator('input_path')
+    @field_validator('input_path')
     def checkPathInputs(cls, v):
         """Check if the input path exists."""
         if v == "":
@@ -100,28 +100,28 @@ class General(BaseModel, extra=Extra.forbid):
             raise ValueError(f"'geometryRadar.h5' does not exist: {v}")
         return v
 
-    @validator('num_cores')
+    @field_validator('num_cores')
     def checkNumCores(cls, v):
         """Check if the number of cores is valid."""
         if v <= 0:
             raise ValueError("Number of cores must be greater than zero.")
         return v
 
-    @validator('num_patches')
+    @field_validator('num_patches')
     def checkNumPatches(cls, v):
         """Check if the number of patches is valid."""
         if v <= 0:
             raise ValueError("Number of patches must be greater than zero.")
         return v
 
-    @validator('spatial_unwrapping_method')
+    @field_validator('spatial_unwrapping_method')
     def checkUnwMethod(cls, v):
         """Check if unwrapping_method is valid."""
         if (v != "ilp") & (v != "puma"):
             raise ValueError("Unwrapping method must be either 'ilp' or 'puma'.")
         return v
 
-    @validator('logging_level')
+    @field_validator('logging_level')
     def checkLoggingLevel(cls, v):
         """Check if the logging level is valid."""
         if v == "":
@@ -133,7 +133,7 @@ class General(BaseModel, extra=Extra.forbid):
         return v
 
 
-class PhaseLinking(BaseModel, extra=Extra.forbid):
+class PhaseLinking(BaseModel, extra="forbid"):
     """Template for settings in config file."""
 
     use_phase_linking_results: bool = Field(
@@ -174,10 +174,10 @@ class PhaseLinking(BaseModel, extra=Extra.forbid):
         default="maskPS.h5"
     )
 
-    @validator('inverted_path')
+    @field_validator('inverted_path')
     def checkPathInverted(cls, v, values):
         """Check if the inverted path exists."""
-        if values["use_phase_linking_results"]:
+        if values.data["use_phase_linking_results"]:
             if v == "":
                 raise ValueError("Empty string is not allowed.")
             if not os.path.exists(os.path.abspath(v)):
@@ -186,18 +186,18 @@ class PhaseLinking(BaseModel, extra=Extra.forbid):
                 raise ValueError(f"'phase_series.h5' does not exist: {v}")
         return v
 
-    @validator('num_siblings')
+    @field_validator('num_siblings')
     def checkNumSiblings(cls, v, values):
         """Check is no_siblings is valid."""
-        if not values["use_phase_linking_results"]:
+        if not values.data["use_phase_linking_results"]:
             if v < 1:
                 raise ValueError("'num_siblings' has to be greater than 0.")
         return v
 
-    @validator('mask_phase_linking_file')
+    @field_validator('mask_phase_linking_file')
     def checkSpatialMaskPath(cls, v, values):
         """Check if the path is correct."""
-        if values["use_phase_linking_results"]:
+        if values.data["use_phase_linking_results"]:
             if v == "" or v is None:
                 return None
             else:
@@ -205,17 +205,17 @@ class PhaseLinking(BaseModel, extra=Extra.forbid):
                     raise ValueError(f"mask_phase_linking_file path is invalid: {v}")
         return v
 
-    @validator('use_ps')
+    @field_validator('use_ps')
     def checkUsePS(cls, v, values):
         """Check if use_ps will be applied."""
-        if (not values["use_phase_linking_results"]) and v:
+        if (not values.data["use_phase_linking_results"]) and v:
             raise ValueError("'use_ps' will not be applied, because 'phase_linking' is set to False.")
         return v
 
-    @validator('mask_ps_file')
+    @field_validator('mask_ps_file')
     def checkPathMaskFilePS(cls, v, values):
         """Check if the mask file exists."""
-        if values["use_phase_linking_results"] and values["use_ps"]:
+        if values.data["use_phase_linking_results"] and values.data["use_ps"]:
             if v == "":
                 raise ValueError("Empty string is not allowed.")
             if not os.path.exists(os.path.abspath(v)):
@@ -223,7 +223,7 @@ class PhaseLinking(BaseModel, extra=Extra.forbid):
         return v
 
 
-class Preparation(BaseModel, extra=Extra.forbid):
+class Preparation(BaseModel, extra="forbid"):
     """Template for settings in config file."""
 
     start_date: Optional[str] = Field(
@@ -264,7 +264,7 @@ class Preparation(BaseModel, extra=Extra.forbid):
         default=9
     )
 
-    @validator('start_date', 'end_date')
+    @field_validator('start_date', 'end_date')
     def checkDates(cls, v):
         """Check if date format is valid."""
         if v == "":
@@ -277,14 +277,14 @@ class Preparation(BaseModel, extra=Extra.forbid):
                 raise ValueError(f"Date needs to be in format: YYYY-MM-DD. {e}")
         return v
 
-    @validator('ifg_network_type')
+    @field_validator('ifg_network_type')
     def checkNetworkType(cls, v):
         """Check if the ifg network type is valid."""
         if (v != "sb") and (v != "star") and (v != "delaunay") and (v != "stb") and (v != "stb_year"):
             raise ValueError("Interferogram network type has to be 'sb', 'stb', 'stb_year', 'delaunay' or 'star'.")
         return v
 
-    @validator('num_ifgs')
+    @field_validator('num_ifgs')
     def checkNumIfgs(cls, v):
         """Check if the number of ifgs is valid."""
         if v is not None:
@@ -292,7 +292,7 @@ class Preparation(BaseModel, extra=Extra.forbid):
                 raise ValueError("Number of ifgs must be greater than zero.")
         return v
 
-    @validator('max_tbase')
+    @field_validator('max_tbase')
     def checkMaxTBase(cls, v):
         """Check if the value for maximum time baseline is valid."""
         if v is not None:
@@ -300,7 +300,7 @@ class Preparation(BaseModel, extra=Extra.forbid):
                 raise ValueError("Maximum baseline must be greater than zero.")
         return v
 
-    @validator('filter_window_size')
+    @field_validator('filter_window_size')
     def checkFilterWdwSize(cls, v):
         """Check if the filter window size is valid."""
         if v <= 0:
@@ -308,7 +308,7 @@ class Preparation(BaseModel, extra=Extra.forbid):
         return v
 
 
-class ConsistencyCheck(BaseModel, extra=Extra.forbid):
+class ConsistencyCheck(BaseModel, extra="forbid"):
     """Template for settings in config file."""
 
     coherence_p1: float = Field(
@@ -371,7 +371,7 @@ class ConsistencyCheck(BaseModel, extra=Extra.forbid):
         default=3
     )
 
-    @validator('coherence_p1')
+    @field_validator('coherence_p1')
     def checkCoherenceP1(cls, v):
         """Check if the temporal coherence threshold is valid."""
         if v < 0:
@@ -380,7 +380,7 @@ class ConsistencyCheck(BaseModel, extra=Extra.forbid):
             raise ValueError("Temporal coherence threshold cannot be greater than 1.")
         return v
 
-    @validator('grid_size')
+    @field_validator('grid_size')
     def checkGridSize(cls, v):
         """Check if the grid size is valid."""
         if v < 0:
@@ -389,7 +389,7 @@ class ConsistencyCheck(BaseModel, extra=Extra.forbid):
             v = None
         return v
 
-    @validator('mask_p1_file')
+    @field_validator('mask_p1_file')
     def checkSpatialMaskPath(cls, v):
         """Check if the path is correct."""
         if v == "" or v is None:
@@ -399,14 +399,14 @@ class ConsistencyCheck(BaseModel, extra=Extra.forbid):
                 raise ValueError(f"mask_p1_file path is invalid: {v}")
             return v
 
-    @validator('num_nearest_neighbours')
+    @field_validator('num_nearest_neighbours')
     def checkKNN(cls, v):
         """Check if the k-nearest neighbours is valid."""
         if v <= 0:
             raise ValueError('Number of nearest neighbours cannot be negative or zero.')
         return v
 
-    @validator('max_arc_length')
+    @field_validator('max_arc_length')
     def checkMaxArcLength(cls, v):
         """Check if the maximum length of arcs is valid."""
         if v is None:
@@ -415,28 +415,28 @@ class ConsistencyCheck(BaseModel, extra=Extra.forbid):
             raise ValueError('Maximum arc length must be positive.')
         return v
 
-    @validator('velocity_bound')
+    @field_validator('velocity_bound')
     def checkVelocityBound(cls, v):
         """Check if the velocity bound is valid."""
         if v <= 0:
             raise ValueError('Velocity bound cannot be negative or zero.')
         return v
 
-    @validator('dem_error_bound')
+    @field_validator('dem_error_bound')
     def checkDEMErrorBound(cls, v):
         """Check if the DEM error bound is valid."""
         if v <= 0:
             raise ValueError('DEM error bound cannot be negative or zero.')
         return v
 
-    @validator('num_optimization_samples')
+    @field_validator('num_optimization_samples')
     def checkNumSamples(cls, v):
         """Check if the number of samples for the search space is valid."""
         if v <= 0:
             raise ValueError('Number of optimization samples cannot be negative or zero.')
         return v
 
-    @validator('arc_unwrapping_coherence')
+    @field_validator('arc_unwrapping_coherence')
     def checkArcCoherence(cls, v):
         """Check if the arc coherence threshold is valid."""
         if v < 0:
@@ -445,7 +445,7 @@ class ConsistencyCheck(BaseModel, extra=Extra.forbid):
             raise ValueError('Arc unwrapping coherence threshold cannot be greater than 1.')
         return v
 
-    @validator('min_num_arc')
+    @field_validator('min_num_arc')
     def checkMinNumArc(cls, v):
         """Check if the minimum number of arcs is valid."""
         if v < 0:
@@ -453,7 +453,7 @@ class ConsistencyCheck(BaseModel, extra=Extra.forbid):
         return v
 
 
-class Unwrapping(BaseModel, extra=Extra.forbid):
+class Unwrapping(BaseModel, extra="forbid"):
     """Template for settings in config file."""
 
     use_arcs_from_temporal_unwrapping: bool = Field(
@@ -464,7 +464,7 @@ class Unwrapping(BaseModel, extra=Extra.forbid):
     )
 
 
-class Filtering(BaseModel, extra=Extra.forbid):
+class Filtering(BaseModel, extra="forbid"):
     """Template for filtering settings in config file."""
 
     coherence_p2: float = Field(
@@ -509,7 +509,7 @@ class Filtering(BaseModel, extra=Extra.forbid):
         default=0.3
     )
 
-    @validator('coherence_p2')
+    @field_validator('coherence_p2')
     def checkTempCohThrsh2(cls, v):
         """Check if the temporal coherence threshold is valid."""
         if v < 0:
@@ -518,7 +518,7 @@ class Filtering(BaseModel, extra=Extra.forbid):
             raise ValueError("Temporal coherence threshold cannot be greater than 1.")
         return v
 
-    @validator('interpolation_method')
+    @field_validator('interpolation_method')
     def checkInterpolationMethod(cls, v):
         """Check if the interpolation method is valid."""
         if (v.lower() != "linear") and (v.lower() != "cubic") and (v.lower() != "kriging"):
@@ -526,7 +526,7 @@ class Filtering(BaseModel, extra=Extra.forbid):
                              "or 'kriging'.")
         return v
 
-    @validator('grid_size')
+    @field_validator('grid_size')
     def checkGridSize(cls, v):
         """Check if the grid size is valid."""
         if v < 0:
@@ -534,7 +534,7 @@ class Filtering(BaseModel, extra=Extra.forbid):
         else:
             return v
 
-    @validator('mask_p2_file')
+    @field_validator('mask_p2_file')
     def checkSpatialMaskPath(cls, v):
         """Check if the path is correct."""
         if v == "" or v is None:
@@ -544,7 +544,7 @@ class Filtering(BaseModel, extra=Extra.forbid):
                 raise ValueError(f"mask_p2_file path is invalid: {v}")
         return v
 
-    @validator('max_temporal_autocorrelation')
+    @field_validator('max_temporal_autocorrelation')
     def checkMaxAutoCorr(cls, v):
         """Check if the value is correct."""
         if v < 0 or v > 1:
@@ -552,7 +552,7 @@ class Filtering(BaseModel, extra=Extra.forbid):
         return v
 
 
-class Densification(BaseModel, extra=Extra.forbid):
+class Densification(BaseModel, extra="forbid"):
     """Template for densification settings in config file."""
 
     num_connections_to_p1: int = Field(
@@ -593,42 +593,42 @@ class Densification(BaseModel, extra=Extra.forbid):
         default=0.5
     )
 
-    @validator('num_connections_to_p1')
+    @field_validator('num_connections_to_p1')
     def checkNumConn1(cls, v):
         """Check if num_connections_p1 are valid."""
         if v <= 0:
             raise ValueError(f"num_connections_p1 must be greater than 0: {v}")
         return v
 
-    @validator('max_distance_to_p1')
+    @field_validator('max_distance_to_p1')
     def checkMaxDistanceP1(cls, v):
         """Check if the maximum distance to nearest first-order points is valid."""
         if v < 0:
             raise ValueError('Maximum distance to first-order points cannot be negative.')
         return v
 
-    @validator('velocity_bound')
+    @field_validator('velocity_bound')
     def checkVelocityBound(cls, v):
         """Check if the velocity bound is valid."""
         if v <= 0:
             raise ValueError('Velocity bound cannot be negative or zero.')
         return v
 
-    @validator('dem_error_bound')
+    @field_validator('dem_error_bound')
     def checkDEMErrorBound(cls, v):
         """Check if the DEM error bound is valid."""
         if v <= 0:
             raise ValueError('DEM error bound cannot be negative or zero.')
         return v
 
-    @validator('num_optimization_samples')
+    @field_validator('num_optimization_samples')
     def checkNumSamples(cls, v):
         """Check if the number of samples for the search space is valid."""
         if v <= 0:
             raise ValueError('Number of optimization samples cannot be negative or zero.')
         return v
 
-    @validator('arc_unwrapping_coherence')
+    @field_validator('arc_unwrapping_coherence')
     def checkCoherenceThresh(cls, v):
         """Check if arc_unwrapping_coherence is valid."""
         if v < 0 or v > 1:
@@ -669,7 +669,7 @@ class Config(BaseModel):
     )
 
 
-def loadConfiguration(*, path: str) -> dict:
+def loadConfiguration(*, path: str):
     """Load configuration json file.
 
     Parameters

@@ -2,7 +2,7 @@
 
 # SARvey - A multitemporal InSAR time series tool for the derivation of displacements.
 #
-# Copyright (C) 2021-2024 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
+# Copyright (C) 2021-2025 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
 #
 # This software was developed together with FERN.Lab (fernlab@gfz-potsdam.de) in the context
 # of the SAR4Infra project with funds of the German Federal Ministry for Digital and
@@ -101,7 +101,7 @@ def launchSpatialFiltering(parameters: tuple):
         try:
             model.fit_variogram(x_data=bin_center, y_data=vario, nugget=True, max_eval=1500)
         except RuntimeError as err:
-            logger.error(f"\nIMAGE {idx_range[i]}: Not able to fit variogram! {err}")
+            logger.error(msg="\nIMAGE {}: Not able to fit variogram! {}".format(idx_range[i], err))
             if bool_plot:
                 fig, ax = plt.subplots(2, figsize=[10, 5])
                 sca1 = ax[0].scatter(x, y, c=field)
@@ -198,7 +198,7 @@ def estimateAtmosphericPhaseScreen(*, residuals: np.ndarray, coord_utm1: np.ndar
     msg = "#" * 10
     msg += " ESTIMATE ATMOSPHERIC PHASE SCREEN (KRIGING) "
     msg += "#" * 10
-    logger.info(msg)
+    logger.info(msg=msg)
 
     start_time = time.time()
 
@@ -213,8 +213,7 @@ def estimateAtmosphericPhaseScreen(*, residuals: np.ndarray, coord_utm1: np.ndar
         args = (np.arange(0, num_time), num_time, residuals, coord_utm1, coord_utm2, bins, bool_plot, logger)
         _, aps1, aps2 = launchSpatialFiltering(parameters=args)
     else:
-        logger.info(f"start parallel processing with {num_cores} cores.")
-        pool = multiprocessing.Pool(processes=num_cores)
+        logger.info(msg="start parallel processing with {} cores.".format(num_cores))
 
         aps1 = np.zeros((num_points1, num_time), dtype=np.float32)
         aps2 = np.zeros((num_points2, num_time), dtype=np.float32)
@@ -232,7 +231,8 @@ def estimateAtmosphericPhaseScreen(*, residuals: np.ndarray, coord_utm1: np.ndar
             False,
             logger) for idx_range in idx]
 
-        results = pool.map(func=launchSpatialFiltering, iterable=args)
+        with multiprocessing.Pool(processes=num_cores) as pool:
+            results = pool.map(func=launchSpatialFiltering, iterable=args)
 
         # retrieve results
         for i, aps1_i, aps2_i in results:
@@ -240,7 +240,7 @@ def estimateAtmosphericPhaseScreen(*, residuals: np.ndarray, coord_utm1: np.ndar
             aps2[:, i] = aps2_i
 
     m, s = divmod(time.time() - start_time, 60)
-    logger.debug(f"time used: {m:02.0f} mins {s:02.1f} secs.\n")
+    logger.debug(msg='time used: {:02.0f} mins {:02.1f} secs.\n'.format(m, s))
 
     return aps1, aps2
 
