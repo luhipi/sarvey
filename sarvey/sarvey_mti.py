@@ -90,18 +90,18 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
 
     proc_obj = Processing(path=config.general.output_path, config=config, logger=logger)
 
-    printCurrentConfig(config_section=config.general.dict(),
+    printCurrentConfig(config_section=config.general.model_dump(),
                        config_section_default=config_default_dict["general"],
                        logger=logger)
 
     if config.phase_linking.use_phase_linking_results:
-        printCurrentConfig(config_section=config.phase_linking.dict(),
+        printCurrentConfig(config_section=config.phase_linking.model_dump(),
                            config_section_default=config_default_dict["phase_linking"],
                            logger=logger)
 
     if 0 in steps:
         printStep(step=0, step_dict=STEP_DICT, logger=logger)
-        printCurrentConfig(config_section=config.preparation.dict(),
+        printCurrentConfig(config_section=config.preparation.model_dump(),
                            config_section_default=config_default_dict["preparation"],
                            logger=logger)
         proc_obj.runPreparation()
@@ -115,7 +115,7 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
             logger=logger
         )
         printStep(step=1, step_dict=STEP_DICT, logger=logger)
-        printCurrentConfig(config_section=config.consistency_check.dict(),
+        printCurrentConfig(config_section=config.consistency_check.model_dump(),
                            config_section_default=config_default_dict["consistency_check"],
                            logger=logger)
         proc_obj.runConsistencyCheck()
@@ -128,7 +128,7 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
             logger=logger
         )
         printStep(step=2, step_dict=STEP_DICT, logger=logger)
-        printCurrentConfig(config_section=config.unwrapping.dict(),
+        printCurrentConfig(config_section=config.unwrapping.model_dump(),
                            config_section_default=config_default_dict["unwrapping"],
                            logger=logger)
         if proc_obj.config.general.apply_temporal_unwrapping:
@@ -144,7 +144,7 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
             logger=logger
         )
         printStep(step=3, step_dict=STEP_DICT, logger=logger)
-        printCurrentConfig(config_section=config.filtering.dict(),
+        printCurrentConfig(config_section=config.filtering.model_dump(),
                            config_section_default=config_default_dict["filtering"],
                            logger=logger)
         proc_obj.runFiltering()
@@ -158,7 +158,7 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
             logger=logger
         )
         printStep(step=4, step_dict=STEP_DICT, logger=logger)
-        printCurrentConfig(config_section=config.densification.dict(),
+        printCurrentConfig(config_section=config.densification.model_dump(),
                            config_section_default=config_default_dict["densification"],
                            logger=logger)
         if proc_obj.config.general.apply_temporal_unwrapping:

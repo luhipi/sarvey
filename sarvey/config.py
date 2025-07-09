@@ -36,7 +36,7 @@ from typing import Optional
 from pydantic import BaseModel, Field, field_validator, Extra
 
 
-class General(BaseModel, extra=Extra.forbid):
+class General(BaseModel, extra="forbid"):
     """Template for settings in config file."""
 
     input_path: str = Field(
@@ -133,7 +133,7 @@ class General(BaseModel, extra=Extra.forbid):
         return v
 
 
-class PhaseLinking(BaseModel, extra=Extra.forbid):
+class PhaseLinking(BaseModel, extra="forbid"):
     """Template for settings in config file."""
 
     use_phase_linking_results: bool = Field(
@@ -223,7 +223,7 @@ class PhaseLinking(BaseModel, extra=Extra.forbid):
         return v
 
 
-class Preparation(BaseModel, extra=Extra.forbid):
+class Preparation(BaseModel, extra="forbid"):
     """Template for settings in config file."""
 
     start_date: Optional[str] = Field(
@@ -308,7 +308,7 @@ class Preparation(BaseModel, extra=Extra.forbid):
         return v
 
 
-class ConsistencyCheck(BaseModel, extra=Extra.forbid):
+class ConsistencyCheck(BaseModel, extra="forbid"):
     """Template for settings in config file."""
 
     coherence_p1: float = Field(
@@ -453,7 +453,7 @@ class ConsistencyCheck(BaseModel, extra=Extra.forbid):
         return v
 
 
-class Unwrapping(BaseModel, extra=Extra.forbid):
+class Unwrapping(BaseModel, extra="forbid"):
     """Template for settings in config file."""
 
     use_arcs_from_temporal_unwrapping: bool = Field(
@@ -464,7 +464,7 @@ class Unwrapping(BaseModel, extra=Extra.forbid):
     )
 
 
-class Filtering(BaseModel, extra=Extra.forbid):
+class Filtering(BaseModel, extra="forbid"):
     """Template for filtering settings in config file."""
 
     coherence_p2: float = Field(
@@ -552,7 +552,7 @@ class Filtering(BaseModel, extra=Extra.forbid):
         return v
 
 
-class Densification(BaseModel, extra=Extra.forbid):
+class Densification(BaseModel, extra="forbid"):
     """Template for densification settings in config file."""
 
     num_connections_to_p1: int = Field(
