@@ -33,7 +33,7 @@ import json5
 from datetime import date
 from json import JSONDecodeError
 from typing import Optional
-from pydantic import BaseModel, Field, field_validator, Extra
+from pydantic import BaseModel, Field, field_validator
 
 
 class General(BaseModel, extra="forbid"):
