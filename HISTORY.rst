@@ -6,6 +6,9 @@ History
 Future minor version (release soon)
 -----------------------------------
 
+1.2.2 (2025-07-09)
+------------------
+
 * Migrate from Pydantic v1 to v2 and update environment requirements.
 * Show all arcs in spatial network plot in step 1.
 
