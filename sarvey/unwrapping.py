@@ -351,7 +351,7 @@ def selectIfgsForTemporalUnwrapping(*, tbase_ifg: np.ndarray, pbase_ifg: np.ndar
     return mask_ifgs
 
 
-def temporalUnwrapping(*, ifg_net_obj: IfgNetwork, net_obj: Network,  wavelength: float, velocity_bound: float,
+def temporalUnwrapping(*, ifg_net_obj: IfgNetwork, net_obj: Network, wavelength: float, velocity_bound: float,
                        demerr_bound: float, num_samples: int, num_cores: int = 1, logger: Logger) -> \
         tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Solve ambiguities for every arc in spatial Network object.
@@ -386,6 +386,7 @@ def temporalUnwrapping(*, ifg_net_obj: IfgNetwork, net_obj: Network,  wavelength
     msg += "#" * 10
     logger.info(msg=msg)
 
+    compare_methods = False
     mask_ifgs = selectIfgsForTemporalUnwrapping(
         tbase_ifg=ifg_net_obj.tbase_ifg,
         pbase_ifg=ifg_net_obj.pbase_ifg
@@ -397,6 +398,9 @@ def temporalUnwrapping(*, ifg_net_obj: IfgNetwork, net_obj: Network,  wavelength
             np.arange(net_obj.num_arcs), net_obj.num_arcs, net_obj.phase,
             net_obj.slant_range, net_obj.loc_inc, ifg_net_obj, wavelength, velocity_bound, demerr_bound, num_samples)
         arc_idx_range, demerr, vel, gamma = launchAmbiguityFunctionSearch(parameters=args)
+        demerr_adapt = demerr
+        vel_adapt = vel
+        gamma_adapt = gamma
     else:
         logger.info(msg="start parallel processing with {} cores.".format(num_cores))
 
@@ -404,32 +408,33 @@ def temporalUnwrapping(*, ifg_net_obj: IfgNetwork, net_obj: Network,  wavelength
         vel = np.zeros((net_obj.num_arcs, 1), dtype=np.float32)
         gamma = np.zeros((net_obj.num_arcs, 1), dtype=np.float32)
 
-        num_cores = net_obj.num_arcs if num_cores > net_obj.num_arcs else num_cores  # avoids having more samples then
-        # cores
+        num_cores = net_obj.num_arcs if num_cores > net_obj.num_arcs else num_cores  # avoids having more samples
+        # then cores
         idx = ut.splitDatasetForParallelProcessing(num_samples=net_obj.num_arcs, num_cores=num_cores)
 
-        args = [(
-            idx_range,
-            idx_range.shape[0],
-            net_obj.phase[idx_range, :],
-            net_obj.slant_range[idx_range],
-            net_obj.loc_inc[idx_range],
-            ifg_net_obj,
-            wavelength,
-            velocity_bound,
-            demerr_bound,
-            num_samples) for idx_range in idx]
+        if compare_methods:
+            args = [(
+                idx_range,
+                idx_range.shape[0],
+                net_obj.phase[idx_range, :],
+                net_obj.slant_range[idx_range],
+                net_obj.loc_inc[idx_range],
+                ifg_net_obj,
+                wavelength,
+                velocity_bound,
+                demerr_bound,
+                num_samples) for idx_range in idx]
 
-        with multiprocessing.Pool(processes=num_cores) as pool:
-            results = pool.map(func=launchAmbiguityFunctionSearch, iterable=args)
+            with multiprocessing.Pool(processes=num_cores) as pool:
+                results = pool.map(func=launchAmbiguityFunctionSearch, iterable=args)
 
-        # retrieve results
-        for i, demerr_i, vel_i, gamma_i in results:
-            demerr[i] = demerr_i
-            vel[i] = vel_i
-            gamma[i] = gamma_i
+            # retrieve results
+            for i, demerr_i, vel_i, gamma_i in results:
+                demerr[i] = demerr_i
+                vel[i] = vel_i
+                gamma[i] = gamma_i
 
-        # todo: run the same thing again with the selected ifgs
+        # run the same thing again with the selected ifgs
         demerr_adapt = np.zeros((net_obj.num_arcs, 1), dtype=np.float32)
         vel_adapt = np.zeros((net_obj.num_arcs, 1), dtype=np.float32)
         gamma_adapt = np.zeros((net_obj.num_arcs, 1), dtype=np.float32)
@@ -459,58 +464,57 @@ def temporalUnwrapping(*, ifg_net_obj: IfgNetwork, net_obj: Network,  wavelength
             vel_adapt[i] = vel_i
             gamma_adapt[i] = gamma_i
 
-        # todo: compare the quality of the results
-        # plot histograms of both methods
-        fig, ax = plt.subplots(1, 3, figsize=(15, 5))
-        bins = np.linspace(np.min([demerr, demerr_adapt]), np.max([demerr, demerr_adapt]), 100)
-        ax[0].hist(demerr, bins=bins, color='blue', alpha=0.5, label='Original')
-        ax[0].hist(demerr_adapt, bins=bins, color='red', alpha=0.5, label='Adapted')
-        ax[0].set_title('DEM error distribution')
-        ax[0].set_xlabel('DEM error (m)')
-        ax[0].set_ylabel('Frequency')
-        ax[0].legend()
-        bins = np.linspace(np.min([vel, vel_adapt]), np.max([vel, vel_adapt]), 100)
-        ax[1].hist(vel, bins=bins, color='blue', alpha=0.5, label='Original')
-        ax[1].hist(vel_adapt, bins=bins, color='red', alpha=0.5, label='Adapted')
-        ax[1].set_title('Velocity distribution')
-        ax[1].set_xlabel('Velocity (m/year)')
-        ax[1].set_ylabel('Frequency')
-        ax[1].legend()
-        bins = np.linspace(0, 1, 100)
-        ax[2].hist(gamma, bins=bins, color='blue', alpha=0.5, label='Original')
-        ax[2].hist(gamma_adapt, bins=bins, color='red', alpha=0.5, label='Adapted')
-        ax[2].set_title('Temporal coherence distribution')
-        ax[2].set_xlabel('Temporal coherence')
-        ax[2].set_ylabel('Frequency')
-        ax[2].legend()
-        fig.tight_layout()
-        plt.show()
+        if compare_methods:
+            fig, ax = plt.subplots(1, 3, figsize=(15, 5))
+            bins = np.linspace(np.min([demerr, demerr_adapt]), np.max([demerr, demerr_adapt]), 100)
+            ax[0].hist(demerr, bins=bins, color='blue', alpha=0.5, label='Original')
+            ax[0].hist(demerr_adapt, bins=bins, color='red', alpha=0.5, label='Adapted')
+            ax[0].set_title('DEM error distribution')
+            ax[0].set_xlabel('DEM error (m)')
+            ax[0].set_ylabel('Frequency')
+            ax[0].legend()
+            bins = np.linspace(np.min([vel, vel_adapt]), np.max([vel, vel_adapt]), 100)
+            ax[1].hist(vel, bins=bins, color='blue', alpha=0.5, label='Original')
+            ax[1].hist(vel_adapt, bins=bins, color='red', alpha=0.5, label='Adapted')
+            ax[1].set_title('Velocity distribution')
+            ax[1].set_xlabel('Velocity (m/year)')
+            ax[1].set_ylabel('Frequency')
+            ax[1].legend()
+            bins = np.linspace(0, 1, 100)
+            ax[2].hist(gamma, bins=bins, color='blue', alpha=0.5, label='Original')
+            ax[2].hist(gamma_adapt, bins=bins, color='red', alpha=0.5, label='Adapted')
+            ax[2].set_title('Temporal coherence distribution')
+            ax[2].set_xlabel('Temporal coherence')
+            ax[2].set_ylabel('Frequency')
+            ax[2].legend()
+            fig.tight_layout()
+            plt.show()
 
-        fig, ax = plt.subplots(1, 2, figsize=(12, 6))
-        ax[0].scatter(vel, gamma, s=10, edgecolors='none', c='blue', label='Original')
-        ax[0].scatter(vel_adapt, gamma_adapt, s=10, edgecolors='none', c='red', label='Adapted')
-        ax[0].set_xlabel('Velocity (m/year)')
-        ax[0].set_ylabel('Temporal coherence')
-        ax[0].set_title('Velocity vs Temporal coherence')
-        ax[0].legend()
-        ax[1].scatter(demerr, gamma, s=10, edgecolors='none', c='blue', label='Original')
-        ax[1].scatter(demerr_adapt, gamma_adapt, s=10, edgecolors='none', c='red', label='Adapted')
-        ax[1].set_xlabel('DEM error (m)')
-        ax[1].set_ylabel('Temporal coherence')
-        ax[1].set_title('DEM error vs Temporal coherence')
-        ax[1].legend()
-        fig.tight_layout()
-        plt.show()
+            fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+            ax[0].scatter(vel, gamma, s=10, edgecolors='none', c='blue', label='Original')
+            ax[0].scatter(vel_adapt, gamma_adapt, s=10, edgecolors='none', c='red', label='Adapted')
+            ax[0].set_xlabel('Velocity (m/year)')
+            ax[0].set_ylabel('Temporal coherence')
+            ax[0].set_title('Velocity vs Temporal coherence')
+            ax[0].legend()
+            ax[1].scatter(demerr, gamma, s=10, edgecolors='none', c='blue', label='Original')
+            ax[1].scatter(demerr_adapt, gamma_adapt, s=10, edgecolors='none', c='red', label='Adapted')
+            ax[1].set_xlabel('DEM error (m)')
+            ax[1].set_ylabel('Temporal coherence')
+            ax[1].set_title('DEM error vs Temporal coherence')
+            ax[1].legend()
+            fig.tight_layout()
+            plt.show()
 
-        fig, ax = plt.subplots(1, 2, figsize=(12, 6))
-        ax[0].scatter(demerr, demerr_adapt, s=10, edgecolors='none', c='blue')
-        ax[0].set_xlabel('DEM error (m)')
-        ax[0].set_ylabel('Adapted DEM error (m)')
-        ax[1].scatter(vel, vel_adapt, s=10, edgecolors='none', c='blue')
-        ax[1].set_xlabel('Velocity (m/year)')
-        ax[1].set_ylabel('Adapted Velocity (m/year)')
-        fig.tight_layout()
-        plt.show()
+            fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+            ax[0].scatter(demerr, demerr_adapt, s=10, edgecolors='none', c='blue')
+            ax[0].set_xlabel('DEM error (m)')
+            ax[0].set_ylabel('Adapted DEM error (m)')
+            ax[1].scatter(vel, vel_adapt, s=10, edgecolors='none', c='blue')
+            ax[1].set_xlabel('Velocity (m/year)')
+            ax[1].set_ylabel('Adapted Velocity (m/year)')
+            fig.tight_layout()
+            plt.show()
 
     m, s = divmod(time.time() - start_time, 60)
     logger.info(msg="Finished temporal unwrapping.")
