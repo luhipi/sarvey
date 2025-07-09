@@ -6,10 +6,16 @@ History
 Future minor version (release soon)
 -----------------------------------
 
-* Enhance proper resource cleanup in multiprocessing
-* Update CI docker builder
-* Update runner to test installation
-* Update documentation with new instruction for installation including pip
+* Show all arcs in spatial network plot in step 1.
+
+1.2.1 (2025-07-08)
+------------------
+
+* Fix integer overflow occurring in large datasets.
+* Enhance proper resource cleanup in multiprocessing.
+* Update CI docker builder.
+* Update runner to test installation.
+* Update documentation with new instruction for installation including pip.
 * Fix numerical problems when computing grid size.
 
 1.2.0 (2025-02-19)
