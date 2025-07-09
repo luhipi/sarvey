@@ -983,6 +983,84 @@ def removeArcsByPointMask(*, net_obj: Union[Network, NetworkParameter], point_id
     return net_obj, point_id, coord_xy, design_mat
 
 
+def removeBadPointsIteratively(*, net_obj: NetworkParameter, quality_thrsh: float, logger: Logger) -> nx.Graph:
+    """
+    Remove bad points from a network using NetworkX. Points with low-quality arcs (weights) are removed iteratively.
+
+    Parameters
+    ----------
+    net_obj: Network
+        The spatial Network object.
+    quality_thrsh: float
+        Threshold on the temporal coherence of the arcs (edge weights).
+    logger: Logger
+        Logging handler.
+
+    Returns
+    -------
+    net_obj: Network
+        Network object without the removed points and arcs.
+    """
+    logger.info(msg="Starting removal of bad points based on edge weights < {}".format(quality_thrsh))
+
+    graph = nx.Graph()
+    for idx, arc in enumerate(net_obj.arcs):
+        if arc[0] != arc[1]:
+            graph.add_edge(arc[0], arc[1], weight=net_obj.gamma[idx])
+
+    node_idx = np.arange(graph.number_of_nodes()).tolist()
+    removed_arcs = []
+
+    while True:
+        median_coherence_per_node = []
+        for node in graph.nodes:
+            edges = graph.edges(node, data=True)
+            weights = [data['weight'] for _, _, data in edges if 'weight' in data]
+            if weights:
+                median_coherence_per_node.append(np.median(weights))
+            else:
+                median_coherence_per_node.append(-float('inf'))  # Nodes with no edges are considered worst
+        median_coherence_per_node = np.stack(median_coherence_per_node)
+
+        worst_node_idx = np.argmin(median_coherence_per_node)
+        worst_node = node_idx[worst_node_idx]
+        if median_coherence_per_node[worst_node_idx] == -float('inf'):
+            logger.info(msg="No more points to remove.")
+            break
+
+        logger.info(msg=f"Removing node {worst_node} with mean coherence:"
+                        f"{median_coherence_per_node[worst_node_idx]:.3f}")
+
+        removed_arcs.append([arc for arc in graph.edges(worst_node, data=False)])
+        graph.remove_node(worst_node)
+        node_idx.remove(worst_node_idx)
+
+        if all(coherence >= quality_thrsh for coherence in median_coherence_per_node):
+            break
+
+    mask_arcs = np.ones(net_obj.num_arcs, dtype=bool)
+    for arc_list in removed_arcs:
+        for arc in arc_list:
+            node1, node2 = arc
+            arc_idx = np.where((net_obj.arcs[:, 0] == node1) & (net_obj.arcs[:, 1] == node2) |
+                               (net_obj.arcs[:, 0] == node2) & (net_obj.arcs[:, 1] == node1)
+                               )[0][0]
+            mask_arcs[arc_idx] = False
+
+    net_obj.gamma = net_obj.gamma[mask_arcs]  # np.array([d['weight'][0] for _, _, d in graph.edges(data=True)])
+    net_obj.demerr = net_obj.demerr[mask_arcs]
+    net_obj.vel = net_obj.vel[mask_arcs]
+    net_obj.slant_range = net_obj.slant_range[mask_arcs]
+    net_obj.loc_inc = net_obj.loc_inc[mask_arcs]
+    net_obj.phase = net_obj.phase[mask_arcs, :]
+    net_obj.arcs = np.array([(u, v) for u, v in graph.edges])
+    net_obj.num_arcs = net_obj.arcs.shape[0]
+
+    # todo: return the point_id of the removed nodes to remove the points from the point_obj
+    logger.info(msg="Finished removing bad points.")
+    return net_obj
+
+
 def removeGrossOutliers(*, net_obj: Network, point_id: np.ndarray, coord_xy: np.ndarray, min_num_arc: int = 3,
                         quality_thrsh: float = 0.0,
                         logger: Logger) -> tuple[Network, np.ndarray, np.ndarray, np.ndarray]:
