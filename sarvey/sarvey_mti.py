@@ -40,7 +40,8 @@ import sys
 import logging
 import time
 from logging import Logger
-from pydantic.schema import schema
+from pydantic import TypeAdapter
+
 
 from sarvey.console import printStep, printCurrentConfig, showLogoSARvey
 from sarvey.processing import Processing
@@ -89,18 +90,18 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
 
     proc_obj = Processing(path=config.general.output_path, config=config, logger=logger)
 
-    printCurrentConfig(config_section=config.general.dict(),
+    printCurrentConfig(config_section=config.general.model_dump(),
                        config_section_default=config_default_dict["general"],
                        logger=logger)
 
     if config.phase_linking.use_phase_linking_results:
-        printCurrentConfig(config_section=config.phase_linking.dict(),
+        printCurrentConfig(config_section=config.phase_linking.model_dump(),
                            config_section_default=config_default_dict["phase_linking"],
                            logger=logger)
 
     if 0 in steps:
         printStep(step=0, step_dict=STEP_DICT, logger=logger)
-        printCurrentConfig(config_section=config.preparation.dict(),
+        printCurrentConfig(config_section=config.preparation.model_dump(),
                            config_section_default=config_default_dict["preparation"],
                            logger=logger)
         proc_obj.runPreparation()
@@ -114,7 +115,7 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
             logger=logger
         )
         printStep(step=1, step_dict=STEP_DICT, logger=logger)
-        printCurrentConfig(config_section=config.consistency_check.dict(),
+        printCurrentConfig(config_section=config.consistency_check.model_dump(),
                            config_section_default=config_default_dict["consistency_check"],
                            logger=logger)
         proc_obj.runConsistencyCheck()
@@ -127,7 +128,7 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
             logger=logger
         )
         printStep(step=2, step_dict=STEP_DICT, logger=logger)
-        printCurrentConfig(config_section=config.unwrapping.dict(),
+        printCurrentConfig(config_section=config.unwrapping.model_dump(),
                            config_section_default=config_default_dict["unwrapping"],
                            logger=logger)
         if proc_obj.config.general.apply_temporal_unwrapping:
@@ -143,7 +144,7 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
             logger=logger
         )
         printStep(step=3, step_dict=STEP_DICT, logger=logger)
-        printCurrentConfig(config_section=config.filtering.dict(),
+        printCurrentConfig(config_section=config.filtering.model_dump(),
                            config_section_default=config_default_dict["filtering"],
                            logger=logger)
         proc_obj.runFiltering()
@@ -157,7 +158,7 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
             logger=logger
         )
         printStep(step=4, step_dict=STEP_DICT, logger=logger)
-        printCurrentConfig(config_section=config.densification.dict(),
+        printCurrentConfig(config_section=config.densification.model_dump(),
                            config_section_default=config_default_dict["densification"],
                            logger=logger)
         if proc_obj.config.general.apply_temporal_unwrapping:
@@ -176,21 +177,19 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
 
 def generateTemplateFromConfigModel():
     """GenerateTemplateFromConfigModel."""
-    top_level_schema = schema([Config])
-    top_level_dict = dict()
-    for sec_name, sec_def in top_level_schema['definitions'].items():
-        if sec_name == "Config":
-            # substitute the class names of subsections in top_level_dict by the name of the sections in class Config
-            for subsec_name, subsec_def in sec_def["properties"].items():
-                top_level_dict[subsec_name] = top_level_dict.pop(subsec_def["title"])
-            continue  # don't add "Config" to top_level_dict
-        sec_dict = dict()
-        for subsec_name, subsec_def in sec_def["properties"].items():
-            if "default" not in subsec_def:
-                sec_dict.update({subsec_name: None})
+    top_level_dict = {}
+
+    for sec_name, field in Config.model_fields.items():
+        sec_cls = field.annotation
+        sec_dict = {}
+        for subsec_name, subsec_def in sec_cls.model_fields.items():
+            if subsec_def.default is not None:
+                default = subsec_def.default
             else:
-                sec_dict.update({subsec_name: subsec_def["default"]})
-        top_level_dict.update({sec_name: sec_dict})
+                default = None
+
+            sec_dict[subsec_name] = default
+        top_level_dict[sec_name] = sec_dict
 
     return top_level_dict
 
@@ -260,7 +259,7 @@ def main(iargs=None):
         return 0
 
     if args.print_config_explanation:
-        top_level_schema = schema([Config])
+        top_level_schema = TypeAdapter(Config).json_schema()
         print(json5.dumps(top_level_schema, indent=2))
         return 0
 

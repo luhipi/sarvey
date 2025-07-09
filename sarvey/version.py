@@ -29,6 +29,6 @@
 
 """Version module for SARvey."""
 
-__version__ = '1.2.1'
-__versiondate__ = '2025-07-08_01'
+__version__ = '1.2.2'
+__versiondate__ = '2025-07-09_01'
 __versionalias__ = 'Strawberry Pie'
