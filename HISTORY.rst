@@ -6,6 +6,7 @@ History
 Future minor version (release soon)
 -----------------------------------
 
+* Show all arcs in spatial network plot in step 1.
 
 1.2.1 (2025-07-08)
 ------------------
