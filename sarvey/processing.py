@@ -333,6 +333,12 @@ class Processing:
         )
         point_obj.removePoints(keep_id=point_id, input_path=self.config.general.input_path)
 
+        net_par_obj = removeBadArcsIteratively(
+            net_obj=net_par_obj,
+            quality_thrsh=self.config.consistency_check.arc_unwrapping_coherence,
+            logger=self.logger
+        )
+
         # todo: retriangulate the points and unwrap them
 
         # todo: remove bad arcs between the remaining points (do not remove points anymore)

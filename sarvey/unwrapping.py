@@ -1051,6 +1051,55 @@ def removeBadPointsIteratively(*, net_obj: NetworkParameter, point_id: np.ndarra
     return net_obj, point_id
 
 
+def removeBadArcsIteratively(*, net_obj: Network, quality_thrsh: float = 0.0, logger: Logger) -> tuple[Network]:
+    """Iteratively remove bad arcs from network based on quality threshold, preserving the minimum spanning tree.
+
+    Parameters
+    ----------
+    net_obj: Network
+        The spatial Network object.
+    quality_thrsh: float
+        Threshold on the temporal coherence of the arcs. Default = 0.0.
+    logger: Logger
+        Logging handler.
+
+    Returns
+    -------
+    net_obj: Network
+        Network object without the removed arcs.
+    """
+    logger.info(msg="Iteratively removing bad arcs with quality < {}".format(quality_thrsh))
+
+    # Create a NetworkX graph from the arcs
+    graph = nx.Graph()
+    for idx, arc in enumerate(net_obj.arcs):
+        graph.add_edge(arc[0], arc[1], weight=1-net_obj.gamma[idx])
+
+    # Compute the minimum spanning tree (MST) using Kruskal's algorithm
+    mst = nx.minimum_spanning_tree(graph, algorithm="kruskal")
+    mst_edges = set(mst.edges)
+
+    # Identify bad arcs that are not part of the MST
+    bad_arc_mask = (net_obj.gamma < quality_thrsh).ravel()
+    bad_arcs = [
+        (arc[0], arc[1]) for idx, arc in enumerate(net_obj.arcs)
+        if bad_arc_mask[idx] and (arc[0], arc[1]) not in mst_edges and (arc[1], arc[0]) not in mst_edges
+    ]
+    # Log the number of bad arcs
+    logger.info(msg="Removing {} bad arc(s)".format(len(bad_arcs)))
+
+    # Remove the bad arcs
+    bad_arc_indices = [
+        idx for idx, arc in enumerate(net_obj.arcs)
+        if (arc[0], arc[1]) in bad_arcs or (arc[1], arc[0]) in bad_arcs
+    ]
+    mask = np.ones(net_obj.num_arcs, dtype=bool)
+    mask[bad_arc_indices] = False
+    net_obj.removeArcs(mask=mask)
+
+    return net_obj
+
+
 def removeGrossOutliers(*, net_obj: Network, point_id: np.ndarray, coord_xy: np.ndarray, min_num_arc: int = 3,
                         quality_thrsh: float = 0.0,
                         logger: Logger) -> tuple[Network, np.ndarray, np.ndarray, np.ndarray]:
