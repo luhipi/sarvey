@@ -44,9 +44,8 @@ from sarvey.filtering import estimateAtmosphericPhaseScreen, simpleInterpolation
 from sarvey.ifg_network import (DelaunayNetwork, SmallBaselineYearlyNetwork, SmallTemporalBaselinesNetwork,
                                 SmallBaselineNetwork, StarNetwork)
 from sarvey.objects import Network, Points, AmplitudeImage, CoordinatesUTM, NetworkParameter, BaseStack
-from sarvey.unwrapping import (spatialParameterIntegration,
-    parameterBasedNoisyPointRemoval, temporalUnwrapping, spatialUnwrapping, removeGrossOutliers,
-                               removeBadPointsIteratively)
+from sarvey.unwrapping import (spatialParameterIntegration, temporalUnwrapping, spatialUnwrapping,
+                               removeBadArcsIteratively, removeBadPointsIteratively)
 from sarvey.preparation import createArcsBetweenPoints, selectPixels, createTimeMaskFromDates
 import sarvey.utils as ut
 from sarvey.coherence import computeIfgsAndTemporalCoherence

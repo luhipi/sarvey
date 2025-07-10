@@ -1006,70 +1006,46 @@ def removeBadPointsIteratively(*, net_obj: NetworkParameter, point_id: np.ndarra
     point_id: np.ndarray
         ID of the points in the network after the removal of bad points.
     """
-    logger.info(msg="Starting removal of bad points based on edge weights < {}".format(quality_thrsh))
     logger.info(msg="Remove points with arcs that have a median temporal coherence < {}".format(quality_thrsh))
 
     graph = nx.Graph()
     for idx, arc in enumerate(net_obj.arcs):
-            graph.add_edge(arc[0], arc[1], weight=net_obj.gamma[idx])
+        graph.add_edge(point_id[arc[0]], point_id[arc[1]], weight=net_obj.gamma[idx], id=idx)
 
-    node_idx_initial = np.arange(graph.number_of_nodes()).tolist()
-    removed_arcs = []
     num_points_removed = 0
 
-    while True:
-        median_coherence_per_node = []
-        for node in graph.nodes:
-            edges = graph.edges(node, data=True)
-            weights = [data['weight'] for _, _, data in edges if 'weight' in data]
-            if weights:
-                median_coherence_per_node.append(np.median(weights))
-            else:
-                median_coherence_per_node.append(-float('inf'))  # Nodes with no edges are considered worst
-        median_coherence_per_node = np.stack(median_coherence_per_node)
+    # todo: address the RuntimeWarning from numpy when computing nanmedian
 
-        if all(coherence >= quality_thrsh for coherence in median_coherence_per_node):
-            logger.info(msg="No more points to remove.")
+    while True:
+        # check the median per point
+        median_coherence = np.array([
+            np.nanmedian([np.float64(graph[u][v]['weight']) for v in graph.neighbors(u)])
+            for u in graph.nodes()
+        ])
+
+        # find points with lowest median coherence below the threshold
+        worst_point = np.nanargmin(median_coherence)
+        worst_node = point_id[worst_point]
+
+        # do not remove the point but assign nan to the point and the edges connected to it
+        if median_coherence[worst_point] < quality_thrsh:
+            # assign nan to the weights of the edges connected to the worst point
+            for neighbor in list(graph.neighbors(worst_node)):
+                if graph.has_edge(worst_node, neighbor):
+                    graph[worst_node][neighbor]['weight'] = np.nan
+            num_points_removed += 1
+            logger.info(msg="Removing point {} with median coherence {}".format(
+                worst_node, median_coherence[worst_point]))
+        else:
+            # if no point is below the threshold, break the loop
+            logger.info(msg="No more points with median coherence < {}. Stopping removal.".format(quality_thrsh))
             break
 
-        worst_node_idx_in_current_set = np.argmin(median_coherence_per_node)
-        worst_node_idx_in_graph = node_idx_initial[worst_node_idx_in_current_set]
-
-        logger.info(msg=f"Removing node {worst_node_idx_in_graph} with mean coherence:"
-                        f"{median_coherence_per_node[worst_node_idx_in_current_set]:.3f}")
-        num_points_removed += 1
-
-        removed_arcs.append([arc for arc in graph.edges(worst_node_idx_in_graph, data=False)])
-        graph.remove_node(worst_node_idx_in_graph)
-        node_idx_initial.remove(worst_node_idx_in_current_set)
-
-    logger.info(msg=f"Removed {num_points_removed} points with low-quality arcs.")
-    mask_arcs = np.ones(net_obj.num_arcs, dtype=bool)
-    for arc_list in removed_arcs:
-        for arc in arc_list:
-            node1, node2 = arc
-            arc_idx = np.where((net_obj.arcs[:, 0] == node1) & (net_obj.arcs[:, 1] == node2) |
-                               (net_obj.arcs[:, 0] == node2) & (net_obj.arcs[:, 1] == node1)
-                               )[0][0]
-            mask_arcs[arc_idx] = False
-
-    mask_points = np.zeros(point_id.shape, dtype=bool)
-    for node in node_idx_initial:
-        mask_points[node] = True
-
-    net_obj.gamma = net_obj.gamma[mask_arcs]
-    net_obj.demerr = net_obj.demerr[mask_arcs]
-    net_obj.vel = net_obj.vel[mask_arcs]
-    net_obj.slant_range = net_obj.slant_range[mask_arcs]
-    net_obj.loc_inc = net_obj.loc_inc[mask_arcs]
-    net_obj.phase = net_obj.phase[mask_arcs, :]
-    net_obj.arcs = np.array([(u, v) for u, v in graph.edges])
-    net_obj.num_arcs = net_obj.arcs.shape[0]
-    point_id = point_id[mask_points]
-
-    # substitute the index in the arcs by the new node indices
-    for idx, node in enumerate(node_idx_initial):
-        net_obj.arcs[net_obj.arcs == node] = idx
+    # get the point_id of all nodes that have at least one none-nan arc
+    mask_good_points = np.ones(len(graph.nodes()), dtype=bool)
+    for node in zip(graph.nodes()):
+        if np.nansum([arc.weight for arc in node]) > 0:
+            mask_good_points[idx]
 
     logger.info(msg="Finished removing bad points.")
     return net_obj, point_id
