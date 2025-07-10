@@ -969,7 +969,8 @@ def parameterBasedNoisyPointRemoval(*, net_par_obj: NetworkParameter, point_id: 
 
     it_count = 0
     while True:
-        logger.info("ITERATION: {}".format(it_count))
+        if it_count > 0:
+            logger.info("ITERATION: {}".format(it_count))
         design_mat = csr_matrix(design_mat)
 
         if structural_rank(design_mat) < design_mat.shape[1]:
@@ -978,15 +979,18 @@ def parameterBasedNoisyPointRemoval(*, net_par_obj: NetworkParameter, point_id: 
             # return spatial_ref_id, point_id, net_par_obj
             raise ValueError
         # demerr
+        logger.debug('Computing residuals for DEM error and velocity.')
         obv_vec = net_par_obj.demerr.reshape(-1, )
         demerr_points = lsqr(design_mat.toarray(), obv_vec * net_par_obj.gamma.reshape(-1, ))[0]
         r_demerr = obv_vec - np.matmul(design_mat.toarray(), demerr_points)
 
         # vel
+        logger.debug('Computing residuals for velocity.')
         obv_vec = net_par_obj.vel.reshape(-1, )
         vel_points = lsqr(design_mat.toarray(), obv_vec * net_par_obj.gamma.reshape(-1, ))[0]
         r_vel = obv_vec - np.matmul(design_mat.toarray(), vel_points)
 
+        logger.debug('Computing RMSE for DEM error and velocity.')
         rmse_demerr = np.zeros((num_points,))
         rmse_vel = np.zeros((num_points,))
         for p in range(num_points):
