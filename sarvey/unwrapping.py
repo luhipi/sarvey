@@ -1043,10 +1043,14 @@ def removeBadPointsIteratively(*, net_obj: NetworkParameter, point_id: np.ndarra
 
     # get the point_id of all nodes that have at least one none-nan arc
     mask_good_points = np.ones(len(graph.nodes()), dtype=bool)
-    for node in zip(graph.nodes()):
-        if np.nansum([arc.weight for arc in node]) > 0:
-            mask_good_points[idx]
+    new_point_id = np.zeros(len(graph.nodes()), dtype=np.int64)
+    for i, node in enumerate(graph.nodes()):
+        mask_good_points[i] = ~all(np.isnan([np.float64(graph[neighbour][node]['weight'])
+                                             for neighbour in graph.neighbors(node)]))
+        new_point_id[i] = node
+    point_id = np.sort(new_point_id[mask_good_points])
 
+    net_obj.prepare()
     logger.info(msg="Finished removing bad points.")
     return net_obj, point_id
 
