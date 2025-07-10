@@ -326,47 +326,33 @@ class Processing:
         except BaseException as e:
             self.logger.exception(msg="NOT POSSIBLE TO PLOT SPATIAL NETWORK OF POINTS. {}".format(e))
 
-        removeBadPointsIteratively(
+        net_obj, point_id = removeBadPointsIteratively(
             net_obj=net_par_obj,
+            point_id=point_obj.point_id,
             quality_thrsh=self.config.consistency_check.arc_unwrapping_coherence,
             logger=self.logger
         )
+        point_obj.removePoints(keep_id=point_id, input_path=self.config.general.input_path)
 
-        # net_par_obj, point_id, coord_xy, design_mat = removeGrossOutliers(
-        #     net_obj=net_par_obj,
-        #     point_id=point_obj.point_id,
-        #     coord_xy=point_obj.coord_xy,
-        #     min_num_arc=self.config.consistency_check.min_num_arc,
-        #     quality_thrsh=self.config.consistency_check.arc_unwrapping_coherence,
-        #     logger=self.logger
-        # )
+        # todo: retriangulate the points and unwrap them
+
+        # todo: remove bad arcs between the remaining points (do not remove points anymore)
 
         try:
             ax = bmap_obj.plot(logger=self.logger)
-            ax, cbar = viewer.plotColoredPointNetwork(x=coord_xy[:, 1], y=coord_xy[:, 0],
+            ax, cbar = viewer.plotColoredPointNetwork(x=point_obj.coord_xy[:, 1], y=point_obj.coord_xy[:, 0],
                                                       arcs=net_par_obj.arcs,
                                                       val=net_par_obj.gamma,
                                                       ax=ax, linewidth=1, cmap="lajolla", clim=(0, 1))
             ax.set_title("Coherence from temporal unwrapping\nAfter outlier removal")
-
             fig = ax.get_figure()
             plt.tight_layout()
             fig.savefig(join(self.path, "pic", "step_1_arc_coherence_reduced.png"), dpi=300)
         except BaseException as e:
             self.logger.exception(msg="NOT POSSIBLE TO PLOT SPATIAL NETWORK OF POINTS. {}".format(e))
 
-        # spatial_ref_id, point_id, net_par_obj = parameterBasedNoisyPointRemoval(
-        #     net_par_obj=net_par_obj,
-        #     point_id=point_id,
-        #     coord_xy=coord_xy,
-        #     design_mat=design_mat,
-        #     bmap_obj=bmap_obj,
-        #     bool_plot=True,
-        #     logger=self.logger
-        # )
-
         net_par_obj.writeToFile()  # arcs were removed. obj still needed in next step.
-        point_obj.removePoints(keep_id=point_id, input_path=self.config.general.input_path)
+        # point_obj.removePoints(keep_id=point_id, input_path=self.config.general.input_path)
         point_obj.writeToFile()
 
     def runUnwrappingTimeAndSpace(self):

@@ -32,7 +32,7 @@ import multiprocessing
 from os.path import join, dirname
 import time
 from typing import Union
-
+import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
 from kamui import unwrap_arbitrary
@@ -311,7 +311,7 @@ def selectIfgsForTemporalUnwrapping(*, tbase_ifg: np.ndarray, pbase_ifg: np.ndar
     fig, ax = plt.subplots(figsize=(10, 6))
     ax.scatter(tbase_ifg, pbase_ifg, s=10, edgecolors='none')
     ax.axvline(x=thrsh_tbase_ifg, color='orange', linestyle='--', label='Temporal baseline threshold')
-    ax.set_xlabel('Temporal baseline (days)')
+    ax.set_xlabel('Temporal baseline (years)')
     ax.set_ylabel('Perpendicular baseline (m)')
     ax.set_title('Baseline distribution')
     fig.tight_layout()
@@ -983,7 +983,8 @@ def removeArcsByPointMask(*, net_obj: Union[Network, NetworkParameter], point_id
     return net_obj, point_id, coord_xy, design_mat
 
 
-def removeBadPointsIteratively(*, net_obj: NetworkParameter, quality_thrsh: float, logger: Logger) -> nx.Graph:
+def removeBadPointsIteratively(*, net_obj: NetworkParameter, point_id: np.ndarray,
+                               quality_thrsh: float, logger: Logger) -> nx.Graph:
     """
     Remove bad points from a network using NetworkX. Points with low-quality arcs (weights) are removed iteratively.
 
@@ -991,6 +992,8 @@ def removeBadPointsIteratively(*, net_obj: NetworkParameter, quality_thrsh: floa
     ----------
     net_obj: Network
         The spatial Network object.
+    point_id: np.ndarray
+        ID of the points in the network.
     quality_thrsh: float
         Threshold on the temporal coherence of the arcs (edge weights).
     logger: Logger
@@ -1000,16 +1003,19 @@ def removeBadPointsIteratively(*, net_obj: NetworkParameter, quality_thrsh: floa
     -------
     net_obj: Network
         Network object without the removed points and arcs.
+    point_id: np.ndarray
+        ID of the points in the network after the removal of bad points.
     """
     logger.info(msg="Starting removal of bad points based on edge weights < {}".format(quality_thrsh))
+    logger.info(msg="Remove points with arcs that have a median temporal coherence < {}".format(quality_thrsh))
 
     graph = nx.Graph()
     for idx, arc in enumerate(net_obj.arcs):
-        if arc[0] != arc[1]:
             graph.add_edge(arc[0], arc[1], weight=net_obj.gamma[idx])
 
-    node_idx = np.arange(graph.number_of_nodes()).tolist()
+    node_idx_initial = np.arange(graph.number_of_nodes()).tolist()
     removed_arcs = []
+    num_points_removed = 0
 
     while True:
         median_coherence_per_node = []
@@ -1022,22 +1028,22 @@ def removeBadPointsIteratively(*, net_obj: NetworkParameter, quality_thrsh: floa
                 median_coherence_per_node.append(-float('inf'))  # Nodes with no edges are considered worst
         median_coherence_per_node = np.stack(median_coherence_per_node)
 
-        worst_node_idx = np.argmin(median_coherence_per_node)
-        worst_node = node_idx[worst_node_idx]
-        if median_coherence_per_node[worst_node_idx] == -float('inf'):
+        if all(coherence >= quality_thrsh for coherence in median_coherence_per_node):
             logger.info(msg="No more points to remove.")
             break
 
-        logger.info(msg=f"Removing node {worst_node} with mean coherence:"
-                        f"{median_coherence_per_node[worst_node_idx]:.3f}")
+        worst_node_idx_in_current_set = np.argmin(median_coherence_per_node)
+        worst_node_idx_in_graph = node_idx_initial[worst_node_idx_in_current_set]
 
-        removed_arcs.append([arc for arc in graph.edges(worst_node, data=False)])
-        graph.remove_node(worst_node)
-        node_idx.remove(worst_node_idx)
+        logger.info(msg=f"Removing node {worst_node_idx_in_graph} with mean coherence:"
+                        f"{median_coherence_per_node[worst_node_idx_in_current_set]:.3f}")
+        num_points_removed += 1
 
-        if all(coherence >= quality_thrsh for coherence in median_coherence_per_node):
-            break
+        removed_arcs.append([arc for arc in graph.edges(worst_node_idx_in_graph, data=False)])
+        graph.remove_node(worst_node_idx_in_graph)
+        node_idx_initial.remove(worst_node_idx_in_current_set)
 
+    logger.info(msg=f"Removed {num_points_removed} points with low-quality arcs.")
     mask_arcs = np.ones(net_obj.num_arcs, dtype=bool)
     for arc_list in removed_arcs:
         for arc in arc_list:
@@ -1047,7 +1053,11 @@ def removeBadPointsIteratively(*, net_obj: NetworkParameter, quality_thrsh: floa
                                )[0][0]
             mask_arcs[arc_idx] = False
 
-    net_obj.gamma = net_obj.gamma[mask_arcs]  # np.array([d['weight'][0] for _, _, d in graph.edges(data=True)])
+    mask_points = np.zeros(point_id.shape, dtype=bool)
+    for node in node_idx_initial:
+        mask_points[node] = True
+
+    net_obj.gamma = net_obj.gamma[mask_arcs]
     net_obj.demerr = net_obj.demerr[mask_arcs]
     net_obj.vel = net_obj.vel[mask_arcs]
     net_obj.slant_range = net_obj.slant_range[mask_arcs]
@@ -1055,10 +1065,14 @@ def removeBadPointsIteratively(*, net_obj: NetworkParameter, quality_thrsh: floa
     net_obj.phase = net_obj.phase[mask_arcs, :]
     net_obj.arcs = np.array([(u, v) for u, v in graph.edges])
     net_obj.num_arcs = net_obj.arcs.shape[0]
+    point_id = point_id[mask_points]
 
-    # todo: return the point_id of the removed nodes to remove the points from the point_obj
+    # substitute the index in the arcs by the new node indices
+    for idx, node in enumerate(node_idx_initial):
+        net_obj.arcs[net_obj.arcs == node] = idx
+
     logger.info(msg="Finished removing bad points.")
-    return net_obj
+    return net_obj, point_id
 
 
 def removeGrossOutliers(*, net_obj: Network, point_id: np.ndarray, coord_xy: np.ndarray, min_num_arc: int = 3,
