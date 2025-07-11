@@ -32,7 +32,7 @@ import multiprocessing
 from os.path import join, dirname
 import time
 from typing import Union
-
+import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
 from kamui import unwrap_arbitrary
@@ -303,7 +303,55 @@ def launchAmbiguityFunctionSearch(parameters: tuple):
     return arc_idx_range, demerr, vel, gamma
 
 
-def temporalUnwrapping(*, ifg_net_obj: IfgNetwork, net_obj: Network,  wavelength: float, velocity_bound: float,
+def selectIfgsForTemporalUnwrapping(*, tbase_ifg: np.ndarray, pbase_ifg: np.ndarray):
+    """"""
+    thrsh_tbase_ifg = 90 / 365.25  # threshold for temporal baseline in years
+
+    # plot the baseline distribution
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.scatter(tbase_ifg, pbase_ifg, s=10, edgecolors='none')
+    ax.axvline(x=thrsh_tbase_ifg, color='orange', linestyle='--', label='Temporal baseline threshold')
+    ax.set_xlabel('Temporal baseline (years)')
+    ax.set_ylabel('Perpendicular baseline (m)')
+    ax.set_title('Baseline distribution')
+    fig.tight_layout()
+
+    # select ifgs with short temporal baselines
+    mask_ifgs = np.abs(tbase_ifg) < thrsh_tbase_ifg
+
+    # bin the perpendicular baselines with 100 bins and select from each bin 2 ifgs if possible
+    num_bins = 100
+    bin_edges = np.linspace(pbase_ifg.min(), pbase_ifg.max(), num_bins + 1)
+    bin_indices = np.digitize(pbase_ifg, bin_edges) - 1  # -1 to make it zero-based index
+    mask_ifgs_bin = np.zeros_like(mask_ifgs, dtype=bool)
+    for i in range(num_bins):
+        bin_mask = (bin_indices == i) & mask_ifgs
+        if np.sum(bin_mask) > 2:
+            # select 2 ifgs from the bin
+            selected_indices = np.random.choice(np.where(bin_mask)[0], size=2, replace=False)
+            mask_ifgs_bin[selected_indices] = True
+        elif np.sum(bin_mask) > 0:
+            # select all ifgs from the bin
+            mask_ifgs_bin[bin_mask] = True
+
+    # superimpose the selected ifgs in the plot
+    ax.scatter(tbase_ifg[mask_ifgs_bin], pbase_ifg[mask_ifgs_bin], c='red', s=20, label='Selected ifgs')
+    ax.legend()
+
+    # plot histogram with the bins
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.hist(pbase_ifg[mask_ifgs_bin], bins=bin_edges, edgecolor='black', alpha=0.7)
+    # add histogram with original distribution of ifgs
+    ax.hist(pbase_ifg[mask_ifgs], bins=bin_edges, edgecolor='black', alpha=0.3, label='All ifgs')
+    ax.set_xlabel('Perpendicular baseline (m)')
+    ax.set_ylabel('Number of interferograms')
+    ax.set_title('Histogram of selected interferograms by perpendicular baseline')
+    fig.tight_layout()
+
+    return mask_ifgs
+
+
+def temporalUnwrapping(*, ifg_net_obj: IfgNetwork, net_obj: Network, wavelength: float, velocity_bound: float,
                        demerr_bound: float, num_samples: int, num_cores: int = 1, logger: Logger) -> \
         tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Solve ambiguities for every arc in spatial Network object.
@@ -345,6 +393,9 @@ def temporalUnwrapping(*, ifg_net_obj: IfgNetwork, net_obj: Network,  wavelength
             np.arange(net_obj.num_arcs), net_obj.num_arcs, net_obj.phase,
             net_obj.slant_range, net_obj.loc_inc, ifg_net_obj, wavelength, velocity_bound, demerr_bound, num_samples)
         arc_idx_range, demerr, vel, gamma = launchAmbiguityFunctionSearch(parameters=args)
+        demerr_adapt = demerr
+        vel_adapt = vel
+        gamma_adapt = gamma
     else:
         logger.info(msg="start parallel processing with {} cores.".format(num_cores))
 
@@ -352,8 +403,8 @@ def temporalUnwrapping(*, ifg_net_obj: IfgNetwork, net_obj: Network,  wavelength
         vel = np.zeros((net_obj.num_arcs, 1), dtype=np.float32)
         gamma = np.zeros((net_obj.num_arcs, 1), dtype=np.float32)
 
-        num_cores = net_obj.num_arcs if num_cores > net_obj.num_arcs else num_cores  # avoids having more samples then
-        # cores
+        num_cores = net_obj.num_arcs if num_cores > net_obj.num_arcs else num_cores  # avoids having more samples
+        # then cores
         idx = ut.splitDatasetForParallelProcessing(num_samples=net_obj.num_arcs, num_cores=num_cores)
 
         args = [(
@@ -376,11 +427,97 @@ def temporalUnwrapping(*, ifg_net_obj: IfgNetwork, net_obj: Network,  wavelength
             demerr[i] = demerr_i
             vel[i] = vel_i
             gamma[i] = gamma_i
+        demerr_adapt, vel_adapt, gamma_adapt = demerr, vel, gamma
+
+        # # run the same thing again with the selected ifgs
+        # mask_ifgs = selectIfgsForTemporalUnwrapping(
+        #     tbase_ifg=ifg_net_obj.tbase_ifg,
+        #     pbase_ifg=ifg_net_obj.pbase_ifg
+        # )
+        # demerr_adapt = np.zeros((net_obj.num_arcs, 1), dtype=np.float32)
+        # vel_adapt = np.zeros((net_obj.num_arcs, 1), dtype=np.float32)
+        # gamma_adapt = np.zeros((net_obj.num_arcs, 1), dtype=np.float32)
+        # net_obj.phase = net_obj.phase[:, mask_ifgs]
+        # ifg_net_obj.pbase_ifg = ifg_net_obj.pbase_ifg[mask_ifgs]
+        # ifg_net_obj.tbase_ifg = ifg_net_obj.tbase_ifg[mask_ifgs]
+        # ifg_net_obj.num_ifgs = mask_ifgs.sum()
+        #
+        # args = [(
+        #     idx_range,
+        #     idx_range.shape[0],
+        #     net_obj.phase[idx_range, :],
+        #     net_obj.slant_range[idx_range],
+        #     net_obj.loc_inc[idx_range],
+        #     ifg_net_obj,
+        #     wavelength,
+        #     velocity_bound,
+        #     demerr_bound,
+        #     num_samples) for idx_range in idx]
+        #
+        # with multiprocessing.Pool(processes=num_cores) as pool:
+        #     results = pool.map(func=launchAmbiguityFunctionSearch, iterable=args)
+        #
+        # # retrieve results
+        # for i, demerr_i, vel_i, gamma_i in results:
+        #     demerr_adapt[i] = demerr_i
+        #     vel_adapt[i] = vel_i
+        #     gamma_adapt[i] = gamma_i
+
+        # fig, ax = plt.subplots(1, 3, figsize=(15, 5))
+        # bins = np.linspace(np.min([demerr, demerr_adapt]), np.max([demerr, demerr_adapt]), 100)
+        # ax[0].hist(demerr, bins=bins, color='blue', alpha=0.5, label='Original')
+        # ax[0].hist(demerr_adapt, bins=bins, color='red', alpha=0.5, label='Adapted')
+        # ax[0].set_title('DEM error distribution')
+        # ax[0].set_xlabel('DEM error (m)')
+        # ax[0].set_ylabel('Frequency')
+        # ax[0].legend()
+        # bins = np.linspace(np.min([vel, vel_adapt]), np.max([vel, vel_adapt]), 100)
+        # ax[1].hist(vel, bins=bins, color='blue', alpha=0.5, label='Original')
+        # ax[1].hist(vel_adapt, bins=bins, color='red', alpha=0.5, label='Adapted')
+        # ax[1].set_title('Velocity distribution')
+        # ax[1].set_xlabel('Velocity (m/year)')
+        # ax[1].set_ylabel('Frequency')
+        # ax[1].legend()
+        # bins = np.linspace(0, 1, 100)
+        # ax[2].hist(gamma, bins=bins, color='blue', alpha=0.5, label='Original')
+        # ax[2].hist(gamma_adapt, bins=bins, color='red', alpha=0.5, label='Adapted')
+        # ax[2].set_title('Temporal coherence distribution')
+        # ax[2].set_xlabel('Temporal coherence')
+        # ax[2].set_ylabel('Frequency')
+        # ax[2].legend()
+        # fig.tight_layout()
+        # plt.show()
+        #
+        # fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+        # ax[0].scatter(vel, gamma, s=10, edgecolors='none', c='blue', label='Original')
+        # ax[0].scatter(vel_adapt, gamma_adapt, s=10, edgecolors='none', c='red', label='Adapted')
+        # ax[0].set_xlabel('Velocity (m/year)')
+        # ax[0].set_ylabel('Temporal coherence')
+        # ax[0].set_title('Velocity vs Temporal coherence')
+        # ax[0].legend()
+        # ax[1].scatter(demerr, gamma, s=10, edgecolors='none', c='blue', label='Original')
+        # ax[1].scatter(demerr_adapt, gamma_adapt, s=10, edgecolors='none', c='red', label='Adapted')
+        # ax[1].set_xlabel('DEM error (m)')
+        # ax[1].set_ylabel('Temporal coherence')
+        # ax[1].set_title('DEM error vs Temporal coherence')
+        # ax[1].legend()
+        # fig.tight_layout()
+        # plt.show()
+        #
+        # fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+        # ax[0].scatter(demerr, demerr_adapt, s=10, edgecolors='none', c='blue')
+        # ax[0].set_xlabel('DEM error (m)')
+        # ax[0].set_ylabel('Adapted DEM error (m)')
+        # ax[1].scatter(vel, vel_adapt, s=10, edgecolors='none', c='blue')
+        # ax[1].set_xlabel('Velocity (m/year)')
+        # ax[1].set_ylabel('Adapted Velocity (m/year)')
+        # fig.tight_layout()
+        # plt.show()
 
     m, s = divmod(time.time() - start_time, 60)
     logger.info(msg="Finished temporal unwrapping.")
     logger.debug(msg='time used: {:02.0f} mins {:02.1f} secs.'.format(m, s))
-    return demerr, vel, gamma
+    return demerr_adapt, vel_adapt, gamma_adapt
 
 
 def launchSpatialUnwrapping(parameters: tuple) -> tuple[np.ndarray, np.ndarray]:
@@ -842,6 +979,184 @@ def removeArcsByPointMask(*, net_obj: Union[Network, NetworkParameter], point_id
 
     logger.info(msg="Removed {} arc(s) connected to the removed point(s)".format(a_idx.size))
     return net_obj, point_id, coord_xy, design_mat
+
+
+def removeBadPointsIteratively(*, net_obj: NetworkParameter, point_id: np.ndarray,
+                               quality_thrsh: float, logger: Logger) -> [nx.Graph, np.ndarray]:
+    """
+    Remove bad points from a network using NetworkX. Points with low-quality arcs (weights) are removed iteratively.
+
+    Parameters
+    ----------
+    net_obj: Network
+        The spatial Network object.
+    point_id: np.ndarray
+        ID of the points in the network.
+    quality_thrsh: float
+        Threshold on the temporal coherence of the arcs (edge weights).
+    logger: Logger
+        Logging handler.
+
+    Returns
+    -------
+    net_obj: Network
+        Network object without the removed points and arcs.
+    point_id: np.ndarray
+        ID of the points in the network after the removal of bad points.
+    """
+    logger.info(msg="Remove points with arcs that have a median temporal coherence < {}".format(quality_thrsh))
+
+    graph = nx.DiGraph()
+    for idx, arc in enumerate(net_obj.arcs):
+        graph.add_edge(
+            point_id[arc[0]], point_id[arc[1]],
+            weight=net_obj.gamma[idx], vel=net_obj.vel[idx], demerr=net_obj.demerr[idx],
+            loc_inc=net_obj.loc_inc[idx], slant_range=net_obj.slant_range[idx], phase=net_obj.phase[idx, :]
+        )
+
+    num_points_removed = 0
+    # todo: address the RuntimeWarning from numpy when computing nanmedian
+
+    while True:
+        median_coherence = []
+        for u in graph.nodes():
+            weights = []
+            for v in graph.predecessors(u):
+                weights.append(np.float64(graph[v][u]['weight']))
+            for v in graph.successors(u):
+                weights.append(np.float64(graph[u][v]['weight']))
+            median_coherence.append(np.nanmedian(np.stack(weights)))
+        median_coherence = np.array(median_coherence)
+
+        worst_point = np.nanargmin(median_coherence)
+        worst_node = point_id[worst_point]
+
+        # do not remove the point but assign nan to the point and the edges connected to it
+        if median_coherence[worst_point] < quality_thrsh:
+            for neighbor in list(graph.predecessors(worst_node)):
+                # if graph.has_edge(worst_node, neighbor):
+                graph[neighbor][worst_node]['weight'] = np.nan
+
+            for neighbor in list(graph.successors(worst_node)):
+                # if graph.has_edge(worst_node, neighbor):
+                graph[worst_node][neighbor]['weight'] = np.nan
+
+            num_points_removed += 1
+            logger.info(msg="Removing point {} with median coherence {}".format(
+                worst_node, median_coherence[worst_point]))
+        else:
+            logger.info(msg="Removed {} point(s).".format(num_points_removed))
+            break
+
+    num_arcs_nan = 0
+    for u, v in graph.edges():
+        if np.isnan(graph[u][v]['weight']):
+            num_arcs_nan += 1
+
+    logger.info(msg="Removing {} arc(s) which were connected to the removed point(s).".format(num_arcs_nan))
+
+    # get the point_id of all nodes that have at least one non-nan arc
+    mask_good_points = np.ones(len(graph.nodes()), dtype=bool)
+    new_point_id = np.zeros(len(graph.nodes()), dtype=np.int64)
+
+    for i, node in enumerate(graph.nodes()):
+        arc_found = False
+        for neighbour in graph.predecessors(node):
+            if not np.isnan(np.float64(graph[neighbour][node]['weight'])):
+                arc_found = True
+                break
+
+        if not arc_found:
+            for neighbour in graph.successors(node):
+                if not np.isnan(np.float64(graph[node][neighbour]['weight'])):
+                    arc_found = True
+                    break
+
+        mask_good_points[i] = arc_found
+        new_point_id[i] = node
+        new_point_id[i] = node
+
+    ind = np.argsort(new_point_id[mask_good_points])
+    new_point_id = new_point_id[mask_good_points][ind]
+
+    new_arc_list = []
+    gamma_list = []
+    vel_list = []
+    demerr_list = []
+    loc_inc_list = []
+    slant_range_list = []
+    phase_list = []
+    for u, v in graph.edges():
+        if not np.isnan(graph[u][v]['weight']):
+            new_arc_list.append((np.where(new_point_id == u)[0][0], np.where(new_point_id == v)[0][0]))
+            gamma_list.append(graph[u][v]['weight'])
+            vel_list.append(graph[u][v]['vel'])
+            demerr_list.append(graph[u][v]['demerr'])
+            loc_inc_list.append(graph[u][v]['loc_inc'])
+            slant_range_list.append(graph[u][v]['slant_range'])
+            phase_list.append(graph[u][v]['phase'])
+
+    net_obj.arcs = np.array(new_arc_list, dtype=np.int64)
+    net_obj.gamma = np.array(gamma_list, dtype=np.float32)
+    net_obj.vel = np.array(vel_list, dtype=np.float32)
+    net_obj.demerr = np.array(demerr_list, dtype=np.float32)
+    net_obj.loc_inc = np.array(loc_inc_list, dtype=np.float32)
+    net_obj.slant_range = np.array(slant_range_list, dtype=np.float32)
+    net_obj.phase = np.array(phase_list, dtype=np.float32)
+    net_obj.num_arcs = len(net_obj.arcs)
+    point_id = new_point_id
+
+    logger.info(msg="Finished removing bad points.")
+    return net_obj, point_id
+
+
+def removeBadArcsIteratively(*, net_obj: Network, quality_thrsh: float = 0.0, logger: Logger) -> tuple[Network]:
+    """Iteratively remove bad arcs from network based on quality threshold, preserving the minimum spanning tree.
+
+    Parameters
+    ----------
+    net_obj: Network
+        The spatial Network object.
+    quality_thrsh: float
+        Threshold on the temporal coherence of the arcs. Default = 0.0.
+    logger: Logger
+        Logging handler.
+
+    Returns
+    -------
+    net_obj: Network
+        Network object without the removed arcs.
+    """
+    logger.info(msg="Iteratively removing bad arcs with quality < {}".format(quality_thrsh))
+
+    # Create a NetworkX graph from the arcs
+    graph = nx.Graph()
+    for idx, arc in enumerate(net_obj.arcs):
+        graph.add_edge(arc[0], arc[1], weight=1-net_obj.gamma[idx])
+
+    # Compute the minimum spanning tree (MST) using Kruskal's algorithm
+    mst = nx.minimum_spanning_tree(graph, algorithm="kruskal")
+    mst_edges = set(mst.edges)
+
+    # Identify bad arcs that are not part of the MST
+    bad_arc_mask = (net_obj.gamma < quality_thrsh).ravel()
+    bad_arcs = [
+        (arc[0], arc[1]) for idx, arc in enumerate(net_obj.arcs)
+        if bad_arc_mask[idx] and (arc[0], arc[1]) not in mst_edges and (arc[1], arc[0]) not in mst_edges
+    ]
+    # Log the number of bad arcs
+    logger.info(msg="Removing {} bad arc(s)".format(len(bad_arcs)))
+
+    # Remove the bad arcs
+    bad_arc_indices = [
+        idx for idx, arc in enumerate(net_obj.arcs)
+        if (arc[0], arc[1]) in bad_arcs or (arc[1], arc[0]) in bad_arcs
+    ]
+    mask = np.ones(net_obj.num_arcs, dtype=bool)
+    mask[bad_arc_indices] = False
+    net_obj.removeArcs(mask=mask)
+
+    return net_obj
 
 
 def removeGrossOutliers(*, net_obj: Network, point_id: np.ndarray, coord_xy: np.ndarray, min_num_arc: int = 3,

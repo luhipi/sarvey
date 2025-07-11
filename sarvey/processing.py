@@ -44,8 +44,8 @@ from sarvey.filtering import estimateAtmosphericPhaseScreen, simpleInterpolation
 from sarvey.ifg_network import (DelaunayNetwork, SmallBaselineYearlyNetwork, SmallTemporalBaselinesNetwork,
                                 SmallBaselineNetwork, StarNetwork)
 from sarvey.objects import Network, Points, AmplitudeImage, CoordinatesUTM, NetworkParameter, BaseStack
-from sarvey.unwrapping import spatialParameterIntegration, \
-    parameterBasedNoisyPointRemoval, temporalUnwrapping, spatialUnwrapping, removeGrossOutliers
+from sarvey.unwrapping import (spatialParameterIntegration, temporalUnwrapping, spatialUnwrapping,
+                               removeBadArcsIteratively, removeBadPointsIteratively)
 from sarvey.preparation import createArcsBetweenPoints, selectPixels, createTimeMaskFromDates
 import sarvey.utils as ut
 from sarvey.coherence import computeIfgsAndTemporalCoherence
@@ -318,48 +318,56 @@ class Processing:
                                                       arcs=net_par_obj.arcs,
                                                       val=net_par_obj.gamma,
                                                       ax=ax, linewidth=1, cmap="lajolla", clim=(0, 1))
-            ax.set_title("Coherence from temporal unwrapping\nBefore outlier removal")
+            ax.set_title("Coherence from temporal unwrapping\nInitial network")
             fig = ax.get_figure()
             plt.tight_layout()
-            fig.savefig(join(self.path, "pic", "step_1_arc_coherence.png"), dpi=300)
+            fig.savefig(join(self.path, "pic", "step_1_network_0_initial.png"), dpi=300)
         except BaseException as e:
             self.logger.exception(msg="NOT POSSIBLE TO PLOT SPATIAL NETWORK OF POINTS. {}".format(e))
 
-        net_par_obj, point_id, coord_xy, design_mat = removeGrossOutliers(
+        net_obj, point_id = removeBadPointsIteratively(
             net_obj=net_par_obj,
             point_id=point_obj.point_id,
-            coord_xy=point_obj.coord_xy,
-            min_num_arc=self.config.consistency_check.min_num_arc,
+            quality_thrsh=self.config.consistency_check.arc_unwrapping_coherence,
+            logger=self.logger
+        )
+        point_obj.removePoints(keep_id=point_id, input_path=self.config.general.input_path)
+
+        # todo: retriangulate the points if necessary and unwrap them
+
+        try:
+            ax = bmap_obj.plot(logger=self.logger)
+            ax, cbar = viewer.plotColoredPointNetwork(x=point_obj.coord_xy[:, 1], y=point_obj.coord_xy[:, 0],
+                                                      arcs=net_par_obj.arcs,
+                                                      val=net_par_obj.gamma,
+                                                      ax=ax, linewidth=1, cmap="lajolla", clim=(0, 1))
+            ax.set_title("Coherence from temporal unwrapping\nAfter removing noisy points")
+            fig = ax.get_figure()
+            plt.tight_layout()
+            fig.savefig(join(self.path, "pic", "step_1_network_1_points_removed.png"), dpi=300)
+        except BaseException as e:
+            self.logger.exception(msg="NOT POSSIBLE TO PLOT SPATIAL NETWORK OF POINTS. {}".format(e))
+
+        net_par_obj = removeBadArcsIteratively(
+            net_obj=net_par_obj,
             quality_thrsh=self.config.consistency_check.arc_unwrapping_coherence,
             logger=self.logger
         )
 
         try:
             ax = bmap_obj.plot(logger=self.logger)
-            ax, cbar = viewer.plotColoredPointNetwork(x=coord_xy[:, 1], y=coord_xy[:, 0],
+            ax, cbar = viewer.plotColoredPointNetwork(x=point_obj.coord_xy[:, 1], y=point_obj.coord_xy[:, 0],
                                                       arcs=net_par_obj.arcs,
                                                       val=net_par_obj.gamma,
                                                       ax=ax, linewidth=1, cmap="lajolla", clim=(0, 1))
-            ax.set_title("Coherence from temporal unwrapping\nAfter outlier removal")
-
+            ax.set_title("Coherence from temporal unwrapping\nAfter removing low quality arcs")
             fig = ax.get_figure()
             plt.tight_layout()
-            fig.savefig(join(self.path, "pic", "step_1_arc_coherence_reduced.png"), dpi=300)
+            fig.savefig(join(self.path, "pic", "step_1_network_2_arcs_removed.png"), dpi=300)
         except BaseException as e:
             self.logger.exception(msg="NOT POSSIBLE TO PLOT SPATIAL NETWORK OF POINTS. {}".format(e))
 
-        spatial_ref_id, point_id, net_par_obj = parameterBasedNoisyPointRemoval(
-            net_par_obj=net_par_obj,
-            point_id=point_id,
-            coord_xy=coord_xy,
-            design_mat=design_mat,
-            bmap_obj=bmap_obj,
-            bool_plot=True,
-            logger=self.logger
-        )
-
         net_par_obj.writeToFile()  # arcs were removed. obj still needed in next step.
-        point_obj.removePoints(keep_id=point_id, input_path=self.config.general.input_path)
         point_obj.writeToFile()
 
     def runUnwrappingTimeAndSpace(self):

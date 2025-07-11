@@ -262,10 +262,14 @@ def createArcsBetweenPoints(*, point_obj: Points, knn: int = None, max_arc_lengt
     """
     triang_obj = PointNetworkTriangulation(coord_xy=point_obj.coord_xy, coord_utmxy=point_obj.coord_utm, logger=logger)
 
-    if knn is not None:
-        triang_obj.triangulateKnn(k=knn)
+    # if knn is not None:
+    #     triang_obj.triangulateKnn(k=knn)
 
     triang_obj.triangulateGlobal()
+
+    triang_obj.triangulateCircularNearestNeighbors(
+        num_partitions=9
+    )
 
     logger.info(msg="remove arcs with length > {}.".format(max_arc_length))
     triang_obj.removeLongArcs(max_dist=max_arc_length)

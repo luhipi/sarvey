@@ -121,6 +121,48 @@ class PointNetworkTriangulation:
             self.adj_mat[p1, p3] = True
             self.adj_mat[p2, p3] = True
 
+    def triangulateCircularNearestNeighbors(self, *, num_partitions: int = 8):
+        """Connect points to the nearest neighbors in all directions based on circular partitions.
+
+        Parameters
+        ----------
+        num_partitions: int
+            Number of partitions to divide the area around each point. Default: 8.
+        """
+        self.logger.info(msg="Triangulate points with circular nearest neighbors.")
+        num_points = self.coord_xy.shape[0]
+        angles = np.linspace(0, 2 * np.pi, num_partitions + 1)[:-1]
+        tree = KDTree(data=self.coord_xy)
+
+        prog_bar = ptime.progressBar(maxValue=num_points)
+        start_time = time.time()
+
+        for p1 in range(num_points):
+            # find all nearest neighbours independent of the direction within the max_dist
+            idx = tree.query(self.coord_xy[p1, :], k=150)[1]
+            idx = idx[1:]
+
+            # add the neighbours to the predefined bins based on the angle to the point
+            angles_to_neighbors = np.arctan2(self.coord_xy[idx, 1] - self.coord_xy[p1, 1],
+                                             self.coord_xy[idx, 0] - self.coord_xy[p1, 0])
+            angle_bins = np.digitize(angles_to_neighbors, angles) - 1  # -1 to make it zero-indexed
+
+            # select the closest neighbour per angle partition
+            for angle_idx in range(num_partitions):
+                # find the indices of the neighbours in this angle partition
+                angle_mask = (angle_bins == angle_idx)
+                if np.any(angle_mask):
+                    # take the neighbour from the bin which has the smallest idx number
+                    closest_idx = np.min(idx[angle_mask])
+
+                    # add the connection to the adjacency matrix
+                    self.adj_mat[p1, closest_idx] = True
+            prog_bar.update(value=p1 + 1, every=np.int16(num_points / (num_points / 5)),
+                            suffix='{}/{} points triangulated'.format(p1 + 1, num_points + 1))
+        prog_bar.close()
+        m, s = divmod(time.time() - start_time, 60)
+        self.logger.info(msg='time used: {:02.0f} mins {:02.1f} secs.'.format(m, s))
+
     def triangulateKnn(self, *, k: int):
         """Connect points to the k-nearest neighbours."""
         self.logger.info(msg="Triangulate points with {}-nearest neighbours.".format(k))
