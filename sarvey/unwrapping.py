@@ -1018,19 +1018,29 @@ def removeBadPointsIteratively(*, net_obj: NetworkParameter, point_id: np.ndarra
     # todo: address the RuntimeWarning from numpy when computing nanmedian
 
     while True:
-        median_coherence = np.array([
-            np.nanmedian([np.float64(graph[u][v]['weight']) for v in graph.neighbors(u)])
-            for u in graph.nodes()
-        ])
+        median_coherence = []
+        for u in graph.nodes():
+            weights = []
+            for v in graph.predecessors(u):
+                weights.append(np.float64(graph[v][u]['weight']))
+            for v in graph.successors(u):
+                weights.append(np.float64(graph[u][v]['weight']))
+            median_coherence.append(np.nanmedian(np.stack(weights)))
+        median_coherence = np.array(median_coherence)
 
         worst_point = np.nanargmin(median_coherence)
         worst_node = point_id[worst_point]
 
         # do not remove the point but assign nan to the point and the edges connected to it
         if median_coherence[worst_point] < quality_thrsh:
-            for neighbor in list(graph.neighbors(worst_node)):
+            for neighbor in list(graph.predecessors(worst_node)):
+                # if graph.has_edge(worst_node, neighbor):
+                graph[neighbor][worst_node]['weight'] = np.nan
+
+            for neighbor in list(graph.successors(worst_node)):
                 # if graph.has_edge(worst_node, neighbor):
                 graph[worst_node][neighbor]['weight'] = np.nan
+
             num_points_removed += 1
             logger.info(msg="Removing point {} with median coherence {}".format(
                 worst_node, median_coherence[worst_point]))
@@ -1048,9 +1058,22 @@ def removeBadPointsIteratively(*, net_obj: NetworkParameter, point_id: np.ndarra
     # get the point_id of all nodes that have at least one non-nan arc
     mask_good_points = np.ones(len(graph.nodes()), dtype=bool)
     new_point_id = np.zeros(len(graph.nodes()), dtype=np.int64)
+
     for i, node in enumerate(graph.nodes()):
-        mask_good_points[i] = not all(np.isnan([np.float64(graph[neighbour][node]['weight'])
-                                                for neighbour in graph.neighbors(node)]))
+        arc_found = False
+        for neighbour in graph.predecessors(node):
+            if not np.isnan(np.float64(graph[neighbour][node]['weight'])):
+                arc_found = True
+                break
+
+        if not arc_found:
+            for neighbour in graph.successors(node):
+                if not np.isnan(np.float64(graph[node][neighbour]['weight'])):
+                    arc_found = True
+                    break
+
+        mask_good_points[i] = arc_found
+        new_point_id[i] = node
         new_point_id[i] = node
 
     ind = np.argsort(new_point_id[mask_good_points])
