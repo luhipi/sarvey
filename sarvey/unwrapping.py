@@ -1037,7 +1037,7 @@ def removeBadPointsIteratively(*, net_obj: NetworkParameter, point_id: np.ndarra
             logger.info(msg="Removing point {} with median coherence {}".format(
                 worst_node, median_coherence[worst_point]))
         else:
-            logger.info(msg="No more points with median coherence < {}. Stopping removal.".format(quality_thrsh))
+            logger.info(msg="Removed {} point(s).".format(num_points_removed))
             break
 
     num_arcs_nan = 0
