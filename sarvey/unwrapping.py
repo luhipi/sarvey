@@ -1006,7 +1006,7 @@ def removeBadPointsIteratively(*, net_obj: NetworkParameter, point_id: np.ndarra
     """
     logger.info(msg="Remove points with arcs that have a median temporal coherence < {}".format(quality_thrsh))
 
-    graph = nx.Graph()
+    graph = nx.DiGraph()
     for idx, arc in enumerate(net_obj.arcs):
         graph.add_edge(
             point_id[arc[0]], point_id[arc[1]],
@@ -1029,8 +1029,8 @@ def removeBadPointsIteratively(*, net_obj: NetworkParameter, point_id: np.ndarra
         # do not remove the point but assign nan to the point and the edges connected to it
         if median_coherence[worst_point] < quality_thrsh:
             for neighbor in list(graph.neighbors(worst_node)):
-                if graph.has_edge(worst_node, neighbor):
-                    graph[worst_node][neighbor]['weight'] = np.nan
+                # if graph.has_edge(worst_node, neighbor):
+                graph[worst_node][neighbor]['weight'] = np.nan
             num_points_removed += 1
             logger.info(msg="Removing point {} with median coherence {}".format(
                 worst_node, median_coherence[worst_point]))
