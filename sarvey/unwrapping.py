@@ -1039,7 +1039,7 @@ def removeBadPointsIteratively(*, net_obj: NetworkParameter, point_id: np.ndarra
     valid_nodes = [
         node for node in graph.nodes()
         if any(not np.isnan(graph[node][neighbor]['weight']) for neighbor in graph.successors(node)) or
-           any(not np.isnan(graph[neighbor][node]['weight']) for neighbor in graph.predecessors(node))
+        any(not np.isnan(graph[neighbor][node]['weight']) for neighbor in graph.predecessors(node))
     ]
 
     new_point_id = np.array(valid_nodes)
