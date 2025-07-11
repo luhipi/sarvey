@@ -311,18 +311,14 @@ class Processing:
 
         # 3) spatial unwrapping of the arc network and removal of outliers (arcs and points)
         bmap_obj = AmplitudeImage(file_path=join(self.path, "background_map.h5"))
-        thrsh_visualisation = 0.7
 
         try:
             ax = bmap_obj.plot(logger=self.logger)
-            arc_mask = net_par_obj.gamma.reshape(-1) <= thrsh_visualisation
             ax, cbar = viewer.plotColoredPointNetwork(x=point_obj.coord_xy[:, 1], y=point_obj.coord_xy[:, 0],
-                                                      arcs=net_par_obj.arcs[arc_mask, :],
-                                                      val=net_par_obj.gamma[arc_mask],
+                                                      arcs=net_par_obj.arcs,
+                                                      val=net_par_obj.gamma,
                                                       ax=ax, linewidth=1, cmap="lajolla", clim=(0, 1))
-            ax.set_title("Coherence from temporal unwrapping\n"
-                         r"(only arcs with $\gamma \leq$ {} "
-                         "shown)\nBefore outlier removal".format(thrsh_visualisation))
+            ax.set_title("Coherence from temporal unwrapping\nBefore outlier removal")
             fig = ax.get_figure()
             plt.tight_layout()
             fig.savefig(join(self.path, "pic", "step_1_arc_coherence.png"), dpi=300)
@@ -340,14 +336,12 @@ class Processing:
 
         try:
             ax = bmap_obj.plot(logger=self.logger)
-            arc_mask = net_par_obj.gamma.reshape(-1) <= thrsh_visualisation
             ax, cbar = viewer.plotColoredPointNetwork(x=coord_xy[:, 1], y=coord_xy[:, 0],
-                                                      arcs=net_par_obj.arcs[arc_mask, :],
-                                                      val=net_par_obj.gamma[arc_mask],
+                                                      arcs=net_par_obj.arcs,
+                                                      val=net_par_obj.gamma,
                                                       ax=ax, linewidth=1, cmap="lajolla", clim=(0, 1))
-            ax.set_title("Coherence from temporal unwrapping\n"
-                         r"(only arcs with $\gamma \leq$ {} "
-                         "shown)\nAfter outlier removal".format(thrsh_visualisation))
+            ax.set_title("Coherence from temporal unwrapping\nAfter outlier removal")
+
             fig = ax.get_figure()
             plt.tight_layout()
             fig.savefig(join(self.path, "pic", "step_1_arc_coherence_reduced.png"), dpi=300)

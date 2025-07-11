@@ -568,7 +568,7 @@ def spatialParameterIntegrationIterative(*,
         raise Exception
 
     # set n_bad to maximum fraction of bad edges that can be removed
-    n_bad = np.ceil(num_arcs * max_rm_fraction).astype(np.int16)
+    n_bad = np.ceil(num_arcs * max_rm_fraction).astype(np.int64)
 
     # initialize output
     val_points = np.zeros((num_points,))
@@ -609,7 +609,7 @@ def spatialParameterIntegrationIterative(*,
         else:  # network is not connected anymore, remove less psPoints and try again
             # x_hat = np.linalg.lstsq(a_save, obv_vec_save, rcond=None)[0]  # unclear: I think it is not necessary to
             # recompute the inversion.
-            n_bad = np.ceil(n_bad / 10).astype(np.int16)  # remove less point
+            n_bad = np.ceil(n_bad / 10).astype(np.int64)  # remove less point
 
         if np.all(np.abs(r) < res_tol):
             break

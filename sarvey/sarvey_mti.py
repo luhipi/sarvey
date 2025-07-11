@@ -90,18 +90,18 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
 
     proc_obj = Processing(path=config.general.output_path, config=config, logger=logger)
 
-    printCurrentConfig(config_section=config.general.dict(),
+    printCurrentConfig(config_section=config.general.model_dump(),
                        config_section_default=config_default_dict["general"],
                        logger=logger)
 
     if config.phase_linking.use_phase_linking_results:
-        printCurrentConfig(config_section=config.phase_linking.dict(),
+        printCurrentConfig(config_section=config.phase_linking.model_dump(),
                            config_section_default=config_default_dict["phase_linking"],
                            logger=logger)
 
     if 0 in steps:
         printStep(step=0, step_dict=STEP_DICT, logger=logger)
-        printCurrentConfig(config_section=config.preparation.dict(),
+        printCurrentConfig(config_section=config.preparation.model_dump(),
                            config_section_default=config_default_dict["preparation"],
                            logger=logger)
         proc_obj.runPreparation()
@@ -115,7 +115,7 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
             logger=logger
         )
         printStep(step=1, step_dict=STEP_DICT, logger=logger)
-        printCurrentConfig(config_section=config.consistency_check.dict(),
+        printCurrentConfig(config_section=config.consistency_check.model_dump(),
                            config_section_default=config_default_dict["consistency_check"],
                            logger=logger)
         proc_obj.runConsistencyCheck()
@@ -128,7 +128,7 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
             logger=logger
         )
         printStep(step=2, step_dict=STEP_DICT, logger=logger)
-        printCurrentConfig(config_section=config.unwrapping.dict(),
+        printCurrentConfig(config_section=config.unwrapping.model_dump(),
                            config_section_default=config_default_dict["unwrapping"],
                            logger=logger)
         if proc_obj.config.general.apply_temporal_unwrapping:
@@ -144,7 +144,7 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
             logger=logger
         )
         printStep(step=3, step_dict=STEP_DICT, logger=logger)
-        printCurrentConfig(config_section=config.filtering.dict(),
+        printCurrentConfig(config_section=config.filtering.model_dump(),
                            config_section_default=config_default_dict["filtering"],
                            logger=logger)
         proc_obj.runFiltering()
@@ -158,7 +158,7 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
             logger=logger
         )
         printStep(step=4, step_dict=STEP_DICT, logger=logger)
-        printCurrentConfig(config_section=config.densification.dict(),
+        printCurrentConfig(config_section=config.densification.model_dump(),
                            config_section_default=config_default_dict["densification"],
                            logger=logger)
         if proc_obj.config.general.apply_temporal_unwrapping:
@@ -177,32 +177,19 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
 
 def generateTemplateFromConfigModel():
     """GenerateTemplateFromConfigModel."""
-    top_level_schema = TypeAdapter(Config).json_schema()
-    top_level_dict = dict()
+    top_level_dict = {}
 
-    # map attribute name <-> class name (title)
-    # example: ConsistencyCheck <-> consistency_check
-    # This mapping is necessary to uses attribute names as keys in the config file.
-    # The section definitions in Pydantic v2 are referenced by their class name (in config.py).
-    # Not sure if there is a better way to handle this.
-    attr_to_title = {attr: field_info.title for attr, field_info in Config.model_fields.items()}
-    title_to_attr = {v: k for k, v in attr_to_title.items()}
-
-    for sec_name, sec_def in top_level_schema['$defs'].items():
-        if sec_name == "Config":
-            # substitute the class names of subsections in top_level_dict by the name of the sections in class Config
-            for subsec_name, subsec_def in sec_def["properties"].items():
-                top_level_dict[subsec_name] = top_level_dict.pop(subsec_def["title"])
-            continue  # don't add "Config" to top_level_dict
-        sec_dict = dict()
-        for subsec_name, subsec_def in sec_def["properties"].items():
-            if "default" not in subsec_def:
-                sec_dict.update({subsec_name: None})
+    for sec_name, field in Config.model_fields.items():
+        sec_cls = field.annotation
+        sec_dict = {}
+        for subsec_name, subsec_def in sec_cls.model_fields.items():
+            if subsec_def.default is not None:
+                default = subsec_def.default
             else:
-                sec_dict.update({subsec_name: subsec_def["default"]})
+                default = None
 
-        attr_name = title_to_attr.get(sec_name, sec_name)
-        top_level_dict.update({attr_name: sec_dict})
+            sec_dict[subsec_name] = default
+        top_level_dict[sec_name] = sec_dict
 
     return top_level_dict
 
