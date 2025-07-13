@@ -1014,7 +1014,6 @@ def removeBadPointsIteratively(*, net_obj: NetworkParameter, point_id: np.ndarra
         [(arc[0], arc[1], {'weight': net_obj.gamma[idx], 'arc_idx': idx}) for idx, arc in enumerate(net_obj.arcs)]
     )
 
-    num_points_removed = 0
     # todo: address the RuntimeWarning from numpy when computing nanmedian
 
     median_coherence = {
@@ -1027,7 +1026,6 @@ def removeBadPointsIteratively(*, net_obj: NetworkParameter, point_id: np.ndarra
         worst_node = min(median_coherence, key=median_coherence.get)
 
         if median_coherence[worst_node] >= quality_thrsh:
-            logger.debug("Number of points removed due to low temporal coherence: %d", num_points_removed)
             break
 
         affected_nodes = set(graph.successors(worst_node)) | set(graph.predecessors(worst_node))
@@ -1036,7 +1034,6 @@ def removeBadPointsIteratively(*, net_obj: NetworkParameter, point_id: np.ndarra
                                                [graph[v][u]['weight'] for v in graph.predecessors(u)])
 
         graph.remove_node(worst_node)
-        num_points_removed += 1
         logger.debug("Removing point %d with median coherence %.2f", worst_node, median_coherence[worst_node])
 
         del median_coherence[worst_node]
@@ -1045,7 +1042,10 @@ def removeBadPointsIteratively(*, net_obj: NetworkParameter, point_id: np.ndarra
     new_arc_list = [(lookup_dict[edge[0]], lookup_dict[edge[1]]) for edge in graph.edges]
     new_point_id = [graph.nodes[node]['point_id'] for node in graph.nodes()]
 
-    logger.debug("Number of nodes after/before removal: %d/%d", len(new_point_id), len(point_id))
+    logger.debug("Number of nodes after/before removal due to low temporal coherence: %d / %d",
+                 len(new_point_id), len(point_id))
+    logger.debug("Number of points removed due to low temporal coherence: %d", len(point_id) - len(new_point_id))
+
 
     arc_idx = [graph.edges[edge]['arc_idx'] for edge in graph.edges()]
     net_obj.arcs = np.array(new_arc_list, dtype=np.int64)
@@ -1059,17 +1059,17 @@ def removeBadPointsIteratively(*, net_obj: NetworkParameter, point_id: np.ndarra
     point_id = new_point_id
 
     # log values after bad point removal
-    logger.debug("Min - Max temporal coherence of points after bad point removal: %.3f - %.3f",
+    logger.debug("[Min, Max] temporal coherence of points after bad point removal: [%.3f, %.3f]",
                  np.min(net_obj.gamma), np.max(net_obj.gamma))
-    logger.debug("Min - Max velocity of points after bad point removal: %.3f - %.3f",
+    logger.debug("[Min, Max] velocity of points after bad point removal: [%.3f, %.3f]",
                  np.min(net_obj.vel), np.max(net_obj.vel))
-    logger.debug("Min - Max DEM error of points after bad point removal: %.3f - %.3f",
+    logger.debug("[Min, Max] DEM residual of points after bad point removal: [%.3f, %.3f]",
                  np.min(net_obj.demerr), np.max(net_obj.demerr))
-    logger.debug("Min - Max incidence angle of points after bad point removal: %.3f - %.3f",
+    logger.debug("[Min, Max] incidence angle of points after bad point removal: [%.3f, %.3f]",
                     np.min(net_obj.loc_inc), np.max(net_obj.loc_inc))
-    logger.debug("Min - Max slant range of points after bad point removal: %.3f - %.3f",
+    logger.debug("[Min, Max] slant range of points after bad point removal: [%.3f, %.3f]",
                     np.min(net_obj.slant_range), np.max(net_obj.slant_range))
-    logger.debug("Min - Max phase of points after bad point removal: %.3f - %.3f",
+    logger.debug("[Min, Max] phase of points after bad point removal: [%.3f, %.3f]",
                     np.min(net_obj.phase), np.max(net_obj.phase))
 
     logger.info(msg="Finished removing bad points.")
