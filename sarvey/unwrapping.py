@@ -1017,23 +1017,29 @@ def removeBadPointsIteratively(*, net_obj: NetworkParameter, point_id: np.ndarra
     num_points_removed = 0
     # todo: address the RuntimeWarning from numpy when computing nanmedian
 
+    median_coherence = {
+        u: np.nanmedian([graph[u][v]['weight'] for v in graph.successors(u)] +
+                        [graph[v][u]['weight'] for v in graph.predecessors(u)])
+        for u in graph.nodes()
+    }
+
     while True:
-        median_coherence = np.array([
-            np.nanmedian([graph[u][v]['weight'] for v in graph.successors(u)] +
-                         [graph[v][u]['weight'] for v in graph.predecessors(u)])
-            for u in graph.nodes()
-        ])
+        worst_node = min(median_coherence, key=median_coherence.get)
 
-        worst_point = np.nanargmin(median_coherence)
-        worst_node = list(graph.nodes())[worst_point]
-
-        if median_coherence[worst_point] >= quality_thrsh:
+        if median_coherence[worst_node] >= quality_thrsh:
             logger.debug("Number of points removed due to low temporal coherence: %d", num_points_removed)
             break
 
+        affected_nodes = set(graph.successors(worst_node)) | set(graph.predecessors(worst_node))
+        for u in affected_nodes:
+            median_coherence[u] = np.nanmedian([graph[u][v]['weight'] for v in graph.successors(u)] +
+                                               [graph[v][u]['weight'] for v in graph.predecessors(u)])
+
         graph.remove_node(worst_node)
         num_points_removed += 1
-        logger.debug("Removing point %d with median coherence %.2f", worst_node, median_coherence[worst_point])
+        logger.debug("Removing point %d with median coherence %.2f", worst_node, median_coherence[worst_node])
+
+        del median_coherence[worst_node]
 
     lookup_dict = {node: index for index, node in enumerate(graph.nodes)}
     new_arc_list = [(lookup_dict[edge[0]], lookup_dict[edge[1]]) for edge in graph.edges]
