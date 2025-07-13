@@ -325,7 +325,7 @@ class Processing:
         except BaseException as e:
             self.logger.exception(msg="NOT POSSIBLE TO PLOT SPATIAL NETWORK OF POINTS. {}".format(e))
 
-        net_obj, point_id = removeBadPointsIteratively(
+        _, point_id = removeBadPointsIteratively(
             net_obj=net_par_obj,
             point_id=point_obj.point_id,
             quality_thrsh=self.config.consistency_check.arc_unwrapping_coherence,
