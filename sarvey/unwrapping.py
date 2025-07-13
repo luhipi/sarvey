@@ -1034,7 +1034,8 @@ def removeBadPointsIteratively(*, net_obj: NetworkParameter, point_id: np.ndarra
                                                [graph[v][u]['weight'] for v in graph.predecessors(u)])
 
         graph.remove_node(worst_node)
-        logger.debug("Removing point %d with median coherence %.2f", worst_node, median_coherence[worst_node])
+        logger.debug("Removing point %d with median coherence %.2f",
+                     point_id[worst_node], median_coherence[worst_node])
 
         del median_coherence[worst_node]
 
