@@ -1007,104 +1007,70 @@ def removeBadPointsIteratively(*, net_obj: NetworkParameter, point_id: np.ndarra
     logger.info(msg="Remove points with arcs that have a median temporal coherence < {}".format(quality_thrsh))
 
     graph = nx.DiGraph()
-    for idx, arc in enumerate(net_obj.arcs):
-        graph.add_edge(
-            point_id[arc[0]], point_id[arc[1]],
-            weight=net_obj.gamma[idx], vel=net_obj.vel[idx], demerr=net_obj.demerr[idx],
-            loc_inc=net_obj.loc_inc[idx], slant_range=net_obj.slant_range[idx], phase=net_obj.phase[idx, :]
-        )
+    graph.add_nodes_from(
+        [(i, {'point_id': id}) for (i, id) in enumerate(point_id)]
+    )
+    graph.add_edges_from(
+        [(arc[0], arc[1], {'weight': net_obj.gamma[idx], 'arc_idx': idx}) for idx, arc in enumerate(net_obj.arcs)]
+    )
 
-    num_points_removed = 0
     # todo: address the RuntimeWarning from numpy when computing nanmedian
 
+    median_coherence = {
+        u: np.nanmedian([graph[u][v]['weight'] for v in graph.successors(u)] +
+                        [graph[v][u]['weight'] for v in graph.predecessors(u)])
+        for u in graph.nodes()
+    }
+
     while True:
-        median_coherence = []
-        for u in graph.nodes():
-            weights = []
-            for v in graph.predecessors(u):
-                weights.append(np.float64(graph[v][u]['weight']))
-            for v in graph.successors(u):
-                weights.append(np.float64(graph[u][v]['weight']))
-            median_coherence.append(np.nanmedian(np.stack(weights)))
-        median_coherence = np.array(median_coherence)
+        worst_node = min(median_coherence, key=median_coherence.get)
 
-        worst_point = np.nanargmin(median_coherence)
-        worst_node = point_id[worst_point]
-
-        # do not remove the point but assign nan to the point and the edges connected to it
-        if median_coherence[worst_point] < quality_thrsh:
-            for neighbor in list(graph.predecessors(worst_node)):
-                # if graph.has_edge(worst_node, neighbor):
-                graph[neighbor][worst_node]['weight'] = np.nan
-
-            for neighbor in list(graph.successors(worst_node)):
-                # if graph.has_edge(worst_node, neighbor):
-                graph[worst_node][neighbor]['weight'] = np.nan
-
-            num_points_removed += 1
-            logger.info(msg="Removing point {} with median coherence {}".format(
-                worst_node, median_coherence[worst_point]))
-        else:
-            logger.info(msg="Removed {} point(s).".format(num_points_removed))
+        if median_coherence[worst_node] >= quality_thrsh:
             break
 
-    num_arcs_nan = 0
-    for u, v in graph.edges():
-        if np.isnan(graph[u][v]['weight']):
-            num_arcs_nan += 1
+        affected_nodes = set(graph.successors(worst_node)) | set(graph.predecessors(worst_node))
+        for u in affected_nodes:
+            median_coherence[u] = np.nanmedian([graph[u][v]['weight'] for v in graph.successors(u)] +
+                                               [graph[v][u]['weight'] for v in graph.predecessors(u)])
 
-    logger.info(msg="Removing {} arc(s) which were connected to the removed point(s).".format(num_arcs_nan))
+        graph.remove_node(worst_node)
+        logger.debug("Removing point %d with median coherence %.2f",
+                     point_id[worst_node], median_coherence[worst_node])
 
-    # get the point_id of all nodes that have at least one non-nan arc
-    mask_good_points = np.ones(len(graph.nodes()), dtype=bool)
-    new_point_id = np.zeros(len(graph.nodes()), dtype=np.int64)
+        del median_coherence[worst_node]
 
-    for i, node in enumerate(graph.nodes()):
-        arc_found = False
-        for neighbour in graph.predecessors(node):
-            if not np.isnan(np.float64(graph[neighbour][node]['weight'])):
-                arc_found = True
-                break
+    lookup_dict = {node: index for index, node in enumerate(graph.nodes)}
+    new_arc_list = [(lookup_dict[edge[0]], lookup_dict[edge[1]]) for edge in graph.edges]
+    new_point_id = [graph.nodes[node]['point_id'] for node in graph.nodes()]
 
-        if not arc_found:
-            for neighbour in graph.successors(node):
-                if not np.isnan(np.float64(graph[node][neighbour]['weight'])):
-                    arc_found = True
-                    break
+    logger.debug("Number of nodes after/before removal due to low temporal coherence: %d / %d",
+                 len(new_point_id), len(point_id))
+    logger.debug("Number of points removed due to low temporal coherence: %d", len(point_id) - len(new_point_id))
 
-        mask_good_points[i] = arc_found
-        new_point_id[i] = node
-        new_point_id[i] = node
-
-    ind = np.argsort(new_point_id[mask_good_points])
-    new_point_id = new_point_id[mask_good_points][ind]
-
-    new_arc_list = []
-    gamma_list = []
-    vel_list = []
-    demerr_list = []
-    loc_inc_list = []
-    slant_range_list = []
-    phase_list = []
-    for u, v in graph.edges():
-        if not np.isnan(graph[u][v]['weight']):
-            new_arc_list.append((np.where(new_point_id == u)[0][0], np.where(new_point_id == v)[0][0]))
-            gamma_list.append(graph[u][v]['weight'])
-            vel_list.append(graph[u][v]['vel'])
-            demerr_list.append(graph[u][v]['demerr'])
-            loc_inc_list.append(graph[u][v]['loc_inc'])
-            slant_range_list.append(graph[u][v]['slant_range'])
-            phase_list.append(graph[u][v]['phase'])
-
+    arc_idx = [graph.edges[edge]['arc_idx'] for edge in graph.edges()]
     net_obj.arcs = np.array(new_arc_list, dtype=np.int64)
-    net_obj.gamma = np.array(gamma_list, dtype=np.float32)
-    net_obj.vel = np.array(vel_list, dtype=np.float32)
-    net_obj.demerr = np.array(demerr_list, dtype=np.float32)
-    net_obj.loc_inc = np.array(loc_inc_list, dtype=np.float32)
-    net_obj.slant_range = np.array(slant_range_list, dtype=np.float32)
-    net_obj.phase = np.array(phase_list, dtype=np.float32)
-    net_obj.num_arcs = len(net_obj.arcs)
+    net_obj.gamma = net_obj.gamma[arc_idx]
+    net_obj.vel = net_obj.vel[arc_idx]
+    net_obj.demerr = net_obj.demerr[arc_idx]
+    net_obj.loc_inc = net_obj.loc_inc[arc_idx]
+    net_obj.slant_range = net_obj.slant_range[arc_idx]
+    net_obj.phase = net_obj.phase[arc_idx, :]
+    net_obj.num_arcs = len(new_arc_list)
     point_id = new_point_id
+
+    # log values after bad point removal
+    logger.debug("[Min, Max] temporal coherence of points after bad point removal: [%.3f, %.3f]",
+                 np.min(net_obj.gamma), np.max(net_obj.gamma))
+    logger.debug("[Min, Max] velocity of points after bad point removal: [%.3f, %.3f]",
+                 np.min(net_obj.vel), np.max(net_obj.vel))
+    logger.debug("[Min, Max] DEM residual of points after bad point removal: [%.3f, %.3f]",
+                 np.min(net_obj.demerr), np.max(net_obj.demerr))
+    logger.debug("[Min, Max] incidence angle of points after bad point removal: [%.3f, %.3f]",
+                 np.min(net_obj.loc_inc), np.max(net_obj.loc_inc))
+    logger.debug("[Min, Max] slant range of points after bad point removal: [%.3f, %.3f]",
+                 np.min(net_obj.slant_range), np.max(net_obj.slant_range))
+    logger.debug("[Min, Max] phase of points after bad point removal: [%.3f, %.3f]",
+                 np.min(net_obj.phase), np.max(net_obj.phase))
 
     logger.info(msg="Finished removing bad points.")
     return net_obj, point_id
