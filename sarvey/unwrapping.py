@@ -1007,12 +1007,12 @@ def removeBadPointsIteratively(*, net_obj: NetworkParameter, point_id: np.ndarra
     logger.info(msg="Remove points with arcs that have a median temporal coherence < {}".format(quality_thrsh))
 
     graph = nx.DiGraph()
-    for idx, arc in enumerate(net_obj.arcs):
-        graph.add_edge(
-            point_id[arc[0]], point_id[arc[1]],
-            weight=net_obj.gamma[idx], vel=net_obj.vel[idx], demerr=net_obj.demerr[idx],
-            loc_inc=net_obj.loc_inc[idx], slant_range=net_obj.slant_range[idx], phase=net_obj.phase[idx, :]
-        )
+    graph.add_nodes_from(
+        [(i, {'point_id': id}) for (i, id) in enumerate(point_id)]
+    )
+    graph.add_edges_from(
+        [(arc[0], arc[1], {'weight': net_obj.gamma[idx], 'arc_idx': idx}) for idx, arc in enumerate(net_obj.arcs)]
+    )
 
     num_points_removed = 0
     # todo: address the RuntimeWarning from numpy when computing nanmedian
@@ -1035,41 +1035,21 @@ def removeBadPointsIteratively(*, net_obj: NetworkParameter, point_id: np.ndarra
         num_points_removed += 1
         logger.debug("Removing point %d with median coherence %.2f", worst_node, median_coherence[worst_point])
 
-    valid_nodes = [
-        node for node in graph.nodes()
-        if any(not np.isnan(graph[node][neighbor]['weight']) for neighbor in graph.successors(node)) or
-        any(not np.isnan(graph[neighbor][node]['weight']) for neighbor in graph.predecessors(node))
-    ]
-
-    new_point_id = np.array(valid_nodes)
+    lookup_dict = {node: index for index, node in enumerate(graph.nodes)}
+    new_arc_list = [(lookup_dict[edge[0]], lookup_dict[edge[1]]) for edge in graph.edges]
+    new_point_id = [graph.nodes[node]['point_id'] for node in graph.nodes()]
 
     logger.debug("Number of nodes after/before removal: %d/%d", len(new_point_id), len(point_id))
 
-    new_arc_list = []
-    gamma_list = []
-    vel_list = []
-    demerr_list = []
-    loc_inc_list = []
-    slant_range_list = []
-    phase_list = []
-    for u, v in graph.edges():
-        if not np.isnan(graph[u][v]['weight']):
-            new_arc_list.append((np.where(new_point_id == u)[0][0], np.where(new_point_id == v)[0][0]))
-            gamma_list.append(graph[u][v]['weight'])
-            vel_list.append(graph[u][v]['vel'])
-            demerr_list.append(graph[u][v]['demerr'])
-            loc_inc_list.append(graph[u][v]['loc_inc'])
-            slant_range_list.append(graph[u][v]['slant_range'])
-            phase_list.append(graph[u][v]['phase'])
-
+    arc_idx = [graph.edges[edge]['arc_idx'] for edge in graph.edges()]
     net_obj.arcs = np.array(new_arc_list, dtype=np.int64)
-    net_obj.gamma = np.array(gamma_list, dtype=np.float32)
-    net_obj.vel = np.array(vel_list, dtype=np.float32)
-    net_obj.demerr = np.array(demerr_list, dtype=np.float32)
-    net_obj.loc_inc = np.array(loc_inc_list, dtype=np.float32)
-    net_obj.slant_range = np.array(slant_range_list, dtype=np.float32)
-    net_obj.phase = np.array(phase_list, dtype=np.float32)
-    net_obj.num_arcs = len(net_obj.arcs)
+    net_obj.gamma = net_obj.gamma[arc_idx]
+    net_obj.vel = net_obj.vel[arc_idx]
+    net_obj.demerr = net_obj.demerr[arc_idx]
+    net_obj.loc_inc = net_obj.loc_inc[arc_idx]
+    net_obj.slant_range = net_obj.slant_range[arc_idx]
+    net_obj.phase = net_obj.phase[arc_idx, :]
+    net_obj.num_arcs = len(new_arc_list)
     point_id = new_point_id
 
     # log values after bad point removal
