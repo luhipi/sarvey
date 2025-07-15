@@ -142,7 +142,7 @@ class TestProcessing(unittest.TestCase):
         args = deepcopy(self.args)
 
         # set config
-        config.temporarily_coherent_scatterer.use_temporarily_coherent_scatterers = True
+        config.temporarily_coherent_scatterer.use_tcs = True
         config.general.apply_temporal_unwrapping = False
 
         runAndCheckAllSteps(config=config, args=args, logger=self.logger)

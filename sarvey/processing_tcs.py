@@ -60,10 +60,14 @@ def runDensificationSpace(*, path: str, config: Config, logger: Logger):
     point_obj.phase = np.angle(np.exp(1j * point_obj.phase) * np.conjugate(np.exp(1j * aps2_ifg_phase)))
 
     # identify coherent lifetime of TCS
-    tcs_coh_obj = BaseStack(file=join(config.temporarily_coherent_scatterer.coherent_lifetime_file), logger=logger)
+    fname = join(path, config.temporarily_coherent_scatterer.path_tcs,
+                 f"lifetime_{config.temporarily_coherent_scatterer.method_name}.h5")
+    tcs_coh_obj = BaseStack(file=fname, logger=logger)
     subset_index_map = tcs_coh_obj.read(dataset_name="subset_index_map")
 
-    tcs_change_idx_obj = BaseStack(file=join(config.temporarily_coherent_scatterer.change_index_map_file),
+    fname = join(path, config.temporarily_coherent_scatterer.path_tcs,
+                 f"change_map_{config.temporarily_coherent_scatterer.method_name}.h5")
+    tcs_change_idx_obj = BaseStack(file=fname,
                                    logger=logger)
     change_index_map = tcs_change_idx_obj.read(dataset_name="change_index")
 

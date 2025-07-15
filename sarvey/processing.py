@@ -652,12 +652,13 @@ class Processing:
         pix_sel_obj.prepareDataset(dataset_name="PL", dshape=(point1_obj.length, point1_obj.width), dtype=np.bool_,
                                    metadata=slc_stack_obj.metadata, mode="a")
 
-        if self.config.temporarily_coherent_scatterer.use_temporarily_coherent_scatterers:
+        if self.config.temporarily_coherent_scatterer.use_tcs:
             self.logger.info(msg="Add Temporarily Coherent Scatterers (TCS).")
             coh_value_tcs = int(self.config.temporarily_coherent_scatterer.coherence_p2_tcs * 100)
 
-            tcs_coh_obj = BaseStack(file=join(self.config.temporarily_coherent_scatterer.coherent_lifetime_file),
-                                    logger=self.logger)
+            fname = join(self.path, self.config.temporarily_coherent_scatterer.path_tcs,
+                         f"lifetime_{self.config.temporarily_coherent_scatterer.method_name}.h5")
+            tcs_coh_obj = BaseStack(file=fname, logger=self.logger)
             tcs_coh = tcs_coh_obj.read(dataset_name="coherence_map")
             tcs_length = tcs_coh_obj.read(dataset_name="subset_length_map")
 
@@ -673,8 +674,9 @@ class Processing:
             fig.savefig(join(self.path, "pic", "step_3_tcs_temporal_phase_coherence.png"), dpi=300)
             plt.close(fig)
 
-            change_idx_obj = BaseStack(file=join(self.config.temporarily_coherent_scatterer.change_index_map_file),
-                                       logger=self.logger)
+            fname = join(self.path, self.config.temporarily_coherent_scatterer.path_tcs,
+                         f"change_map_{self.config.temporarily_coherent_scatterer.method_name}.h5")
+            change_idx_obj = BaseStack(file=fname, logger=self.logger)
             change_idx = change_idx_obj.read(dataset_name="change_index")
 
             fig = plt.figure(figsize=(15, 5))
@@ -718,7 +720,7 @@ class Processing:
             plt.close(fig)
 
         if (self.config.phase_linking.use_phase_linking_results &
-           (not self.config.temporarily_coherent_scatterer.use_temporarily_coherent_scatterers)):
+           (not self.config.temporarily_coherent_scatterer.use_tcs)):
             # read PL results
             pl_coh = readfile.read(join(self.config.phase_linking.inverted_path, "phase_series.h5"),
                                    datasetName='temporalCoherence')[0]
@@ -794,14 +796,14 @@ class Processing:
         cbar.ax.set_visible(False)  # make size of axis consistent with all others
         plt.tight_layout()
         plt.title("Mask for dense point set")
-        if self.config.temporarily_coherent_scatterer.use_temporarily_coherent_scatterers:
+        if self.config.temporarily_coherent_scatterer.use_tcs:
             fig_name = f"step_3_mask_p2_coh{coh_value}-{coh_value_tcs}.png"
         else:
             fig_name = f"step_3_mask_p2_coh{coh_value}.png"
         fig.savefig(join(self.path, "pic", fig_name), dpi=300)
         plt.close(fig)
 
-        if self.config.temporarily_coherent_scatterer.use_temporarily_coherent_scatterers:
+        if self.config.temporarily_coherent_scatterer.use_tcs:
             fname = f"p2_coh{coh_value}-{coh_value_tcs}_ifg_wr.h5"
         else:
             fname = f"p2_coh{coh_value}_ifg_wr.h5"
@@ -821,7 +823,7 @@ class Processing:
                                                  point_id_img=point_id_img, logger=self.logger)
 
         if (self.config.phase_linking.use_phase_linking_results &
-           (not self.config.temporarily_coherent_scatterer.use_temporarily_coherent_scatterers)):
+           (not self.config.temporarily_coherent_scatterer.use_tcs)):
             self.logger.info(msg="read phase from MiaplPy results...")
             phase_linking_obj = BaseStack(
                 file=join(self.config.phase_linking.inverted_path, "phase_series.h5"),
@@ -860,7 +862,7 @@ class Processing:
         point2_obj.writeToFile()
         del point2_obj, ifg_stack_obj
 
-        if self.config.temporarily_coherent_scatterer.use_temporarily_coherent_scatterers:
+        if self.config.temporarily_coherent_scatterer.use_tcs:
             fname = f"p2_coh{coh_value}-{coh_value_tcs}_aps.h5"
             fname_other_file = f"p2_coh{coh_value}-{coh_value_tcs}_ifg_wr.h5"
         else:
