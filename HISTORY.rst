@@ -6,6 +6,8 @@ History
 Future minor version (release soon)
 -----------------------------------
 
+* enhance logging
+
 1.2.2 (2025-07-09)
 ------------------
 
