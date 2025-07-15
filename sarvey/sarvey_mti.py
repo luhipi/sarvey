@@ -84,6 +84,8 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
     """
     showLogoSARvey(logger=logger, step="MTInSAR")
 
+    start_time = time.time()
+
     steps = range(args.start, args.stop + 1)
 
     config_default_dict = generateTemplateFromConfigModel()
@@ -100,15 +102,19 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
                            logger=logger)
 
     if 0 in steps:
+        start_time_step = time.time()
         printStep(step=0, step_dict=STEP_DICT, logger=logger)
         printCurrentConfig(config_section=config.preparation.model_dump(),
                            config_section_default=config_default_dict["preparation"],
                            logger=logger)
         proc_obj.runPreparation()
+        m, s = divmod(time.time() - start_time_step, 60)
+        logger.info(f"Finished step 0 PREPARATION normally in {m:02.0f} mins {s:02.1f} secs.")
     required_files = ["background_map.h5", "coordinates_utm.h5", "ifg_network.h5", "ifg_stack.h5",
                       "temporal_coherence.h5"]
 
     if 1 in steps:
+        start_time_step = time.time()
         checkIfRequiredFilesExist(
             path_to_files=config.general.output_path,
             required_files=required_files,
@@ -119,9 +125,12 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
                            config_section_default=config_default_dict["consistency_check"],
                            logger=logger)
         proc_obj.runConsistencyCheck()
+        m, s = divmod(time.time() - start_time_step, 60)
+        logger.info(f"Finished step 1 CONSISTENCY CHECK normally in {m:02.0f} mins {s:02.1f} secs.")
     required_files.extend(["point_network.h5", "point_network_parameter.h5", "p1_ifg_wr.h5"])
 
     if 2 in steps:
+        start_time_step = time.time()
         checkIfRequiredFilesExist(
             path_to_files=config.general.output_path,
             required_files=required_files,
@@ -135,9 +144,12 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
             proc_obj.runUnwrappingTimeAndSpace()
         else:
             proc_obj.runUnwrappingSpace()
-    required_files.extend(["p1_ifg_unw.h5", "p1_ts.h5"])
+        m, s = divmod(time.time() - start_time_step, 60)
+        logger.info(f"Finished step 2 UNWRAPPING normally in {m:02.0f} mins {s:02.1f} secs.")
+        required_files.extend(["p1_ifg_unw.h5", "p1_ts.h5"])
 
     if 3 in steps:
+        start_time_step = time.time()
         checkIfRequiredFilesExist(
             path_to_files=config.general.output_path,
             required_files=required_files,
@@ -148,10 +160,13 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
                            config_section_default=config_default_dict["filtering"],
                            logger=logger)
         proc_obj.runFiltering()
+        m, s = divmod(time.time() - start_time_step, 60)
+        logger.info(f"Finished step 3 FILTERING normally in {m:02.0f} mins {s:02.1f} secs.")
     coh_value = int(config.filtering.coherence_p2 * 100)
     required_files.extend(["p1_aps.h5", f"p2_coh{coh_value}_ifg_wr.h5", f"p2_coh{coh_value}_aps.h5"])
 
     if 4 in steps:
+        start_time_step = time.time()
         checkIfRequiredFilesExist(
             path_to_files=config.general.output_path,
             required_files=required_files,
@@ -165,8 +180,11 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
             proc_obj.runDensificationTimeAndSpace()
         else:
             proc_obj.runDensificationSpace()
+        m, s = divmod(time.time() - start_time_step, 60)
+        logger.info(f"Finished step 4 DENSIFICATION normally in {m:02.0f} mins {s:02.1f} secs.")
 
-    logger.info(msg="SARvey MTI finished normally.")
+    m, s = divmod(time.time() - start_time, 60)
+    logger.info(f"SARvey MTI finished normally in in {m:02.0f} mins {s:02.1f} secs.")
     # close log-file to avoid problems with deleting the files
     if logger.hasHandlers():
         for handler in logger.handlers[:]:
@@ -264,13 +282,13 @@ def main(iargs=None):
         return 0
 
     if args.stop < args.start:
-        logger.error(msg="Choose Start <= Stop!")
-        raise ValueError
+        msg = f"Selected Start step ({args.start}) must be less than or equal to Stop step ({args.stop}). Exiting!"
+        logger.error(msg)
+        raise ValueError(msg)
 
     if args.workdir is None:
         args.workdir = os.path.abspath(os.path.curdir)
-    else:
-        logger.info(msg="Working directory: {}".format(args.workdir))
+    logger.info(f"Working directory: {args.workdir}")
 
     config_file_path = os.path.abspath(join(args.workdir, args.filepath))
 

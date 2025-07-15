@@ -69,9 +69,11 @@ def createTimeMaskFromDates(*, start_date: str, stop_date: str, date_list: list,
     date_list = [datetime.date(year=int(d[:4]), month=int(d[4:6]), day=int(d[6:])) for d in date_list]
 
     if (start_date is None) and (stop_date is None):
-        # use all images.
+        num_slc = time_mask.shape[0]
         result_date_list = [date.isoformat() for date in date_list]
-        return time_mask, time_mask.shape[0], result_date_list
+        logger.debug(
+            f"Use all {num_slc} images in SLC stack. Time frame: {result_date_list[0]} - {result_date_list[-1]}")
+        return time_mask, num_slc, result_date_list
 
     if start_date is None:
         start_date = min(date_list)
@@ -84,20 +86,29 @@ def createTimeMaskFromDates(*, start_date: str, stop_date: str, date_list: list,
         stop_date = datetime.date.fromisoformat(stop_date)
 
     if start_date >= stop_date:
-        logger.error(msg="Choose start date < stop date!")
-        raise ValueError
+        msg = (f"Invalid date range: Start Date ({start_date}) must be earlier than Stop Date ({stop_date}). "
+               f"Please correct the config file and try again. Exiting!")
+        logger.error(msg)
+        logger.error(msg)
+        raise ValueError(msg)
 
     if stop_date < min(date_list):
-        logger.error(msg="Stop date is before the first acquired image. Choose a later stop date!")
-        raise ValueError
+        msg = (f"Invalid Stop Date: Specified Stop Date ({stop_date}) must be later than the first image date"
+               f" ({min(date_list)}). Please update the Stop Date in the config file and try again. Exiting!")
+        logger.error(msg)
+        raise ValueError(msg)
 
     if start_date > max(date_list):
-        logger.error(msg="Start date is after the last acquired image. Choose an earlier start date!")
-        raise ValueError
+        msg = (
+            f"Invalid Start Date: Specified Start Date ({start_date}) must be earlier than the last image date "
+            f"({max(date_list)}). Please update the Start Date in the configuration file and try again. Exiting!")
+        logger.error(msg)
+        raise ValueError(msg)
 
     shift = "    "
-    logger.debug(msg=shift + "{:>10} {:>10}".format("   Date   ", "Selected"))
-    logger.debug(msg=shift + "{:>10} {:>10}".format("__________", "________"))
+    logger.debug(f"{shift}{'----------------------':>24}")
+    logger.debug(f"{shift}| {'Date':>10} | {'Selected':>10} |")
+    logger.debug(f"{shift}| {'----------':>10} | {'----------':>10} |")
 
     result_date_list = list()
     for i, date in enumerate(date_list):
@@ -105,10 +116,16 @@ def createTimeMaskFromDates(*, start_date: str, stop_date: str, date_list: list,
             time_mask[i] = False
         else:
             result_date_list.append(date.isoformat())
-        val = "      x" if time_mask[i] else ""
-        logger.debug(msg=shift + "{:>10} {:>3}".format(date.isoformat(), val))
+        val = "    x    " if time_mask[i] else "          "
+        logger.debug(f"{shift}| {date.isoformat():>10} | {val:>10} |")
+
+    logger.debug(f"{shift}| {'----------':>10} | {'----------':>10} |")
 
     num_slc = time_mask[time_mask].shape[0]
+    total_num_slc = time_mask.shape[0]
+    logger.debug(f"Selected {num_slc} out of {total_num_slc} acquisitions in time frame: "
+                 f"{start_date.isoformat()} to {stop_date.isoformat()}")
+
     return time_mask, num_slc, result_date_list
 
 
@@ -129,13 +146,13 @@ def readSlcFromMiaplpy(*, path: str, box: tuple = None, logger: Logger) -> np.nd
     slc: np.ndarray
         slc stack created from phase-linking results.
     """
-    logger.info(msg="read phase from MiaplPy results...")
+    logger.info("reading phase from MiaplPy results...")
     phase = readfile.read(path, datasetName='phase', box=box)[0]
 
-    logger.info(msg="read amplitude from MiaplPy results...")
+    logger.info("reading amplitude from MiaplPy results...")
     amp = readfile.read(path, datasetName='amplitude', box=box)[0]
 
-    logger.info(msg="combine phase and amplitude to slc...")
+    logger.info("combining phase and amplitude to slc...")
     slc = amp * np.exp(phase * 1j)
     return slc
 
@@ -157,7 +174,7 @@ def readCoherenceFromMiaplpy(*, path: str, box: tuple = None, logger: Logger) ->
     temp_coh: np.ndarray
         temporal coherence image from phase-linking results of MiaplPy.
     """
-    logger.info(msg="read quality from MiaplPy results...")
+    logger.info("reading quality from MiaplPy results...")
     temp_coh = readfile.read(path, datasetName='temporalCoherence', box=box)[0][1, :, :]
     return temp_coh
 
@@ -193,15 +210,22 @@ def selectPixels(*, path: str, selection_method: str, thrsh: float,
     cmap = None
     # compute candidates
     if selection_method == "temp_coh":
-        temp_coh_obj = BaseStack(file=join(path, "temporal_coherence.h5"), logger=logger)
+        tcoh_file = join(path, "temporal_coherence.h5")
+        logger.debug(f"Reading temporal coherence file: {tcoh_file}")
+        temp_coh_obj = BaseStack(file=tcoh_file, logger=logger)
         quality = temp_coh_obj.read(dataset_name="temp_coh")
+        logger.debug(f"[Min, Max] of all temporal coherence pixels: [{np.min(quality):.2f}, {np.max(quality):.2f}].)")
+        logger.debug(f"[Min, Max] of all temporal coherence pixels excluding invalid values: "
+                     f"[{np.nanmin(quality):.2f}, {np.nanmax(quality):.2f}].)")
         cand_mask = quality >= thrsh
         grid_min_val = False
         unit = "Temporal\nCoherence [ ]"
         cmap = "lajolla"
 
     if selection_method == "miaplpy":
-        raise NotImplementedError("This part is not developed yet. MiaplPy data is read in another way.")
+        error_msg = "This part is not developed yet. MiaplPy data is read in another way."
+        logger.error(error_msg)
+        raise NotImplementedError(error_msg)
         # pl_coherence = readCoherenceFromMiaplpy(path=join(path, 'inverted', 'phase_series.h5'), box=None,
         # logger=logger)
         # cand_mask = pl_coherence >= thrsh
@@ -210,18 +234,34 @@ def selectPixels(*, path: str, selection_method: str, thrsh: float,
         # unit = "Phase-Linking\nCoherence [ ]"
         # cmap = "lajolla"
 
+    logger.debug(
+        f"Number of selected pixels using {thrsh:.2f} temporal coherence threshold: {np.sum(cand_mask)}")
     if grid_size is not None:  # -> sparse pixel selection
-        coord_utm_obj = CoordinatesUTM(file_path=join(path, "coordinates_utm.h5"), logger=logger)
+        logger.debug(f"Select sparse pixels using grid size {grid_size} m.")
+        coord_utm_file = join(path, "coordinates_utm.h5")
+        logger.debug(f"Reading coordinates from file: {coord_utm_file}")
+        coord_utm_obj = CoordinatesUTM(file_path=coord_utm_file, logger=logger)
         coord_utm_obj.open()
         box_list = ut.createSpatialGrid(coord_utm_img=coord_utm_obj.coord_utm,
                                         length=coord_utm_obj.coord_utm.shape[1],
                                         width=coord_utm_obj.coord_utm.shape[2],
                                         grid_size=grid_size,
                                         logger=logger)[0]
+        logger.debug(f"Number of grid boxes for sparse pixel selection: {len(box_list)}.")
         cand_mask_sparse = ut.selectBestPointsInGrid(box_list=box_list, quality=quality, sel_min=grid_min_val)
         cand_mask &= cand_mask_sparse
+        logger.debug(f"Number of selected sparse pixels: {np.sum(cand_mask)}")
+        min_map_coord = np.min(coord_utm_obj.coord_utm[..., cand_mask], axis=1)
+        max_map_coord = np.max(coord_utm_obj.coord_utm[..., cand_mask], axis=1)
+        logger.debug(
+            f"[Min, Max] of map coordinates of selected points along first axis: "
+            f"[{min_map_coord[0]:.1f}, {max_map_coord[0]:.1f}].")
+        logger.debug(
+            f"[Min, Max] of map coordinates of selected points along second axis: "
+            f"[{min_map_coord[1]:.1f}, {max_map_coord[1]:.1f}].")
 
     if bool_plot:
+        logger.debug("Plotting selected pixels...")
         coord_xy = np.array(np.where(cand_mask)).transpose()
         bmap_obj = AmplitudeImage(file_path=join(path, "background_map.h5"))
         viewer.plotScatter(value=quality[cand_mask], coord=coord_xy, bmap_obj=bmap_obj, ttl="Selected pixels",
@@ -260,6 +300,7 @@ def createArcsBetweenPoints(*, point_obj: Points, knn: int = None, max_arc_lengt
     arcs: np.ndarray
         Arcs of the triangulation containing the indices of the points for each arc.
     """
+    logger.debug(f"Triangulating {point_obj.coord_xy.shape[0]} points...")
     triang_obj = PointNetworkTriangulation(coord_xy=point_obj.coord_xy, coord_utmxy=point_obj.coord_utm, logger=logger)
 
     if knn is not None:
@@ -267,12 +308,32 @@ def createArcsBetweenPoints(*, point_obj: Points, knn: int = None, max_arc_lengt
 
     triang_obj.triangulateGlobal()
 
-    logger.info(msg="remove arcs with length > {}.".format(max_arc_length))
+    ut_mask = np.triu(triang_obj.dist_mat, k=1) != 0
+    logger.debug(f"Triangulation arc lengths - "
+                 f"Min: {np.min(triang_obj.dist_mat[ut_mask]):.0f} m, "
+                 f"Max: {np.max(triang_obj.dist_mat[ut_mask]):.0f} m, "
+                 f"Mean: {np.mean(triang_obj.dist_mat[ut_mask]):.0f} m.")
+
+    logger.debug(f"Removing arcs with length > {max_arc_length} m max_arc_length...")
     triang_obj.removeLongArcs(max_dist=max_arc_length)
 
+    logger.debug(f"Triangulation arc lengths after long arc removal - "
+                 f"Min: {np.min(triang_obj.dist_mat[ut_mask]):.0f} m, "
+                 f"Max: {np.max(triang_obj.dist_mat[ut_mask]):.0f} m, "
+                 f"Mean: {np.mean(triang_obj.dist_mat[ut_mask]):.0f} m.")
+
     if not triang_obj.isConnected():
+        logger.degub("Network is not connected. Triangulating again with global delaunay...")
         triang_obj.triangulateGlobal()
 
-    logger.info(msg="retrieve arcs from adjacency matrix.")
+    logger.info("Retrieve arcs from adjacency matrix.")
     arcs = triang_obj.getArcsFromAdjMat()
+    logger.debug(f"Number of arcs: {arcs.shape[0]}.")
+
+    ut_mask = np.triu(triang_obj.dist_mat, k=1) != 0
+    logger.debug(f"Final triangulation arc lengths - "
+                 f"Min: {np.min(triang_obj.dist_mat[ut_mask]):.0f} m, "
+                 f"Max: {np.max(triang_obj.dist_mat[ut_mask]):.0f} m, "
+                 f"Mean: {np.mean(triang_obj.dist_mat[ut_mask]):.0f} m.")
+
     return arcs
