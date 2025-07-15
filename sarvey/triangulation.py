@@ -66,8 +66,10 @@ class PointNetworkTriangulation:
 
         if coord_utmxy is not None:
             logger.debug(f"Map coordinates available. Creating distance matrix between all {num_points} points...")
-            logger.debug(f"[Min, Max] of x coordinate: [{np.min(coord_utmxy[:, 0]):.2f}/{np.max(coord_utmxy[:, 0]):.2f}]")
-            logger.debug(f"[Min, Max] of y coordinate: [{np.min(coord_utmxy[:, 1]):.2f}/{np.max(coord_utmxy[:, 1]):.2f}]")
+            logger.debug(f"[Min, Max] of x coordinates: "
+                         f"[{np.min(coord_utmxy[:, 0]):.2f}/{np.max(coord_utmxy[:, 0]):.2f}]")
+            logger.debug(f"[Min, Max] of y coordinates: "
+                         f"[{np.min(coord_utmxy[:, 1]):.2f}/{np.max(coord_utmxy[:, 1]):.2f}]")
             self.dist_mat = distance_matrix(coord_utmxy, coord_utmxy)
             # todo: check out alternatives:
             #       scipy.spatial.KDTree.sparse_distance_matrix
