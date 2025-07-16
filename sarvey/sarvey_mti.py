@@ -94,18 +94,18 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
                        logger=logger)
 
     if (config.phase_linking.use_phase_linking_results &
-       config.temporarily_coherent_scatterer.use_temporarily_coherent_scatterers):
+       config.temporarily_coherent_scatterer.use_tcs):
         logger.error(msg="Phase linking and temporarily coherent scatterers cannot be used together."
                          "Please choose one of them.")
         raise NotImplementedError
 
-    if config.temporarily_coherent_scatterer.use_temporarily_coherent_scatterers:
+    if config.temporarily_coherent_scatterer.use_tcs:
         if config.preparation.ifg_network_type == "star":
             logger.error(msg="Star interferogram network is not supported in combination with temporarily coherent "
                              "scatterers. Use any of the redudant interferogram networks.")
             raise ValueError
 
-    if config.temporarily_coherent_scatterer.use_temporarily_coherent_scatterers:
+    if config.temporarily_coherent_scatterer.use_tcs:
         printCurrentConfig(config_section=config.temporarily_coherent_scatterer.dict(),
                            config_section_default=config_default_dict["temporarily_coherent_scatterer"],
                            logger=logger)
@@ -165,7 +165,7 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
                            logger=logger)
         proc_obj.runFiltering()
     coh_value = int(config.filtering.coherence_p2 * 100)
-    if config.temporarily_coherent_scatterer.use_temporarily_coherent_scatterers:
+    if config.temporarily_coherent_scatterer.use_tcs:
         coh_value_tcs = int(config.temporarily_coherent_scatterer.coherence_p2_tcs * 100)
         required_files.extend(["p1_aps.h5", f"p2_coh{coh_value}-{coh_value_tcs}_ifg_wr.h5",
                                f"p2_coh{coh_value}-{coh_value_tcs}_aps.h5"])
@@ -182,7 +182,7 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
         printCurrentConfig(config_section=config.densification.dict(),
                            config_section_default=config_default_dict["densification"],
                            logger=logger)
-        if config.temporarily_coherent_scatterer.use_temporarily_coherent_scatterers:
+        if config.temporarily_coherent_scatterer.use_tcs:
             if config.general.apply_temporal_unwrapping:
                 logger.error(msg="Temporal unwrapping is not supported in combination with temporarily coherent "
                                  "scatterers.")

@@ -645,19 +645,21 @@ class Processing:
 
         slc_stack_obj = slcStack(join(self.config.general.input_path, "slcStack.h5"))
         slc_stack_obj.open()  # for metadata
-        pix_sel_obj = BaseStack(file=join(self.path, "selection_method.h5"), logger=self.logger)
-        pix_sel_obj.writeToFile(dataset_name="TPC", data=cand_mask2, metadata=slc_stack_obj.metadata, mode="w")
-        pix_sel_obj.prepareDataset(dataset_name="TCS", dshape=(point1_obj.length, point1_obj.width), dtype=np.bool_,
-                                   metadata=slc_stack_obj.metadata, mode="a")
-        pix_sel_obj.prepareDataset(dataset_name="PL", dshape=(point1_obj.length, point1_obj.width), dtype=np.bool_,
-                                   metadata=slc_stack_obj.metadata, mode="a")
+        sca_type_obj = BaseStack(file=join(self.path, "scatterer_type.h5"), logger=self.logger)
+        sca_type_obj.prepareDataset(dataset_name="CCS", dshape=(point1_obj.length, point1_obj.width), dtype=np.bool_,
+                                    metadata=slc_stack_obj.metadata, mode="w")
+        sca_type_obj.prepareDataset(dataset_name="TCS", dshape=(point1_obj.length, point1_obj.width), dtype=np.bool_,
+                                    metadata=slc_stack_obj.metadata, mode="a")
+        sca_type_obj.prepareDataset(dataset_name="PL", dshape=(point1_obj.length, point1_obj.width), dtype=np.bool_,
+                                    metadata=slc_stack_obj.metadata, mode="a")
 
-        if self.config.temporarily_coherent_scatterer.use_temporarily_coherent_scatterers:
+        if self.config.temporarily_coherent_scatterer.use_tcs:
             self.logger.info(msg="Add Temporarily Coherent Scatterers (TCS).")
             coh_value_tcs = int(self.config.temporarily_coherent_scatterer.coherence_p2_tcs * 100)
 
-            tcs_coh_obj = BaseStack(file=join(self.config.temporarily_coherent_scatterer.coherent_lifetime_file),
-                                    logger=self.logger)
+            fname = join(self.config.temporarily_coherent_scatterer.tcs_path,
+                         f"lifetime_{self.config.temporarily_coherent_scatterer.method_name}.h5")
+            tcs_coh_obj = BaseStack(file=fname, logger=self.logger)
             tcs_coh = tcs_coh_obj.read(dataset_name="coherence_map")
             tcs_length = tcs_coh_obj.read(dataset_name="subset_length_map")
 
@@ -673,9 +675,11 @@ class Processing:
             fig.savefig(join(self.path, "pic", "step_3_tcs_temporal_phase_coherence.png"), dpi=300)
             plt.close(fig)
 
-            change_idx_obj = BaseStack(file=join(self.config.temporarily_coherent_scatterer.change_index_map_file),
-                                       logger=self.logger)
+            fname = join(self.config.temporarily_coherent_scatterer.tcs_path,
+                         f"change_map_{self.config.temporarily_coherent_scatterer.method_name}.h5")
+            change_idx_obj = BaseStack(file=fname, logger=self.logger)
             change_idx = change_idx_obj.read(dataset_name="change_index")
+            score_map = change_idx_obj.read(dataset_name="score_map")
 
             fig = plt.figure(figsize=(15, 5))
             ax = fig.add_subplot()
@@ -693,32 +697,63 @@ class Processing:
             plt.close(fig)
             del change_idx, change_idx_obj
 
-            cand_mask_tcs = (tcs_coh > self.config.temporarily_coherent_scatterer.coherence_p2_tcs)
-            cand_mask_tcs = cand_mask_tcs & (
-                tcs_length >= self.config.temporarily_coherent_scatterer.min_lifetime_length)
+            # Select TCS based on three criteria
+            # 1) The change is significant
+            if self.config.temporarily_coherent_scatterer.method_name == "amplitude":
+                cand_mask_significant_change = score_map != 0.0
+            else:
+                cand_mask_significant_change = score_map <= self.config.temporarily_coherent_scatterer.score_threshold
 
-            pix_sel_obj.writeToFileBlock(dataset_name="TCS", data=cand_mask_tcs)
+            viewer.plotScattererSelection(
+                cand_mask=cand_mask_significant_change,
+                fig_title="Scatterers with significant change",
+                save_path=join(self.path, "pic", "step_3_tcs_significant_change_{}.png".format(
+                    self.config.temporarily_coherent_scatterer.method_name)),
+                logger=self.logger,
+                bmap_obj=bmap_obj
+            )
 
-            # combine TCS pixels with TPC cand_mask2
-            cand_mask2 = cand_mask2 | cand_mask_tcs
+            # 2) The temporal coherence of the subset is high
+            cand_mask_tcs = (cand_mask_significant_change &
+                             (tcs_coh > self.config.temporarily_coherent_scatterer.coherence_p2_tcs))
 
-            fig = plt.figure(figsize=(15, 5))
-            ax = fig.add_subplot()
-            bmap_obj.plot(ax=ax, logger=self.logger)
-            coord_xy = np.array(np.where(cand_mask_tcs)).transpose()
-            val = np.ones_like(cand_mask_tcs)
-            sc = ax.scatter(coord_xy[:, 1], coord_xy[:, 0], c=val[cand_mask_tcs], s=0.5,
-                            cmap=cmc.cm.cmaps["lajolla_r"],
-                            vmin=1, vmax=2)  # set min, max to ensure that points are yellow
-            cbar = plt.colorbar(sc, pad=0.03, shrink=0.5)
-            cbar.ax.set_visible(False)  # make size of axis consistent with all others
-            plt.tight_layout()
-            plt.title("Temporarily coherent scatterers")
-            fig.savefig(join(self.path, "pic", "step_3_tcs_coh{}.png".format(coh_value_tcs)), dpi=300)
-            plt.close(fig)
+            viewer.plotScattererSelection(
+                cand_mask=cand_mask_tcs,
+                fig_title="Scatterers with significant change and high coherence",
+                save_path=join(self.path, "pic", "step_3_tcs_significant_change_{}_coh{}.png".format(
+                    self.config.temporarily_coherent_scatterer.method_name, coh_value_tcs)),
+                logger=self.logger,
+                bmap_obj=bmap_obj
+            )
 
-        if (self.config.phase_linking.use_phase_linking_results &
-           (not self.config.temporarily_coherent_scatterer.use_temporarily_coherent_scatterers)):
+            # 3) The temporal subset contains a minimum number of images
+            cand_mask_tcs &= tcs_length >= self.config.temporarily_coherent_scatterer.min_lifetime_length
+
+            # a scatterer is called a CCS, if the there was no significant change and the temporal coherence is high
+            # cand_mask_ccs = cand_mask2 & ~cand_mask_tcs  # removes final tcs selection
+            cand_mask_ccs = cand_mask2 & ~cand_mask_significant_change  # removes only points with significant change
+
+            viewer.plotScattererSelection(
+                cand_mask=cand_mask_ccs,
+                fig_title="Continuously coherent scatterers",
+                save_path=join(self.path, "pic", "step_3_ccs_coh{}.png".format(coh_value)),
+                logger=self.logger,
+                bmap_obj=bmap_obj
+            )
+
+            # explicitely combine CCS and TCS because so far cand_mask2 still might contain TCS which have do not meet
+            # criteria 2 and 3.
+            cand_mask2 = cand_mask_ccs | cand_mask_tcs
+
+            viewer.plotScattererSelection(
+                cand_mask=cand_mask_tcs,
+                fig_title="Temporarily coherent scatterers",
+                save_path=join(self.path, "pic", "step_3_tcs_coh{}.png".format(coh_value_tcs)),
+                logger=self.logger,
+                bmap_obj=bmap_obj
+            )
+
+        if self.config.phase_linking.use_phase_linking_results:
             # read PL results
             pl_coh = readfile.read(join(self.config.phase_linking.inverted_path, "phase_series.h5"),
                                    datasetName='temporalCoherence')[0]
@@ -762,11 +797,9 @@ class Processing:
             # combine phase linking coherence with TPC cand_mask2
             cand_mask2 = cand_mask2 | cand_mask_pl
 
-            pix_sel_obj.writeToFileBlock(dataset_name="PL", data=cand_mask_pl)
+            sca_type_obj.writeToFileBlock(dataset_name="PL", data=cand_mask_pl)
 
         mask_valid_area = ut.detectValidAreas(bmap_obj=bmap_obj, logger=self.logger)
-
-        pix_sel_obj.writeToFile(dataset_name="valid", data=mask_valid_area, mode="a")
 
         if self.config.filtering.mask_p2_file is not None:
             path_mask_aoi = join(self.config.filtering.mask_p2_file)
@@ -782,6 +815,17 @@ class Processing:
 
         cand_mask2 &= mask_valid_area
 
+        if self.config.temporarily_coherent_scatterer.use_tcs:
+            cand_mask_ccs[p1_mask] = True  # add all selected 1.order points to avoid spatial gaps in 2D unwrapping
+            cand_mask_ccs &= mask_valid_area
+            sca_type_obj.writeToFileBlock(dataset_name="CCS", data=cand_mask_ccs)
+
+            cand_mask_tcs[p1_mask] = False  # remove selected 1.order points from TCS points
+            cand_mask_tcs &= mask_valid_area
+            sca_type_obj.writeToFileBlock(dataset_name="TCS", data=cand_mask_tcs)
+
+        sca_type_obj.writeToFile(dataset_name="valid", data=mask_valid_area, mode="a")
+
         fig = plt.figure(figsize=(15, 5))
         ax = fig.add_subplot()
         ax.imshow(mask_valid_area, cmap=cmc.cm.cmaps["grayC"], alpha=0.5, zorder=10, vmin=0, vmax=1)
@@ -794,14 +838,14 @@ class Processing:
         cbar.ax.set_visible(False)  # make size of axis consistent with all others
         plt.tight_layout()
         plt.title("Mask for dense point set")
-        if self.config.temporarily_coherent_scatterer.use_temporarily_coherent_scatterers:
+        if self.config.temporarily_coherent_scatterer.use_tcs:
             fig_name = f"step_3_mask_p2_coh{coh_value}-{coh_value_tcs}.png"
         else:
             fig_name = f"step_3_mask_p2_coh{coh_value}.png"
         fig.savefig(join(self.path, "pic", fig_name), dpi=300)
         plt.close(fig)
 
-        if self.config.temporarily_coherent_scatterer.use_temporarily_coherent_scatterers:
+        if self.config.temporarily_coherent_scatterer.use_tcs:
             fname = f"p2_coh{coh_value}-{coh_value_tcs}_ifg_wr.h5"
         else:
             fname = f"p2_coh{coh_value}_ifg_wr.h5"
@@ -820,8 +864,7 @@ class Processing:
                                                  num_patches=self.config.general.num_patches, cand_mask=cand_mask2,
                                                  point_id_img=point_id_img, logger=self.logger)
 
-        if (self.config.phase_linking.use_phase_linking_results &
-           (not self.config.temporarily_coherent_scatterer.use_temporarily_coherent_scatterers)):
+        if self.config.phase_linking.use_phase_linking_results:
             self.logger.info(msg="read phase from MiaplPy results...")
             phase_linking_obj = BaseStack(
                 file=join(self.config.phase_linking.inverted_path, "phase_series.h5"),
@@ -860,7 +903,7 @@ class Processing:
         point2_obj.writeToFile()
         del point2_obj, ifg_stack_obj
 
-        if self.config.temporarily_coherent_scatterer.use_temporarily_coherent_scatterers:
+        if self.config.temporarily_coherent_scatterer.use_tcs:
             fname = f"p2_coh{coh_value}-{coh_value_tcs}_aps.h5"
             fname_other_file = f"p2_coh{coh_value}-{coh_value_tcs}_ifg_wr.h5"
         else:

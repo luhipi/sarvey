@@ -37,7 +37,6 @@ from mintpy.utils import ptime
 
 from sarvey.objects import Points
 from sarvey.triangulation import PointNetworkTriangulation
-from sarvey.config import Config
 from sarvey import utils as ut
 
 
@@ -136,18 +135,14 @@ def preTriangulateEachIfg(*, coord_xy: np.ndarray, lifetime_ifgs: np.ndarray, nu
     return edges_per_ifg
 
 
-def selectCoherentImagesAndIfgs(*, change_index_map: np.ndarray, subset_index_map: np.ndarray,
-                                temporal_coherence: np.ndarray, point_obj: Points, config: Config):
+def selectCoherentImagesAndIfgs(*, change_index_map: np.ndarray, subset_index_map: np.ndarray, point_obj: Points,
+                                mask_ccs: np.ndarray, mask_tcs: np.ndarray):
     """Get masks for coherent lifetime of TCS."""
-    mask_ccs = (temporal_coherence >= config.filtering.coherence_p2)
     mask_p2 = point_obj.createMask()
-    # mask_tcs = (tcs_coh >= config.filtering.coherence_p2)  # condition is not sufficient. Check also length of subset!
-    mask_tcs = mask_p2 & (~mask_ccs)
 
     ccs_tcs_map = np.zeros_like(mask_p2, dtype=np.int8)  # 0: not selected
-    ccs_tcs_map[mask_p2] = 1  # 1: TCS
+    ccs_tcs_map[mask_tcs] = 1  # 1: TCS
     ccs_tcs_map[mask_ccs] = 2  # 2: CCS
-    # --> this leads to TCS being overwritten with CCS.
 
     ccs_tcs_points = ccs_tcs_map[mask_p2]
 
@@ -168,7 +163,7 @@ def selectCoherentImagesAndIfgs(*, change_index_map: np.ndarray, subset_index_ma
     # convert coh_lifetime from images to ifgs
     design_mat = point_obj.ifg_net_obj.getDesignMatrix()
     """idea: for an interferogram to be within the coherent lifetime, it has to have two entries inside the row (ifg) of
-    # the design matrix for columns that belong to the coherent part (lifetime_images)"""
+    the design matrix for columns that belong to the coherent part (lifetime_images)"""
     lifetime_ifgs = np.zeros((point_obj.num_points, point_obj.ifg_net_obj.num_ifgs), dtype=np.bool_)
     lifetime_ifgs[ccs_tcs_points == 2, :] = True  # CCS are coherent the whole time
     for i in range(mask_tcs.sum()):
