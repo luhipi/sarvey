@@ -98,7 +98,6 @@ class PointNetworkTriangulation:
             for e in e_list:
                 arcs.append([s, e])
         arcs = np.array(arcs)
-        self.logger.debug(f"Number of arcs extracted from adjacency matrix: {arcs.shape[0]}")
         return arcs
 
     def removeLongArcs(self, *, max_dist: float):
@@ -126,7 +125,7 @@ class PointNetworkTriangulation:
         self.logger.debug("Triangulating points with global delaunay...")
 
         network = Delaunay(points=self.coord_xy)
-        self.logger.debug(f"Number of simplices in Delaunay triangulation: {network.simplices.shape[0]}")
+        self.logger.debug(f"Number of triangles in Delaunay triangulation: {network.simplices.shape[0]}")
         for p1, p2, p3 in network.simplices:
             self.adj_mat[p1, p2] = True
             self.adj_mat[p1, p3] = True
@@ -144,7 +143,6 @@ class PointNetworkTriangulation:
         if k > num_points:
             self.logger.debug(f"{k} k > {num_points} number of points. Connect all points with each other.")
             k = num_points
-            self.logger.info(msg="k > number of points. Connect all points with each other.")
         for p1 in range(num_points):
             idx = tree.query(self.coord_xy[p1, :], k)[1]
             self.adj_mat[p1, idx] = True

@@ -89,7 +89,6 @@ def createTimeMaskFromDates(*, start_date: str, stop_date: str, date_list: list,
         msg = (f"Invalid date range: Start Date ({start_date}) must be earlier than Stop Date ({stop_date}). "
                f"Please correct the config file and try again. Exiting!")
         logger.error(msg)
-        logger.error(msg)
         raise ValueError(msg)
 
     if stop_date < min(date_list):
@@ -314,7 +313,6 @@ def createArcsBetweenPoints(*, point_obj: Points, knn: int = None, max_arc_lengt
                  f"Max: {np.max(triang_obj.dist_mat[ut_mask]):.0f} m, "
                  f"Mean: {np.mean(triang_obj.dist_mat[ut_mask]):.0f} m.")
 
-    logger.debug(f"Removing arcs with length > {max_arc_length} m max_arc_length...")
     triang_obj.removeLongArcs(max_dist=max_arc_length)
 
     logger.debug(f"Triangulation arc lengths after long arc removal - "
@@ -323,12 +321,12 @@ def createArcsBetweenPoints(*, point_obj: Points, knn: int = None, max_arc_lengt
                  f"Mean: {np.mean(triang_obj.dist_mat[ut_mask]):.0f} m.")
 
     if not triang_obj.isConnected():
-        logger.degub("Network is not connected. Triangulating again with global delaunay...")
+        logger.debug("Network is not connected. Triangulating again with global delaunay...")
         triang_obj.triangulateGlobal()
 
     logger.info("Retrieve arcs from adjacency matrix.")
     arcs = triang_obj.getArcsFromAdjMat()
-    logger.debug(f"Number of arcs: {arcs.shape[0]}.")
+    logger.debug(f"Final number of arcs: {arcs.shape[0]}.")
 
     ut_mask = np.triu(triang_obj.dist_mat, k=1) != 0
     logger.debug(f"Final triangulation arc lengths - "
