@@ -19,7 +19,7 @@
     },
     "temporarily_coherent_scatterer":{
         "use_tcs": false,
-        "tcs_path": "outputs_tcs",
+        "tcs_path": "tests/testdata/outputs_tcs",
         "method_name": "amplitude",
         "coherence_p2_tcs": 0.8,
         "min_lifetime_length": 30,
