@@ -299,7 +299,7 @@ class TemporarilyCoherentScatterer(BaseModel, extra=Extra.forbid):
                 change_map_path = os.path.abspath(os.path.join(values["tcs_path"], f"change_map_{v}.h5"))
                 if not os.path.exists(change_map_path):
                     raise ValueError(f"change map file does not exist: {change_map_path}")
-            except KeyError as e:
+            except KeyError:
                 # tcs_path not set yet, so we cannot check the files.
                 pass
         return v
@@ -323,7 +323,7 @@ class TemporarilyCoherentScatterer(BaseModel, extra=Extra.forbid):
                 change_map_path = os.path.abspath(os.path.join(v, f"change_map_{values['method_name']}.h5"))
                 if not os.path.exists(change_map_path):
                     raise ValueError(f"change map file does not exist: {change_map_path}")
-            except KeyError as e:
+            except KeyError:
                 # method_name not set yet, so we cannot check the files.
                 pass
         return v
