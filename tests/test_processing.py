@@ -144,7 +144,7 @@ class TestProcessing(unittest.TestCase):
         # set config
         config.temporarily_coherent_scatterer.use_tcs = True
         config.general.apply_temporal_unwrapping = False
-
+        config.preparation.ifg_network_type = "sb"
         runAndCheckAllSteps(config=config, args=args, logger=self.logger)
 
 
