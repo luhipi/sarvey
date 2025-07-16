@@ -236,6 +236,39 @@ def plotGridFromBoxList(*, box_list: list, ax: plt.Axes = None, edgecolor: str =
     return ax
 
 
+def plotScattererSelection(*, cand_mask: np.ndarray, fig_title: str, save_path: str, bmap_obj: AmplitudeImage,
+                           logger: Logger):
+    """Plot scatterer selection.
+
+    Parameters
+    ----------
+    cand_mask: np.ndarray
+        mask of the candidates to be plotted (dim: no. points x 1)
+    fig_title: str
+        title for the figure
+    save_path: str
+        path to save the figure
+    bmap_obj: AmplitudeImage
+        instance of AmplitudeImage for plotting background image
+    logger: Logger
+        logging Handler
+    """
+    fig = plt.figure(figsize=(15, 5))
+    ax = fig.add_subplot()
+    bmap_obj.plot(ax=ax, logger=logger)
+    coord_xy = np.array(np.where(cand_mask)).transpose()
+    val = np.ones_like(cand_mask)
+    sc = ax.scatter(coord_xy[:, 1], coord_xy[:, 0], c=val[cand_mask], s=0.5,
+                    cmap=cmc.cm.cmaps["lajolla_r"],
+                    vmin=1, vmax=2)  # set min, max to ensure that points are yellow
+    cbar = plt.colorbar(sc, pad=0.03, shrink=0.5)
+    cbar.ax.set_visible(False)  # make size of axis consistent with all others
+    plt.tight_layout()
+    plt.title(fig_title)
+    fig.savefig(save_path, dpi=300)
+    plt.close(fig)
+
+
 class LineSelector:
     """LineSelector."""
 

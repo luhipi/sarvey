@@ -98,7 +98,7 @@ def invertIfgNetwork(*, phase: np.ndarray, num_points: int, ifg_net_obj: IfgNetw
     prog_bar = ptime.progressBar(maxValue=num_points)
     for p in range(num_points):
         mask_coherent = lifetime_images[p, :].copy()
-        ref_idx = np.where(mask_coherent)[0][0]  # first coherent images of the point
+        ref_idx = np.where(mask_coherent)[0][0]  # first coherent image of the point
         mask_coherent[ref_idx] = False
 
         design_mat_adjusted = design_mat[lifetime_ifgs[p, :], :]

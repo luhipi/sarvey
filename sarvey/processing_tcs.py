@@ -60,27 +60,27 @@ def runDensificationSpace(*, path: str, config: Config, logger: Logger):
     point_obj.phase = np.angle(np.exp(1j * point_obj.phase) * np.conjugate(np.exp(1j * aps2_ifg_phase)))
 
     # identify coherent lifetime of TCS
-    fname = join(path, config.temporarily_coherent_scatterer.path_tcs,
+    fname = join(config.temporarily_coherent_scatterer.tcs_path,
                  f"lifetime_{config.temporarily_coherent_scatterer.method_name}.h5")
     tcs_coh_obj = BaseStack(file=fname, logger=logger)
     subset_index_map = tcs_coh_obj.read(dataset_name="subset_index_map")
 
-    fname = join(path, config.temporarily_coherent_scatterer.path_tcs,
+    fname = join(config.temporarily_coherent_scatterer.tcs_path,
                  f"change_map_{config.temporarily_coherent_scatterer.method_name}.h5")
     tcs_change_idx_obj = BaseStack(file=fname,
                                    logger=logger)
     change_index_map = tcs_change_idx_obj.read(dataset_name="change_index")
 
-    temp_coh_obj = BaseStack(file=join(path, "temporal_coherence.h5"), logger=logger)
-    temporal_coherence = temp_coh_obj.read(dataset_name="temp_coh")
-    del temp_coh_obj
+    sca_type_obj = BaseStack(file=join(path, "scatterer_type.h5"), logger=logger)
+    mask_ccs = sca_type_obj.read(dataset_name="CCS")
+    mask_tcs = sca_type_obj.read(dataset_name="TCS")
 
     lifetime_images, lifetime_ifgs = selectCoherentImagesAndIfgs(
-        temporal_coherence=temporal_coherence,
         change_index_map=change_index_map,
         subset_index_map=subset_index_map,
         point_obj=point_obj,
-        config=config
+        mask_ccs=mask_ccs,
+        mask_tcs=mask_tcs
     )
 
     edges_per_ifg = preTriangulateEachIfg(
