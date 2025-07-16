@@ -232,7 +232,7 @@ class TemporarilyCoherentScatterer(BaseModel, extra=Extra.forbid):
         default=False
     )
 
-    path_tcs: str = Field(
+    tcs_path: str = Field(
         title="The path to the output files from SpaTZ.",
         description="Set the path of the output directory from SpaTZ which should contain the change_map_<method>.h5"
                     "and lifetime_<method>.h5 files.",
@@ -269,7 +269,7 @@ class TemporarilyCoherentScatterer(BaseModel, extra=Extra.forbid):
     @validator('min_lifetime_length')
     def checkMinLifetimeLength(cls, v, values):
         """Check if the minimum lifetime length is valid."""
-        if values["use_temporarily_coherent_scatterers"]:
+        if values["use_tcs"]:
             if v <= 0:
                 raise ValueError("Minimum lifetime length must be greater than zero.")
         return v
@@ -284,25 +284,48 @@ class TemporarilyCoherentScatterer(BaseModel, extra=Extra.forbid):
         return v
 
     @validator('method_name')
-    def checkChangeIndexMapPath(cls, v, values):
-        """Check if the path is correct."""
-        if values["use_temporarily_coherent_scatterers"]:
-            if v == "" or v is None:
-                raise ValueError("Empty string is not allowed.")
+    def checkMethodName(cls, v, values):
+        """Check if method name is correct."""
+        if values["use_tcs"]:
             if v not in ["amplitude", "coherence_matrix", "phase_noise_space"]:
                 raise ValueError("method_name has to be one of 'amplitude', 'coherence_matrix' or 'phase_noise_space'.")
+
+            try:
+                values["tcs_path"]
+                lifetime_path = os.path.abspath(os.path.join(values["tcs_path"], f"lifetime_{v}.h5"))
+                if not os.path.exists(lifetime_path):
+                    raise ValueError(f"lifetime file does not exist: {lifetime_path}")
+
+                change_map_path = os.path.abspath(os.path.join(values["tcs_path"], f"change_map_{v}.h5"))
+                if not os.path.exists(change_map_path):
+                    raise ValueError(f"change map file does not exist: {change_map_path}")
+            except KeyError as e:
+                # tcs_path not set yet, so we cannot check the files.
+                pass
         return v
 
-    @validator('path_tcs')
-    def checkCoherentLifetimePath(cls, v, values):
+    @validator('tcs_path')
+    def checkOutputTCSPath(cls, v, values):
         """Check if the path is correct."""
-        if values["use_temporarily_coherent_scatterers"]:
+        if values["use_tcs"]:
             if v == "" or v is None:
                 raise ValueError("Empty string is not allowed.")
-            if not os.path.exists(os.path.join(os.path.abspath(v), "lifetime_" + values["method_name"] + ".h5")):
-                raise ValueError(f"coherent_lifetime_file does not exist: {v}")
-            if not os.path.exists(os.path.join(os.path.abspath(v), "change_map_" + values["method_name"] + ".h5")):
-                raise ValueError(f"change_index_map_file does not exist: {v}")
+
+            if not os.path.exists(os.path.abspath(v)):
+                raise ValueError(f"tcs_path is invalid: {os.path.abspath(v)}")
+
+            try:
+                values["method_name"]
+                lifetime_path = os.path.abspath(os.path.join(v, f"lifetime_{values['method_name']}.h5"))
+                if not os.path.exists(lifetime_path):
+                    raise ValueError(f"lifetime file does not exist: {lifetime_path}")
+
+                change_map_path = os.path.abspath(os.path.join(v, f"change_map_{values['method_name']}.h5"))
+                if not os.path.exists(change_map_path):
+                    raise ValueError(f"change map file does not exist: {change_map_path}")
+            except KeyError as e:
+                # method_name not set yet, so we cannot check the files.
+                pass
         return v
 
 
