@@ -75,18 +75,24 @@ def computeIfgsAndTemporalCoherence(*, path_temp_coh: str, path_ifgs: str, path_
         Mean amplitude image.
     """
     start_time = time.time()
+    logger.info("Computing interferograms and temporal coherence...")
     filter_kernel = np.ones((wdw_size, wdw_size), dtype=np.float64)
     filter_kernel[wdw_size // 2, wdw_size // 2] = 0
 
+    logger.debug(f"Openning SLC stack: {path_slc}")
     slc_stack_obj = slcStack(path_slc)
-    slc_stack_obj.open()
+    slc_stack_obj.open(print_msg=False)
+    logger.debug(f"Initializing temporal coherence stack: {path_temp_coh}")
     temp_coh_obj = BaseStack(file=path_temp_coh, logger=logger)
+    logger.debug(f"Initializing interferograms stack: {path_ifgs}")
     ifg_stack_obj = BaseStack(file=path_ifgs, logger=logger)
 
     mean_amp_img = np.zeros((slc_stack_obj.length, slc_stack_obj.width), dtype=np.float32)
     num_ifgs = ifg_array.shape[0]
 
     for idx in range(num_boxes):
+        logger.info(f"Processing patch:\t {idx+1}/{num_boxes}")
+
         bbox = box_list[idx]
         block2d = convertBboxToBlock(bbox=bbox)
 
@@ -97,8 +103,13 @@ def computeIfgsAndTemporalCoherence(*, path_temp_coh: str, path_ifgs: str, path_
         mean_amp = np.mean(np.abs(slc), axis=0)
         mean_amp[mean_amp == 0] = np.nan
         mean_amp_img[bbox[1]:bbox[3], bbox[0]:bbox[2]] = np.log10(mean_amp)
+        logger.debug(
+            (f"Number of valid amplitude values in patch {idx+1}: "
+             f"{np.sum(np.isfinite(mean_amp))}/{np.size(mean_amp)} with "
+             f"Min: {np.nanmin(mean_amp):.5f}, Max: {np.nanmax(mean_amp):.5f}, Mean: {np.nanmean(mean_amp):.5f}"))
 
         # compute ifgs
+        logger.debug(f"Computing interferograms and write to file...: {ifg_stack_obj.file}")
         ifgs = computeIfgs(slc=slc, ifg_array=ifg_array)
         ifg_stack_obj.writeToFileBlock(data=ifgs, dataset_name="ifgs", block=block2d, print_msg=False)
         del slc
@@ -106,10 +117,11 @@ def computeIfgsAndTemporalCoherence(*, path_temp_coh: str, path_ifgs: str, path_
         # filter ifgs
         avg_neighbours = np.zeros_like(ifgs)
         if num_cores == 1:
+            logger.debug("Filtering interferograms using 1 core for temporal coherence estimation...")
             for i in range(num_ifgs):
                 avg_neighbours[:, :, i] = convolve2d(in1=ifgs[:, :, i], in2=filter_kernel, mode='same', boundary="symm")
         else:
-
+            logger.debug(f"Filter interferograms using {num_cores} parallel cores for temporal coherence estimation.")
             args = [(
                 idx,
                 ifgs[:, :, idx],
@@ -118,21 +130,26 @@ def computeIfgsAndTemporalCoherence(*, path_temp_coh: str, path_ifgs: str, path_
             with multiprocessing.Pool(processes=num_cores) as pool:
                 results = pool.map(func=launchConvolve2d, iterable=args)
 
-            # retrieve results
+            logger.debug(f"Retrieving {len(results)} parallel processed results.")
             for j, avg_neigh in results:
                 avg_neighbours[:, :, j] = avg_neigh
             del results, args, avg_neigh
 
-        # compute temporal coherence
+        logger.debug(f"Computing temporal coherence and write to file...: {temp_coh_obj.file}")
         residual_phase = np.angle(ifgs * np.conjugate(avg_neighbours))
         del ifgs, avg_neighbours
         temp_coh = np.abs(np.mean(np.exp(1j * residual_phase), axis=2))
         temp_coh_obj.writeToFileBlock(data=temp_coh, dataset_name="temp_coh", block=block2d, print_msg=False)
+        logger.debug(
+            (f"Number of valid temporal coherence values in patch {idx+1}: "
+             f"{np.sum(np.isfinite(temp_coh))}/{np.size(temp_coh)} with "
+             f"Min: {np.nanmin(temp_coh):.2}, Max: {np.nanmax(temp_coh):.2}, Mean: {np.nanmean(temp_coh):.2}"))
+
         del residual_phase, temp_coh
-        logger.info(msg="Patches processed:\t {}/{}".format(idx + 1, num_boxes))
+        logger.info(f"Patches {idx+1}/{num_boxes} processed.")
 
     m, s = divmod(time.time() - start_time, 60)
-    logger.debug(msg='\ntime used: {:02.0f} mins {:02.1f} secs.\n'.format(m, s))
+    logger.debug(f"Ifgs and temporal coherence computed. Time used: {m:02.0f} mins {s:02.1f} secs.")
     return mean_amp_img
 
 
