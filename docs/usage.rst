@@ -64,6 +64,24 @@ The following command-line tools are available and can be run directly in the te
       sarvey_osm --geom ./geometryRadar.h5 --railway -o mask_railway.shp   # specify output path
 
 
+Help and Version Information
+-----------------------------
+
+To get help on how to use the command-line tools, use the `-h` or `--help` option. For example, run:
+
+.. code-block:: bash
+
+    sarvey -h
+
+This will display detailed information about the available options and usage.
+
+To check the version of the installed SARvey software, use the `--version` option. For example, run:
+
+.. code-block:: bash
+
+    sarvey --version
+
+
 Usage of the Python API
 -----------------------
 
