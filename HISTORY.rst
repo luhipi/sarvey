@@ -6,6 +6,7 @@ History
 Future minor version (release soon)
 -----------------------------------
 
+* Add version flag to command line interfaces.
 * enhance logging
 
 1.2.2 (2025-07-09)
