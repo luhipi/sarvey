@@ -44,6 +44,7 @@ import cmcrameri as cmc
 
 from miaplpy.objects.slcStack import slcStack
 
+from sarvey import version
 from sarvey.objects import Points, AmplitudeImage
 from sarvey import console
 from sarvey import viewer
@@ -345,6 +346,10 @@ def createParser():
 
     parser.add_argument('-w', '--workdir', default=None, dest="workdir",
                         help='Working directory (default: current directory).')
+
+    parser.add_argument('--version', action='version',
+                        version=f"SARvey version {version.__version__} - {version.__versionalias__}, "
+                                f"{version.__versiondate__}")
 
     return parser
 

@@ -38,6 +38,7 @@ import geopandas as gpd
 from shapely import ops, Point
 import matplotlib
 
+from sarvey import version
 from sarvey.osm_utils import runOsmQueryBridge, runOsmQuery, getSpatialExtend
 
 try:
@@ -80,6 +81,10 @@ def create_parser():
 
     parser.add_argument('-o', dest='out_file_name', default='osm_infra.shp',
                         help="name of output file. (default: 'osm_infra.shp')")
+
+    parser.add_argument('--version', action='version',
+                        version=f"SARvey version {version.__version__} - {version.__versionalias__}, "
+                                f"{version.__versiondate__}")
 
     return parser
 
