@@ -228,13 +228,13 @@ def createParser():
         formatter_class=argparse.RawTextHelpFormatter,
         epilog=EXAMPLE)
 
-    parser.add_argument('start', choices={0, 1, 2, 3, 4}, type=int,
+    parser.add_argument('start', choices={0, 1, 2, 3, 4}, type=int, nargs='?',
                         help='Start of processing')
 
-    parser.add_argument('stop', choices={0, 1, 2, 3, 4}, type=int,
+    parser.add_argument('stop', choices={0, 1, 2, 3, 4}, type=int, nargs='?',
                         help='Stop of processing')
 
-    parser.add_argument("-f", "--filepath", type=str, required=True, metavar="FILE",
+    parser.add_argument("-f", "--filepath", type=str, metavar="FILE",
                         help="Path to the config.json file.")
 
     parser.add_argument("-g", "--generate_config", action="store_true", default=False, dest="generate_config",
@@ -259,6 +259,8 @@ def main(iargs=None):
 
     :param iargs:
     """
+    if iargs is None:
+        iargs = sys.argv[1:]
     parser = createParser()
     args = parser.parse_args(iargs)
 
@@ -273,7 +275,16 @@ def main(iargs=None):
     logger.addHandler(console_handler)
     logger.setLevel(logging_level)
 
+    if len(iargs) == 0:
+        msg = "No arguments provided. Use '-h' or '--help' for help."
+        logger.error(msg)
+        raise ValueError(msg)
+
     if args.generate_config:
+        if args.filepath is None:
+            msg = "You must specify a file path for the configuration file with '-f' option."
+            logger.error(msg)
+            raise ValueError(msg)
         logger.info(msg=f"Write default config to file: {args.filepath}.")
         default_config_dict = generateTemplateFromConfigModel()
         with open(args.filepath, "w") as f:
@@ -284,6 +295,12 @@ def main(iargs=None):
         top_level_schema = TypeAdapter(Config).json_schema()
         print(json5.dumps(top_level_schema, indent=2))
         return 0
+
+    if args.filepath:
+        if args.start is None or args.stop is None:
+            msg = "You must specify a start and stop step."
+            logger.error(msg)
+            raise ValueError(msg)
 
     if args.stop < args.start:
         msg = f"Selected Start step ({args.start}) must be less than or equal to Stop step ({args.stop}). Exiting!"
