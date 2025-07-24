@@ -35,7 +35,7 @@ Create a Config File
 
 .. code-block:: bash
 
-    sarvey -f config.json 0 0 -g
+    sarvey -f config.json -g
 
 Specify parameters in the config file. Set a reasonable value for **num_cores**.
 
