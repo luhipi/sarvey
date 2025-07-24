@@ -54,11 +54,10 @@ except ImportError as e:
     print(e)
 
 EXAMPLE = """Example:
-  sarvey -f config.json 0 0 -g                   # create default config file with the name config.json and exit
-  sarvey -f config.json 0 0                      # run only preparation step
+  sarvey -f config.json -g                        # create default config file with the name config.json and exit
+  sarvey -f config.json 0 0                      # run step 0 (preparation)
   sarvey -f config.json 0 4                      # run all processing steps
-
-  sarvey -f config.json 0 0 -p                   # print explanation of the configuration parameters to console
+  sarvey -p                                               # print explanation of the configuration parameters to console
 """
 
 STEP_DICT = {
