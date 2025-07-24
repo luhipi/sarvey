@@ -302,10 +302,10 @@ def main(iargs=None):
             logger.error(msg)
             return 1
 
-    if args.stop < args.start:
-        msg = f"Selected Start step ({args.start}) must be less than or equal to Stop step ({args.stop}). Exiting!"
-        logger.error(msg)
-        return 1
+        if args.stop < args.start:
+            msg = f"Selected Start step ({args.start}) must be less than or equal to Stop step ({args.stop}). Exiting!"
+            logger.error(msg)
+            return 1
 
     if args.workdir is None:
         args.workdir = os.path.abspath(os.path.curdir)
