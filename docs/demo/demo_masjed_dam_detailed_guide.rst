@@ -69,9 +69,9 @@ Create a config file, which is a JSON file containing the parameters for `sarvey
 
 .. code-block:: bash
 
-    sarvey -f config.json 0 0 -g
+    sarvey -f config.json -g
 
-Note: The above command only generates a configuration file. Although step 0 is specified, it will not be executed.
+Note: -f specifies the name of the config file, and -g indicates that you want to generate a new config file.
 
 Step 1.4: Modify the config.json File
 """""""""""""""""""""""""""""""""""""
@@ -331,7 +331,7 @@ A new file `p2_coh70_ts.h5` is created. You can now visualize this file that has
 
 .. code-block:: bash
 
-    sarvey -f config.json 0 0 -p
+    sarvey -p
 
 
 Step 5: Export to GIS Format
