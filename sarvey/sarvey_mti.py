@@ -316,6 +316,7 @@ def main(iargs=None):
         return 1
 
     logger.info(f"Working directory: {args.workdir}")
+    logger.info(f"Configuration file path: {args.filepath}")
 
     config_file_path = os.path.abspath(join(args.workdir, args.filepath))
 
