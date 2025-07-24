@@ -296,6 +296,9 @@ def main(iargs=None):
         print(json5.dumps(top_level_schema, indent=2))
         return 0
 
+    if args.workdir is None:
+        args.workdir = os.path.abspath(os.path.curdir)
+
     if args.filepath:
         if args.start is None or args.stop is None:
             msg = "You must specify a start and stop step."
@@ -307,8 +310,11 @@ def main(iargs=None):
             logger.error(msg)
             return 1
 
-    if args.workdir is None:
-        args.workdir = os.path.abspath(os.path.curdir)
+    if args.filepath is None:
+        msg = "You must specify a file path for the configuration file with '-f' option."
+        logger.error(msg)
+        return 1
+
     logger.info(f"Working directory: {args.workdir}")
 
     config_file_path = os.path.abspath(join(args.workdir, args.filepath))
