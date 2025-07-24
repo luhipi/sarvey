@@ -6,6 +6,7 @@ History
 Future minor version (release soon)
 -----------------------------------
 
+* Enhance argument parsing in command line interface.
 * Add version flag to command line interfaces.
 * enhance logging
 

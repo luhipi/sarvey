@@ -54,11 +54,10 @@ except ImportError as e:
     print(e)
 
 EXAMPLE = """Example:
-  sarvey -f config.json 0 0 -g                   # create default config file with the name config.json and exit
-  sarvey -f config.json 0 0                      # run only preparation step
+  sarvey -f config.json -g                        # create default config file with the name config.json and exit
+  sarvey -f config.json 0 0                      # run step 0 (preparation)
   sarvey -f config.json 0 4                      # run all processing steps
-
-  sarvey -f config.json 0 0 -p                   # print explanation of the configuration parameters to console
+  sarvey -p                                               # print explanation of the configuration parameters to console
 """
 
 STEP_DICT = {
@@ -228,13 +227,13 @@ def createParser():
         formatter_class=argparse.RawTextHelpFormatter,
         epilog=EXAMPLE)
 
-    parser.add_argument('start', choices={0, 1, 2, 3, 4}, type=int,
+    parser.add_argument('start', choices={0, 1, 2, 3, 4}, type=int, nargs='?',
                         help='Start of processing')
 
-    parser.add_argument('stop', choices={0, 1, 2, 3, 4}, type=int,
+    parser.add_argument('stop', choices={0, 1, 2, 3, 4}, type=int, nargs='?',
                         help='Stop of processing')
 
-    parser.add_argument("-f", "--filepath", type=str, required=True, metavar="FILE",
+    parser.add_argument("-f", "--filepath", type=str, metavar="FILE",
                         help="Path to the config.json file.")
 
     parser.add_argument("-g", "--generate_config", action="store_true", default=False, dest="generate_config",
@@ -259,6 +258,8 @@ def main(iargs=None):
 
     :param iargs:
     """
+    if iargs is None:
+        iargs = sys.argv[1:]
     parser = createParser()
     args = parser.parse_args(iargs)
 
@@ -273,7 +274,16 @@ def main(iargs=None):
     logger.addHandler(console_handler)
     logger.setLevel(logging_level)
 
+    if len(iargs) == 0:
+        msg = "No arguments provided. Use '-h' or '--help' for help."
+        logger.error(msg)
+        return 1
+
     if args.generate_config:
+        if args.filepath is None:
+            msg = "You must specify a file path for the configuration file with '-f' option."
+            logger.error(msg)
+            return 1
         logger.info(msg=f"Write default config to file: {args.filepath}.")
         default_config_dict = generateTemplateFromConfigModel()
         with open(args.filepath, "w") as f:
@@ -285,14 +295,27 @@ def main(iargs=None):
         print(json5.dumps(top_level_schema, indent=2))
         return 0
 
-    if args.stop < args.start:
-        msg = f"Selected Start step ({args.start}) must be less than or equal to Stop step ({args.stop}). Exiting!"
-        logger.error(msg)
-        raise ValueError(msg)
-
     if args.workdir is None:
         args.workdir = os.path.abspath(os.path.curdir)
+
+    if args.filepath:
+        if args.start is None or args.stop is None:
+            msg = "You must specify a start and stop step."
+            logger.error(msg)
+            return 1
+
+        if args.stop < args.start:
+            msg = f"Selected Start step ({args.start}) must be less than or equal to Stop step ({args.stop}). Exiting!"
+            logger.error(msg)
+            return 1
+
+    if args.filepath is None:
+        msg = "You must specify a file path for the configuration file with '-f' option."
+        logger.error(msg)
+        return 1
+
     logger.info(f"Working directory: {args.workdir}")
+    logger.info(f"Configuration file path: {args.filepath}")
 
     config_file_path = os.path.abspath(join(args.workdir, args.filepath))
 
