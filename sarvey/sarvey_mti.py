@@ -278,13 +278,13 @@ def main(iargs=None):
     if len(iargs) == 0:
         msg = "No arguments provided. Use '-h' or '--help' for help."
         logger.error(msg)
-        raise ValueError(msg)
+        return 1
 
     if args.generate_config:
         if args.filepath is None:
             msg = "You must specify a file path for the configuration file with '-f' option."
             logger.error(msg)
-            raise ValueError(msg)
+            return 1
         logger.info(msg=f"Write default config to file: {args.filepath}.")
         default_config_dict = generateTemplateFromConfigModel()
         with open(args.filepath, "w") as f:
@@ -300,12 +300,12 @@ def main(iargs=None):
         if args.start is None or args.stop is None:
             msg = "You must specify a start and stop step."
             logger.error(msg)
-            raise ValueError(msg)
+            return 1
 
     if args.stop < args.start:
         msg = f"Selected Start step ({args.start}) must be less than or equal to Stop step ({args.stop}). Exiting!"
         logger.error(msg)
-        raise ValueError(msg)
+        return 1
 
     if args.workdir is None:
         args.workdir = os.path.abspath(os.path.curdir)
