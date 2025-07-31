@@ -364,9 +364,15 @@ class Preparation(BaseModel, extra=Extra.forbid):
         default=100
     )
 
-    filter_window_size: int = Field(
-        title="Size of filtering window [pixel]",
-        description="Set the size of window for lowpass filtering.",
+    filter_size_azimuth: int = Field(
+        title="Size of filtering window in azimuth [pixel]",
+        description="Set the size of the window in azimuth direction for estimating the temporal phase coherence.",
+        default=3
+    )
+
+    filter_size_range: int = Field(
+        title="Size of filtering window in range [pixel]",
+        description="Set the size of the window in range direction for estimating the temporal phase coherence.",
         default=9
     )
 
@@ -406,11 +412,13 @@ class Preparation(BaseModel, extra=Extra.forbid):
                 raise ValueError("Maximum baseline must be greater than zero.")
         return v
 
-    @validator('filter_window_size')
+    @validator('filter_size_azimuth', 'filter_size_range')
     def checkFilterWdwSize(cls, v):
         """Check if the filter window size is valid."""
         if v <= 0:
             raise ValueError("Filter window size must be greater than zero.")
+        if v % 2 == 0:
+            raise ValueError("Filter window size must be odd.")
         return v
 
 

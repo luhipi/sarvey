@@ -40,8 +40,8 @@ from sarvey.utils import convertBboxToBlock
 
 
 def computeIfgsAndTemporalCoherence(*, path_temp_coh: str, path_ifgs: str, path_slc: str, ifg_array: np.ndarray,
-                                    time_mask: np.ndarray, wdw_size: int, num_boxes: int, box_list: list,
-                                    num_cores: int, logger: Logger):
+                                    time_mask: np.ndarray, az_looks: int, rng_looks: int, num_boxes: int,
+                                    box_list: list, num_cores: int, logger: Logger):
     """ComputeIfgsAndTemporalCoherence.
 
     Compute the interferograms and temporal coherence from the SLC stack for a given set of (spatial) patches.
@@ -58,8 +58,10 @@ def computeIfgsAndTemporalCoherence(*, path_temp_coh: str, path_ifgs: str, path_
         Array containing the indices of the reference and secondary images which are used to compute the interferograms.
     time_mask : np.ndarray
         Binary mask indicating the selected images from the SLC stack.
-    wdw_size : int
-        Size of the filter window. Has to be odd.
+    az_looks : int
+        Number of looks in azimuth. Has to be odd.
+    rng_looks : int
+        Number of looks in range. Has to be odd.
     num_boxes : int
         Number of patches to enable reading and processing of larger SLC stacks.
     box_list : list
@@ -75,8 +77,8 @@ def computeIfgsAndTemporalCoherence(*, path_temp_coh: str, path_ifgs: str, path_
         Mean amplitude image.
     """
     start_time = time.time()
-    filter_kernel = np.ones((wdw_size, wdw_size), dtype=np.float64)
-    filter_kernel[wdw_size // 2, wdw_size // 2] = 0
+    filter_kernel = np.ones((az_looks, rng_looks), dtype=np.float64)
+    filter_kernel[az_looks // 2, rng_looks // 2] = 0
 
     slc_stack_obj = slcStack(path_slc)
     slc_stack_obj.open()

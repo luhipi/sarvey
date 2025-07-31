@@ -31,7 +31,8 @@
         "ifg_network_type": "star",
         "num_ifgs": 3,
         "max_tbase": 100,
-        "filter_window_size": 9
+        "filter_size_azimuth": 3,
+        "filter_size_range": 9
     },
     "consistency_check": {
         "coherence_p1": 0.9,
