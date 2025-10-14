@@ -98,7 +98,7 @@ def exportDataToGisFormat(*, file_path: str, output_path: str, input_path: str,
 
     sc_type_obj = BaseStack(file=join(dirname(file_path), "scatterer_type.h5"), logger=logger)
     scattering = sc_type_obj.read(dataset_name="PL", box=None, print_msg=True)
-    scattering = np.where(scattering == 1, "PS", "DS")
+    scattering = np.where(scattering == 1, "DS", "PS")
     scattering = scattering[point_obj.createMask()]
 
     # transform into meters
