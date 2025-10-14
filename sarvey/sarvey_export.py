@@ -45,7 +45,7 @@ from shapely.errors import ShapelyDeprecationWarning
 
 from sarvey.config import loadConfiguration
 from sarvey.console import showLogoSARvey
-from sarvey.objects import Points, CoordinatesMap
+from sarvey.objects import Points, CoordinatesMap, BaseStack
 import sarvey.utils as ut
 from sarvey.geolocation import calculateGeolocationCorrection
 
@@ -94,7 +94,12 @@ def exportDataToGisFormat(*, file_path: str, output_path: str, input_path: str,
         defo_ts[i, :] = point_obj.phase[i, :] - phase_topo
 
     mask_ccs = np.isnan(point_obj.phase).sum(axis=1) == 0
-    sc_type = np.where(mask_ccs, "CCS", "TCS")
+    lifetime = np.where(mask_ccs, "CCS", "TCS")
+
+    sc_type_obj = BaseStack(file=join(dirname(file_path), "scatterer_type.h5"), logger=logger)
+    scattering = sc_type_obj.read(dataset_name="PL", box=None, print_msg=True)
+    scattering = np.where(scattering == 1, "PS", "DS")
+    scattering = scattering[point_obj.createMask()]
 
     # transform into meters
     defo_ts *= 1000  # in [mm]
@@ -162,7 +167,8 @@ def exportDataToGisFormat(*, file_path: str, output_path: str, input_path: str,
     df_points.insert(4, 'st_consistency', stc * 1000)  # in [mm]
     df_points.insert(5, 'dem_error', demerr)  # in [m]
     df_points.insert(6, 'dem', point_obj.height)  # in [m]
-    df_points.insert(7, 'sc_type', sc_type)  # either CCS or TCS
+    df_points.insert(7, 'lifetime', lifetime)  # either CCS or TCS
+    df_points.insert(8, 'scattering', scattering)  # either PS or DS
 
     df_points.columns = [col[:10] for col in df_points.columns]
 
