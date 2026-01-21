@@ -45,6 +45,7 @@ import geopandas as gpd
 
 from mintpy.utils import writefile, ptime, utils
 
+from sarvey import version
 from sarvey.osm_utils import getSpatialExtend
 
 try:
@@ -78,6 +79,10 @@ def create_parser():
 
     parser.add_argument('-o', dest='out_file_name', default='mask_infra.h5',
                         help="name of output file. (default: 'mask_infra.h5').")
+
+    parser.add_argument('--version', action='version',
+                        version=f"SARvey version {version.__version__} - {version.__versionalias__}, "
+                                f"{version.__versiondate__}")
 
     return parser
 

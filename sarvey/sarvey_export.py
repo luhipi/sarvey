@@ -45,6 +45,7 @@ from pyproj.database import query_utm_crs_info
 from shapely import Point
 from shapely.errors import ShapelyDeprecationWarning
 
+from sarvey import version
 from sarvey.config import loadConfiguration
 from sarvey.console import showLogoSARvey
 from sarvey.objects import Points
@@ -190,6 +191,10 @@ def createParser():
 
     parser.add_argument('-t', '--no-time-series', default=False, action="store_true", dest="no_timeseries",
                         help='Do not export time series (default: False).')
+
+    parser.add_argument('--version', action='version',
+                        version=f"SARvey version {version.__version__} - {version.__versionalias__}, "
+                                f"{version.__versiondate__}")
 
     return parser
 

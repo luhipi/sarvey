@@ -740,7 +740,6 @@ class Network:
         """
         self.arcs = arcs
         self.num_arcs = self.arcs.shape[0]
-        self.logger.info(msg="no. arcs:\t{}".format(self.num_arcs))
 
         self.phase = np.zeros((self.num_arcs, point_obj.ifg_net_obj.num_ifgs))
         self.loc_inc = np.zeros((self.num_arcs,))
