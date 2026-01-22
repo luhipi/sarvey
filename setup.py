@@ -46,7 +46,7 @@ req = [
     "cython", "numpy", "pyproj", "matplotlib", "numba", "scipy",
     "mintpy", "h5py", "overpy", "gstools", "shapely", "pandas", "geopandas", "pymaxflow",
     "pillow", "importlib_resources", "json5", "cmcrameri", 'pydantic',
-    "kamui @ git+https://github.com/yoyolicoris/kamui.git@dev",
+    "kamui @ git+https://github.com/yoyolicoris/kamui.git@84c10df2fa89091a0aa4ecf12049a70d0d01391f",
     "miaplpy @ git+https://github.com/insarlab/MiaplPy.git"
 ]
 
