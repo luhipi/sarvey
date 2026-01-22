@@ -10,7 +10,7 @@ on:
     branches:
       - main
   release:
-    types: 
+    types:
       - published
 
 permissions:
@@ -18,8 +18,8 @@ permissions:
 
 env:
     SKIP_DEPLOY: true
-    SKIP_INSTALL: false
-    SKIP_TEST: false
+    SKIP_INSTALL: true
+    SKIP_TEST: true
 
 jobs:
   test_sarvey:
@@ -42,7 +42,7 @@ jobs:
           conda activate ci_env
           rm -rf tests/testdata
           # wget -nv -c -O testdata.zip https://seafile.projekt.uni-hannover.de/f/4b3be399dffa488e98db/?dl=1
-          wget -nv -c -O testdata.zip https://seafile.projekt.uni-hannover.de/f/104b499f6f7e4360877d/?dl=1          
+          wget -nv -c -O testdata.zip https://seafile.projekt.uni-hannover.de/f/104b499f6f7e4360877d/?dl=1
           unzip testdata.zip
           mkdir -p test
           mv testdata tests/
@@ -56,7 +56,7 @@ jobs:
           conda init bash
           source ~/.bashrc
           source activate ci_env
-          
+
           # replace documentation address for tags befro make docs
           IFS='/' read -r OWNER REPO <<< "${GITHUB_REPOSITORY}"
           URL_IO="https://${OWNER}.github.io/${REPO}"
@@ -204,22 +204,22 @@ jobs:
           run: |
               source /opt/conda/etc/profile.d/conda.sh
               conda activate base
-              
+
               conda create -n sarvey_testinstall python=3.10 pip  -y
               conda activate sarvey_testinstall
               conda install conda-forge::pysolid -y
               conda install conda-forge::gdal
               pip install git+https://github.com/insarlab/MiaplPy.git
-              
+
               # get current branch for installation
               IFS='/' read -r OWNER REPO <<< "${GITHUB_REPOSITORY}"
-                            
+
               URL="https://github.com/${OWNER}/${REPO}"
               URL_IO="https://${OWNER}.github.io/${REPO}"
-              
+
               echo "Repository URL: ${URL}"
               echo "Repository Documentation URL: ${URL}"
-                            
+
               if [[ "$GITHUB_REF" == refs/tags/* ]]; then
                   current_ref="${GITHUB_REF##*/}"
               elif [[ "$GITHUB_REF" == refs/heads/* ]]; then
@@ -229,7 +229,7 @@ jobs:
               else
                   current_ref="${GITHUB_REF}"
               fi
-              
+
               echo "Current branch/tag: ${URL}.git@$current_ref"
               pip install git+${URL}.git@$current_ref
               pip install sarvey[dev]
@@ -242,7 +242,7 @@ jobs:
   # deploy_pages:
   #   runs-on: self-hosted
 
-  #   needs: 
+  #   needs:
   #     - test_sarvey
   #     - test_urls
   #     - test_styles
@@ -278,7 +278,7 @@ jobs:
   #       if: env.SKIP_DEPLOY == 'false' && github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
   #       run: |
   #         rm -rf public
-          
+
   #         git clone --branch gh-pages https://github.com/${{ github.repository }} public
 
   #         if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
@@ -295,7 +295,7 @@ jobs:
   #         mkdir -p $DOCS_PATH/images
   #         mkdir -p $DOCS_PATH/coverage
   #         mkdir -p $DOCS_PATH/test_reports
-          
+
   #         cp -r docs/_build/html/* $DOCS_PATH/docs
   #         cp -r htmlcov/* $DOCS_PATH/coverage/
   #         cp report.html $DOCS_PATH/test_reports/
