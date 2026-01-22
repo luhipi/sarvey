@@ -1,17 +1,21 @@
 name: CI
 
+
 on:
-  pull_request:
-    branches:
-      - main
-      - 'v?*b'
-      - 'v?*beta'
-  push:
-    branches:
-      - main
-  release:
-    types:
-      - published
+    workflow_dispatch:
+
+#on:
+#  pull_request:
+#    branches:
+#      - main
+#      - 'v?*b'
+#      - 'v?*beta'
+#  push:
+#    branches:
+#      - main
+#  release:
+#    types:
+#      - published
 
 permissions:
   contents: write
