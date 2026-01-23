@@ -106,7 +106,7 @@ SARvey is a command-line-based software. The major steps for running SARvey are 
 
     .. code-block:: bash
 
-         sarvey -f config.json 0 4 -g
+         sarvey -f config.json -g
 
   * Modify **config.json** to change path to "inputs" directory. Modify other parameters as desired.
 
