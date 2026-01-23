@@ -7,6 +7,7 @@ Future minor version (release soon)
 -----------------------------------
 
 * Enhance argument parsing in command line interface.
+* Improve installation and test with Python 3.13.
 * Add version flag to command line interfaces.
 * enhance logging
 
