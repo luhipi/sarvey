@@ -982,14 +982,14 @@ def removeArcsByPointMask(*, net_obj: Union[Network, NetworkParameter], point_id
 
 
 def removeBadPointsIteratively(*, net_obj: NetworkParameter, point_id: np.ndarray,
-                               quality_thrsh: float, logger: Logger) -> [nx.Graph, np.ndarray]:
+                               quality_thrsh: float, logger: Logger) -> [NetworkParameter, np.ndarray]:
     """
     Remove bad points from a network using NetworkX. Points with low-quality arcs (weights) are removed iteratively.
 
     Parameters
     ----------
-    net_obj: Network
-        The spatial Network object.
+    net_obj: NetworkParameter
+        The NetworkParameter object.
     point_id: np.ndarray
         ID of the points in the network.
     quality_thrsh: float
@@ -999,8 +999,8 @@ def removeBadPointsIteratively(*, net_obj: NetworkParameter, point_id: np.ndarra
 
     Returns
     -------
-    net_obj: Network
-        Network object without the removed points and arcs.
+    net_obj: NetworkParameter
+        NetworkParameter object without the removed points and arcs.
     point_id: np.ndarray
         ID of the points in the network after the removal of bad points.
     """
@@ -1013,8 +1013,6 @@ def removeBadPointsIteratively(*, net_obj: NetworkParameter, point_id: np.ndarra
     graph.add_edges_from(
         [(arc[0], arc[1], {'weight': net_obj.gamma[idx], 'arc_idx': idx}) for idx, arc in enumerate(net_obj.arcs)]
     )
-
-    # todo: address the RuntimeWarning from numpy when computing nanmedian
 
     median_coherence = {
         u: np.nanmedian([graph[u][v]['weight'] for v in graph.successors(u)] +
@@ -1095,12 +1093,10 @@ def removeBadArcsIteratively(*, net_obj: Network, quality_thrsh: float = 0.0, lo
     """
     logger.info(msg="Iteratively removing bad arcs with quality < {}".format(quality_thrsh))
 
-    # Create a NetworkX graph from the arcs
     graph = nx.Graph()
     for idx, arc in enumerate(net_obj.arcs):
         graph.add_edge(arc[0], arc[1], weight=1-net_obj.gamma[idx])
 
-    # Compute the minimum spanning tree (MST) using Kruskal's algorithm
     mst = nx.minimum_spanning_tree(graph, algorithm="kruskal")
     mst_edges = set(mst.edges)
 
@@ -1110,7 +1106,6 @@ def removeBadArcsIteratively(*, net_obj: Network, quality_thrsh: float = 0.0, lo
         (arc[0], arc[1]) for idx, arc in enumerate(net_obj.arcs)
         if bad_arc_mask[idx] and (arc[0], arc[1]) not in mst_edges and (arc[1], arc[0]) not in mst_edges
     ]
-    # Log the number of bad arcs
     logger.info(msg="Removing {} bad arc(s)".format(len(bad_arcs)))
 
     # Remove the bad arcs
