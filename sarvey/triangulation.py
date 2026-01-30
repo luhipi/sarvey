@@ -147,9 +147,11 @@ class PointNetworkTriangulation:
         prog_bar = ptime.progressBar(maxValue=num_points)
         start_time = time.time()
 
+        k_search = min(150, num_points)
         for p1 in range(num_points):
             # find all nearest neighbours independent of the direction within the max_dist
-            idx = tree.query(self.coord_xy[p1, :], k=150)[1]
+            idx = tree.query(self.coord_xy[p1, :], k=k_search)[1]
+            idx = np.atleast_1d(idx)
             idx = idx[1:]
 
             # add the neighbours to the predefined bins based on the angle to the point
