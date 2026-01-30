@@ -459,8 +459,9 @@ class Unwrapping(BaseModel, extra="forbid"):
     use_arcs_from_temporal_unwrapping: bool = Field(
         title="Use arcs from temporal unwrapping",
         description="If true, use same arcs from temporal unwrapping, where bad arcs were already removed."
-                    "If false, apply new delaunay triangulation.",
-        default=True
+                    "If false, apply new delaunay triangulation."
+                    "(Default: false)",
+        default=False
     )
 
 
