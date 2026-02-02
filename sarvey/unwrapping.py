@@ -303,6 +303,54 @@ def launchAmbiguityFunctionSearch(parameters: tuple):
     return arc_idx_range, demerr, vel, gamma
 
 
+def selectIfgsForTemporalUnwrapping(*, tbase_ifg: np.ndarray, pbase_ifg: np.ndarray):
+    """"""
+    thrsh_tbase_ifg = 90 / 365.25  # threshold for temporal baseline in years
+
+    # plot the baseline distribution
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.scatter(tbase_ifg, pbase_ifg, s=10, edgecolors='none')
+    ax.axvline(x=thrsh_tbase_ifg, color='orange', linestyle='--', label='Temporal baseline threshold')
+    ax.set_xlabel('Temporal baseline (years)')
+    ax.set_ylabel('Perpendicular baseline (m)')
+    ax.set_title('Baseline distribution')
+    fig.tight_layout()
+
+    # select ifgs with short temporal baselines
+    mask_ifgs = np.abs(tbase_ifg) < thrsh_tbase_ifg
+
+    # bin the perpendicular baselines with 100 bins and select from each bin 2 ifgs if possible
+    num_bins = 100
+    bin_edges = np.linspace(pbase_ifg.min(), pbase_ifg.max(), num_bins + 1)
+    bin_indices = np.digitize(pbase_ifg, bin_edges) - 1  # -1 to make it zero-based index
+    mask_ifgs_bin = np.zeros_like(mask_ifgs, dtype=bool)
+    for i in range(num_bins):
+        bin_mask = (bin_indices == i) & mask_ifgs
+        if np.sum(bin_mask) > 2:
+            # select 2 ifgs from the bin
+            selected_indices = np.random.choice(np.where(bin_mask)[0], size=2, replace=False)
+            mask_ifgs_bin[selected_indices] = True
+        elif np.sum(bin_mask) > 0:
+            # select all ifgs from the bin
+            mask_ifgs_bin[bin_mask] = True
+
+    # superimpose the selected ifgs in the plot
+    ax.scatter(tbase_ifg[mask_ifgs_bin], pbase_ifg[mask_ifgs_bin], c='red', s=20, label='Selected ifgs')
+    ax.legend()
+
+    # plot histogram with the bins
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.hist(pbase_ifg[mask_ifgs_bin], bins=bin_edges, edgecolor='black', alpha=0.7)
+    # add histogram with original distribution of ifgs
+    ax.hist(pbase_ifg[mask_ifgs], bins=bin_edges, edgecolor='black', alpha=0.3, label='All ifgs')
+    ax.set_xlabel('Perpendicular baseline (m)')
+    ax.set_ylabel('Number of interferograms')
+    ax.set_title('Histogram of selected interferograms by perpendicular baseline')
+    fig.tight_layout()
+
+    return mask_ifgs
+
+
 def temporalUnwrapping(*, ifg_net_obj: IfgNetwork, net_obj: Network, wavelength: float, velocity_bound: float,
                        demerr_bound: float, num_samples: int, num_cores: int = 1, logger: Logger) -> \
         tuple[np.ndarray, np.ndarray, np.ndarray]:
