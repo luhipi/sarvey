@@ -18,14 +18,13 @@ The parameters of each step are handled via the `configuration file`_ for which 
 Configuration file
 ------------------
 The configuration file is a JSON file containing all the parameters required to run `sarvey`.
-This file can be generated using the `sarvey` command with the **"-g"** flag, where you can specify your desired filename.
+This file can be generated using the `sarvey` command with the **"-g"** flag. You should specify your desired filename with the **"-f"** flag.
 
 
 .. code-block:: bash
 
-     sarvey -f config.json 0 0 -g
+     sarvey -f config.json -g
 
-Note: The above command only generates a configuration file. Although step 0 is specified, it will not be executed.
 
 The configuration file has various sections, as detailed below:
 
@@ -214,7 +213,7 @@ Step 3: Filtering
 
 In this step, the atmospheric phase screen (APS) is estimated from the displacement time series of the first-order points.
 Afterwards, the APS is interpolated to the location of the second-order points.
-The filtering can be skipped by setting **filtering:apply_aps_filtering** to True.
+The filtering can be skipped by setting **filtering:apply_aps_filtering** to False.
 However, the step 3 has to be executed as the second-order points are selected during this step.
 
 - Selecting pixels with no or linear displacement:

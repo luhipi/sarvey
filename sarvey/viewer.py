@@ -34,7 +34,7 @@ from logging import Logger
 import matplotlib.cm as cm
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
-from matplotlib.collections import PathCollection
+from matplotlib.collections import PathCollection, LineCollection
 from matplotlib import widgets
 from matplotlib.backend_bases import MouseButton
 from matplotlib.colors import Normalize
@@ -198,12 +198,16 @@ def plotColoredPointNetwork(*, x: np.ndarray, y: np.ndarray, arcs: np.ndarray, v
         norm = Normalize(vmin=clim[0], vmax=clim[1])
 
     mapper = cm.ScalarMappable(norm=norm, cmap=cmc.cm.cmaps[cmap])
-    mapper_list = [mapper.to_rgba(v) for v in val]
-    for m in range(arcs.shape[0]):
-        x_val = [x[arcs[m, 0]], x[arcs[m, 1]]]
-        y_val = [y[arcs[m, 0]], y[arcs[m, 1]]]
+    colors = mapper.to_rgba(val)
 
-        ax.plot(x_val, y_val, linewidth=linewidth, c=mapper_list[m])
+    # Prepare line segments for LineCollection
+    line_segments = [
+        [[x[arcs[m, 0]], y[arcs[m, 0]]], [x[arcs[m, 1]], y[arcs[m, 1]]]]
+        for m in range(arcs.shape[0])
+    ]
+    line_collection = LineCollection(line_segments, colors=colors, linewidths=linewidth)
+    ax.add_collection(line_collection)
+
     cbar = fig.colorbar(mapper, ax=ax, pad=0.03, shrink=0.5)
 
     return ax, cbar

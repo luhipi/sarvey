@@ -43,9 +43,11 @@ with open("sarvey/version.py") as version_file:
     exec(version_file.read(), version)
 
 req = [
-    "cython", "numpy<=1.26", "pyproj", "matplotlib", "numba", "scipy",
-    "mintpy", "h5py", "overpy", "miaplpy", "gstools", "shapely", "pandas", "geopandas", "pymaxflow",
-    "pillow", "pydantic<=1.10.10", "importlib_resources", "kamui", "json5", "cmcrameri"
+    "cython", "numpy", "pyproj", "matplotlib", "numba", "scipy",
+    "mintpy", "h5py", "overpy", "gstools", "shapely", "pandas", "geopandas", "pymaxflow",
+    "pillow", "importlib_resources", "json5", "cmcrameri", 'pydantic',
+    "kamui @ git+https://github.com/yoyolicoris/kamui.git@84c10df2fa89091a0aa4ecf12049a70d0d01391f",
+    "miaplpy @ git+https://github.com/insarlab/MiaplPy.git"
 ]
 
 req_setup = []
@@ -75,10 +77,7 @@ setup(
         'None',
         'Natural Language :: English',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9',
-        'Programming Language :: Python :: 3.10'
+        'Programming Language :: Python :: 3.13'
     ],
     description="InSAR time series analysis software for SAR4Infra project",
     entry_points={
