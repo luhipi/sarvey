@@ -304,9 +304,8 @@ def createArcsBetweenPoints(*, point_obj: Points, knn: int = None, max_arc_lengt
 
     triang_obj.triangulateGlobal()
 
-    triang_obj.triangulateCircularNearestNeighbors(
-        num_partitions=9
-    )
+    if knn is not None:
+        triang_obj.triangulateKnn(k=knn)
 
     logger.info(msg="remove arcs with length > {}.".format(max_arc_length))
     ut_mask = np.triu(triang_obj.dist_mat, k=1) != 0
