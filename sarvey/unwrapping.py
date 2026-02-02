@@ -29,11 +29,8 @@
 
 """Unwrapping module for SARvey."""
 import multiprocessing
-from os.path import join, dirname
 import time
-from typing import Union
 import networkx as nx
-import matplotlib.pyplot as plt
 import numpy as np
 from kamui import unwrap_arbitrary
 from scipy.sparse import csr_matrix
@@ -41,13 +38,12 @@ from scipy.sparse.csgraph import structural_rank
 from scipy.sparse.linalg import lsqr
 from scipy.optimize import minimize
 from logging import Logger
-import cmcrameri as cmc
 
 from mintpy.utils import ptime
 
 import sarvey.utils as ut
 from sarvey.ifg_network import IfgNetwork
-from sarvey.objects import Network, NetworkParameter, AmplitudeImage
+from sarvey.objects import Network, NetworkParameter
 
 
 def objFuncTemporalCoherence(x, *args):
@@ -303,54 +299,6 @@ def launchAmbiguityFunctionSearch(parameters: tuple):
     return arc_idx_range, demerr, vel, gamma
 
 
-def selectIfgsForTemporalUnwrapping(*, tbase_ifg: np.ndarray, pbase_ifg: np.ndarray):
-    """"""
-    thrsh_tbase_ifg = 90 / 365.25  # threshold for temporal baseline in years
-
-    # plot the baseline distribution
-    fig, ax = plt.subplots(figsize=(10, 6))
-    ax.scatter(tbase_ifg, pbase_ifg, s=10, edgecolors='none')
-    ax.axvline(x=thrsh_tbase_ifg, color='orange', linestyle='--', label='Temporal baseline threshold')
-    ax.set_xlabel('Temporal baseline (years)')
-    ax.set_ylabel('Perpendicular baseline (m)')
-    ax.set_title('Baseline distribution')
-    fig.tight_layout()
-
-    # select ifgs with short temporal baselines
-    mask_ifgs = np.abs(tbase_ifg) < thrsh_tbase_ifg
-
-    # bin the perpendicular baselines with 100 bins and select from each bin 2 ifgs if possible
-    num_bins = 100
-    bin_edges = np.linspace(pbase_ifg.min(), pbase_ifg.max(), num_bins + 1)
-    bin_indices = np.digitize(pbase_ifg, bin_edges) - 1  # -1 to make it zero-based index
-    mask_ifgs_bin = np.zeros_like(mask_ifgs, dtype=bool)
-    for i in range(num_bins):
-        bin_mask = (bin_indices == i) & mask_ifgs
-        if np.sum(bin_mask) > 2:
-            # select 2 ifgs from the bin
-            selected_indices = np.random.choice(np.where(bin_mask)[0], size=2, replace=False)
-            mask_ifgs_bin[selected_indices] = True
-        elif np.sum(bin_mask) > 0:
-            # select all ifgs from the bin
-            mask_ifgs_bin[bin_mask] = True
-
-    # superimpose the selected ifgs in the plot
-    ax.scatter(tbase_ifg[mask_ifgs_bin], pbase_ifg[mask_ifgs_bin], c='red', s=20, label='Selected ifgs')
-    ax.legend()
-
-    # plot histogram with the bins
-    fig, ax = plt.subplots(figsize=(10, 6))
-    ax.hist(pbase_ifg[mask_ifgs_bin], bins=bin_edges, edgecolor='black', alpha=0.7)
-    # add histogram with original distribution of ifgs
-    ax.hist(pbase_ifg[mask_ifgs], bins=bin_edges, edgecolor='black', alpha=0.3, label='All ifgs')
-    ax.set_xlabel('Perpendicular baseline (m)')
-    ax.set_ylabel('Number of interferograms')
-    ax.set_title('Histogram of selected interferograms by perpendicular baseline')
-    fig.tight_layout()
-
-    return mask_ifgs
-
-
 def temporalUnwrapping(*, ifg_net_obj: IfgNetwork, net_obj: Network, wavelength: float, velocity_bound: float,
                        demerr_bound: float, num_samples: int, num_cores: int = 1, logger: Logger) -> \
         tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -393,9 +341,6 @@ def temporalUnwrapping(*, ifg_net_obj: IfgNetwork, net_obj: Network, wavelength:
             np.arange(net_obj.num_arcs), net_obj.num_arcs, net_obj.phase,
             net_obj.slant_range, net_obj.loc_inc, ifg_net_obj, wavelength, velocity_bound, demerr_bound, num_samples)
         arc_idx_range, demerr, vel, gamma = launchAmbiguityFunctionSearch(parameters=args)
-        demerr_adapt = demerr
-        vel_adapt = vel
-        gamma_adapt = gamma
     else:
         logger.info(msg="start parallel processing with {} cores.".format(num_cores))
 
@@ -427,97 +372,11 @@ def temporalUnwrapping(*, ifg_net_obj: IfgNetwork, net_obj: Network, wavelength:
             demerr[i] = demerr_i
             vel[i] = vel_i
             gamma[i] = gamma_i
-        demerr_adapt, vel_adapt, gamma_adapt = demerr, vel, gamma
-
-        # # run the same thing again with the selected ifgs
-        # mask_ifgs = selectIfgsForTemporalUnwrapping(
-        #     tbase_ifg=ifg_net_obj.tbase_ifg,
-        #     pbase_ifg=ifg_net_obj.pbase_ifg
-        # )
-        # demerr_adapt = np.zeros((net_obj.num_arcs, 1), dtype=np.float32)
-        # vel_adapt = np.zeros((net_obj.num_arcs, 1), dtype=np.float32)
-        # gamma_adapt = np.zeros((net_obj.num_arcs, 1), dtype=np.float32)
-        # net_obj.phase = net_obj.phase[:, mask_ifgs]
-        # ifg_net_obj.pbase_ifg = ifg_net_obj.pbase_ifg[mask_ifgs]
-        # ifg_net_obj.tbase_ifg = ifg_net_obj.tbase_ifg[mask_ifgs]
-        # ifg_net_obj.num_ifgs = mask_ifgs.sum()
-        #
-        # args = [(
-        #     idx_range,
-        #     idx_range.shape[0],
-        #     net_obj.phase[idx_range, :],
-        #     net_obj.slant_range[idx_range],
-        #     net_obj.loc_inc[idx_range],
-        #     ifg_net_obj,
-        #     wavelength,
-        #     velocity_bound,
-        #     demerr_bound,
-        #     num_samples) for idx_range in idx]
-        #
-        # with multiprocessing.Pool(processes=num_cores) as pool:
-        #     results = pool.map(func=launchAmbiguityFunctionSearch, iterable=args)
-        #
-        # # retrieve results
-        # for i, demerr_i, vel_i, gamma_i in results:
-        #     demerr_adapt[i] = demerr_i
-        #     vel_adapt[i] = vel_i
-        #     gamma_adapt[i] = gamma_i
-
-        # fig, ax = plt.subplots(1, 3, figsize=(15, 5))
-        # bins = np.linspace(np.min([demerr, demerr_adapt]), np.max([demerr, demerr_adapt]), 100)
-        # ax[0].hist(demerr, bins=bins, color='blue', alpha=0.5, label='Original')
-        # ax[0].hist(demerr_adapt, bins=bins, color='red', alpha=0.5, label='Adapted')
-        # ax[0].set_title('DEM error distribution')
-        # ax[0].set_xlabel('DEM error (m)')
-        # ax[0].set_ylabel('Frequency')
-        # ax[0].legend()
-        # bins = np.linspace(np.min([vel, vel_adapt]), np.max([vel, vel_adapt]), 100)
-        # ax[1].hist(vel, bins=bins, color='blue', alpha=0.5, label='Original')
-        # ax[1].hist(vel_adapt, bins=bins, color='red', alpha=0.5, label='Adapted')
-        # ax[1].set_title('Velocity distribution')
-        # ax[1].set_xlabel('Velocity (m/year)')
-        # ax[1].set_ylabel('Frequency')
-        # ax[1].legend()
-        # bins = np.linspace(0, 1, 100)
-        # ax[2].hist(gamma, bins=bins, color='blue', alpha=0.5, label='Original')
-        # ax[2].hist(gamma_adapt, bins=bins, color='red', alpha=0.5, label='Adapted')
-        # ax[2].set_title('Temporal coherence distribution')
-        # ax[2].set_xlabel('Temporal coherence')
-        # ax[2].set_ylabel('Frequency')
-        # ax[2].legend()
-        # fig.tight_layout()
-        # plt.show()
-        #
-        # fig, ax = plt.subplots(1, 2, figsize=(12, 6))
-        # ax[0].scatter(vel, gamma, s=10, edgecolors='none', c='blue', label='Original')
-        # ax[0].scatter(vel_adapt, gamma_adapt, s=10, edgecolors='none', c='red', label='Adapted')
-        # ax[0].set_xlabel('Velocity (m/year)')
-        # ax[0].set_ylabel('Temporal coherence')
-        # ax[0].set_title('Velocity vs Temporal coherence')
-        # ax[0].legend()
-        # ax[1].scatter(demerr, gamma, s=10, edgecolors='none', c='blue', label='Original')
-        # ax[1].scatter(demerr_adapt, gamma_adapt, s=10, edgecolors='none', c='red', label='Adapted')
-        # ax[1].set_xlabel('DEM error (m)')
-        # ax[1].set_ylabel('Temporal coherence')
-        # ax[1].set_title('DEM error vs Temporal coherence')
-        # ax[1].legend()
-        # fig.tight_layout()
-        # plt.show()
-        #
-        # fig, ax = plt.subplots(1, 2, figsize=(12, 6))
-        # ax[0].scatter(demerr, demerr_adapt, s=10, edgecolors='none', c='blue')
-        # ax[0].set_xlabel('DEM error (m)')
-        # ax[0].set_ylabel('Adapted DEM error (m)')
-        # ax[1].scatter(vel, vel_adapt, s=10, edgecolors='none', c='blue')
-        # ax[1].set_xlabel('Velocity (m/year)')
-        # ax[1].set_ylabel('Adapted Velocity (m/year)')
-        # fig.tight_layout()
-        # plt.show()
 
     m, s = divmod(time.time() - start_time, 60)
     logger.info(msg="Finished temporal unwrapping.")
     logger.debug(msg='time used: {:02.0f} mins {:02.1f} secs.'.format(m, s))
-    return demerr_adapt, vel_adapt, gamma_adapt
+    return demerr, vel, gamma
 
 
 def launchSpatialUnwrapping(parameters: tuple) -> tuple[np.ndarray, np.ndarray]:
