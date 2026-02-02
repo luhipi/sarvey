@@ -657,13 +657,16 @@ def removeBadPointsIteratively(*, net_obj: NetworkParameter, point_id: np.ndarra
     return net_obj, point_id
 
 
-def removeBadArcsIteratively(*, net_obj: Network, quality_thrsh: float = 0.0, logger: Logger) -> tuple[Network]:
-    """Iteratively remove bad arcs from network based on quality threshold, preserving the minimum spanning tree.
+def removeBadArcsIteratively(*,
+                             net_obj: NetworkParameter,
+                             quality_thrsh: float = 0.0,
+                             logger: Logger) -> NetworkParameter:
+    """Remove bad arcs iteratively from network based on quality threshold, preserving the minimum spanning tree.
 
     Parameters
     ----------
-    net_obj: Network
-        The spatial Network object.
+    net_obj: NetworkParameter
+        The spatial NetworkParameter object.
     quality_thrsh: float
         Threshold on the temporal coherence of the arcs. Default = 0.0.
     logger: Logger
@@ -671,8 +674,8 @@ def removeBadArcsIteratively(*, net_obj: Network, quality_thrsh: float = 0.0, lo
 
     Returns
     -------
-    net_obj: Network
-        Network object without the removed arcs.
+    net_obj: NetworkParameter
+        NetworkParameter object without the removed arcs.
     """
     logger.info(msg="Iteratively removing bad arcs with quality < {}".format(quality_thrsh))
 
@@ -701,4 +704,3 @@ def removeBadArcsIteratively(*, net_obj: Network, quality_thrsh: float = 0.0, lo
     net_obj.removeArcs(mask=mask)
 
     return net_obj
-
