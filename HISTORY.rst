@@ -6,10 +6,11 @@ History
 Future minor version (release soon)
 -----------------------------------
 
+* Store configuration file for the tests in the repository.
 * Enhance argument parsing in command line interface.
 * Improve installation and test with Python 3.13.
 * Add version flag to command line interfaces.
-* enhance logging
+* Enhance logging.
 
 1.2.2 (2025-07-09)
 ------------------
