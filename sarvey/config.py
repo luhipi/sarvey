@@ -373,8 +373,8 @@ class ConsistencyCheck(BaseModel, extra="forbid"):
     )
 
     min_num_arc: int = Field(
-        title="Minimum number of arcs per point",
-        description="Set the minimum number of arcs per point.",
+        title="Minimum number of arcs per point (deprecated)",
+        description="This parameter is deprecated and will be removed in a future version of the software.",
         default=3
     )
 
@@ -450,13 +450,6 @@ class ConsistencyCheck(BaseModel, extra="forbid"):
             raise ValueError('Coherence threshold for arc/point cannot be negativ.')
         if v > 1:
             raise ValueError('Coherence threshold for arc/point cannot be greater than 1.')
-        return v
-
-    @field_validator('min_num_arc')
-    def checkMinNumArc(cls, v):
-        """Check if the minimum number of arcs is valid."""
-        if v < 0:
-            raise ValueError('Velocity bound cannot be negative.')
         return v
 
 
