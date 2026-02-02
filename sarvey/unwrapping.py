@@ -281,7 +281,7 @@ def launchAmbiguityFunctionSearch(parameters: tuple):
     demerr_range = np.linspace(-demerr_bound, demerr_bound, num_samples)
     vel_range = np.linspace(-velocity_bound, velocity_bound, num_samples)
 
-    # prog_bar = ptime.progressBar(maxValue=num_arcs)
+    prog_bar = ptime.progressBar(maxValue=num_arcs)
 
     factor = 4 * np.pi / wavelength
 
@@ -295,6 +295,8 @@ def launchAmbiguityFunctionSearch(parameters: tuple):
             obs_phase=phase[k, :],
             design_mat=design_mat
         )
+        prog_bar.update(value=k + 1, every=num_arcs // 10,
+                        suffix='{}/{} arcs processed. '.format(k + 1, num_arcs))
 
     return arc_idx_range, demerr, vel, gamma
 
@@ -624,9 +626,9 @@ def removeBadPointsIteratively(*, net_obj: NetworkParameter, point_id: np.ndarra
     new_arc_list = [(lookup_dict[edge[0]], lookup_dict[edge[1]]) for edge in graph.edges]
     new_point_id = [graph.nodes[node]['point_id'] for node in graph.nodes()]
 
-    logger.debug("Number of nodes after/before removal due to low temporal coherence: %d / %d",
+    logger.debug("Number of points after/before removal due to low temporal coherence: %d / %d",
                  len(new_point_id), len(point_id))
-    logger.debug("Number of points removed due to low temporal coherence: %d", len(point_id) - len(new_point_id))
+    logger.info("Number of points removed due to low temporal coherence: %d", len(point_id) - len(new_point_id))
 
     arc_idx = [graph.edges[edge]['arc_idx'] for edge in graph.edges()]
     net_obj.arcs = np.array(new_arc_list, dtype=np.int64)

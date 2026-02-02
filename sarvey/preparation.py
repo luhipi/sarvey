@@ -299,7 +299,7 @@ def createArcsBetweenPoints(*, point_obj: Points, knn: int = None, max_arc_lengt
     arcs: np.ndarray
         Arcs of the triangulation containing the indices of the points for each arc.
     """
-    logger.debug(f"Triangulating {point_obj.coord_xy.shape[0]} points...")
+    logger.info(f"Triangulating {point_obj.coord_xy.shape[0]} points...")
     triang_obj = PointNetworkTriangulation(coord_xy=point_obj.coord_xy, coord_utmxy=point_obj.coord_utm, logger=logger)
 
     triang_obj.triangulateGlobal()
