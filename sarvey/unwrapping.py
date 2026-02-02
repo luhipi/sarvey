@@ -984,7 +984,7 @@ def removeArcsByPointMask(*, net_obj: Union[Network, NetworkParameter], point_id
 def removeBadPointsIteratively(*, net_obj: NetworkParameter, point_id: np.ndarray,
                                quality_thrsh: float, logger: Logger) -> [NetworkParameter, np.ndarray]:
     """
-    Remove bad points from a network using NetworkX. Points with low-quality arcs (weights) are removed iteratively.
+    Remove bad points from a network. Points with many low-quality arcs are removed iteratively.
 
     Parameters
     ----------

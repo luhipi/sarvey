@@ -333,8 +333,6 @@ class Processing:
         )
         point_obj.removePoints(keep_id=point_id, input_path=self.config.general.input_path)
 
-        # todo: retriangulate the points if necessary and unwrap them
-
         try:
             ax = bmap_obj.plot(logger=self.logger)
             ax, cbar = viewer.plotColoredPointNetwork(x=point_obj.coord_xy[:, 1], y=point_obj.coord_xy[:, 0],
@@ -345,6 +343,49 @@ class Processing:
             fig = ax.get_figure()
             plt.tight_layout()
             fig.savefig(join(self.path, "pic", "step_1_network_1_points_removed.png"), dpi=300)
+        except BaseException as e:
+            self.logger.exception(msg="NOT POSSIBLE TO PLOT SPATIAL NETWORK OF POINTS. {}".format(e))
+
+        # 4) re-triangulate the points (network might not be connected anymore) and redo temporal unwrapping
+        arcs = createArcsBetweenPoints(point_obj=point_obj, max_arc_length=self.config.consistency_check.max_arc_length,
+                                       logger=self.logger)
+        net_obj = Network(file_path=join(self.path, "point_network.h5"), logger=self.logger)
+        net_obj.computeArcObservations(
+            point_obj=point_obj,
+            arcs=arcs
+        )
+        net_obj.writeToFile()
+        net_obj.open(input_path=self.config.general.input_path)  # to retrieve external data
+
+        demerr, vel, gamma = temporalUnwrapping(ifg_net_obj=point_obj.ifg_net_obj,
+                                                net_obj=net_obj,
+                                                wavelength=point_obj.wavelength,
+                                                velocity_bound=self.config.consistency_check.velocity_bound,
+                                                demerr_bound=self.config.consistency_check.dem_error_bound,
+                                                num_samples=self.config.consistency_check.num_optimization_samples,
+                                                num_cores=self.config.general.num_cores,
+                                                logger=self.logger)
+
+        net_par_obj = NetworkParameter(file_path=join(self.path, "point_network_parameter.h5"),
+                                       logger=self.logger)
+        net_par_obj.prepare(
+            net_obj=net_obj,
+            demerr=demerr,
+            vel=vel,
+            gamma=gamma
+        )
+        net_par_obj.writeToFile()
+
+        try:
+            ax = bmap_obj.plot(logger=self.logger)
+            ax, cbar = viewer.plotColoredPointNetwork(x=point_obj.coord_xy[:, 1], y=point_obj.coord_xy[:, 0],
+                                                      arcs=net_par_obj.arcs,
+                                                      val=net_par_obj.gamma,
+                                                      ax=ax, linewidth=1, cmap="lajolla", clim=(0, 1))
+            ax.set_title("Coherence from temporal unwrapping\nAfter re-triangulation")
+            fig = ax.get_figure()
+            plt.tight_layout()
+            fig.savefig(join(self.path, "pic", "step_1_network_1_points_retriangulated.png"), dpi=300)
         except BaseException as e:
             self.logger.exception(msg="NOT POSSIBLE TO PLOT SPATIAL NETWORK OF POINTS. {}".format(e))
 
