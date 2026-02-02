@@ -278,9 +278,7 @@ class Processing:
         del ifg_stack_obj, cand_mask1
 
         # 1) create spatial network
-        arcs = createArcsBetweenPoints(point_obj=point_obj,
-                                       knn=self.config.consistency_check.num_nearest_neighbours,
-                                       max_arc_length=self.config.consistency_check.max_arc_length,
+        arcs = createArcsBetweenPoints(point_obj=point_obj, max_arc_length=self.config.consistency_check.max_arc_length,
                                        logger=self.logger)
         net_obj = Network(file_path=join(self.path, "point_network.h5"), logger=self.logger)
         net_obj.computeArcObservations(
@@ -439,9 +437,8 @@ class Processing:
         if self.config.unwrapping.use_arcs_from_temporal_unwrapping:
             arcs = net_par_obj.arcs  # use this to avoid unreliable connections. Takes a bit longer.
         else:
-            triang_obj = PointNetworkTriangulation(coord_xy=point_obj.coord_xy, coord_map_xy=point_obj.coord_map,
-                                                   logger=self.logger)
-            triang_obj.triangulateGlobal()
+            triang_obj = PointNetworkTriangulation(coord_xy=point_obj.coord_xy, logger=self.logger)
+            triang_obj.triangulateDelaunay()
             arcs = triang_obj.getArcsFromAdjMat()
 
         unw_res_phase = spatialUnwrapping(num_ifgs=point_obj.ifg_net_obj.num_ifgs,
@@ -497,9 +494,8 @@ class Processing:
             arcs = net_par_obj.arcs  # use this to avoid unreliable connections. Takes a bit longer.
         else:
             # re-triangulate with delaunay to make PUMA faster
-            triang_obj = PointNetworkTriangulation(coord_xy=point_obj.coord_xy, coord_map_xy=point_obj.coord_map,
-                                                   logger=self.logger)
-            triang_obj.triangulateGlobal()
+            triang_obj = PointNetworkTriangulation(coord_xy=point_obj.coord_xy, logger=self.logger)
+            triang_obj.triangulateDelaunay()
             arcs = triang_obj.getArcsFromAdjMat()
 
         bmap_obj = AmplitudeImage(file_path=join(self.path, "background_map.h5"))
@@ -1012,8 +1008,8 @@ class Processing:
         wr_phase = point2_obj.phase
         wr_res_phase = np.angle(np.exp(1j * wr_phase) * np.conjugate(np.exp(1j * pred_phase)))
 
-        triang_obj = PointNetworkTriangulation(coord_xy=point2_obj.coord_xy, coord_map_xy=None, logger=self.logger)
-        triang_obj.triangulateGlobal()
+        triang_obj = PointNetworkTriangulation(coord_xy=point2_obj.coord_xy, logger=self.logger)
+        triang_obj.triangulateDelaunay()
         arcs = triang_obj.getArcsFromAdjMat()
 
         unw_res_phase = spatialUnwrapping(num_ifgs=point2_obj.ifg_net_obj.num_ifgs,
@@ -1070,8 +1066,8 @@ class Processing:
         # correct for APS
         point_obj.phase = np.angle(np.exp(1j * point_obj.phase) * np.conjugate(np.exp(1j * aps2_ifg_phase)))
 
-        triang_obj = PointNetworkTriangulation(coord_xy=point_obj.coord_xy, coord_map_xy=None, logger=self.logger)
-        triang_obj.triangulateGlobal()  # if coord_map is not given, only global delaunay and knn can be calculated
+        triang_obj = PointNetworkTriangulation(coord_xy=point_obj.coord_xy, logger=self.logger)
+        triang_obj.triangulateDelaunay()
         arcs = triang_obj.getArcsFromAdjMat()
 
         unw_phase = spatialUnwrapping(num_ifgs=point_obj.ifg_net_obj.num_ifgs,
