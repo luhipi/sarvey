@@ -443,7 +443,7 @@ class TimeSeriesViewer:
             raise ValueError(f"Invalid argument: '{self.vel_scale}'")
         self.scale = scale_dict[self.vel_scale]
         self.tree = KDTree(self.point_obj.coord_xy)
-        self.tree_utm = KDTree(self.point_obj.coord_utm)
+        self.tree_utm = KDTree(self.point_obj.coord_map)
         if point_obj.ifg_net_obj.dates is not None:
             self.times = [datetime.date.fromisoformat(date) for date in point_obj.ifg_net_obj.dates]
         else:  # backwards compatible, if ifg_net_obj does not contain dates
@@ -707,7 +707,7 @@ class TimeSeriesViewer:
         """Update the neighbourhood of the selected point."""
         self.neighb_idx, self.neighb_mask = selectNeighbourhood(
             searchtree=self.tree_utm,
-            coord_utm=self.point_obj.coord_utm,
+            coord_map=self.point_obj.coord_map,
             idx=self.ts_point_idx,
             radius=float(self.txt_radius.text)
         )
@@ -834,23 +834,23 @@ class TimeSeriesViewer:
         self.fig2.canvas.draw()
 
 
-def selectNeighbourhood(searchtree: KDTree, coord_utm: np.ndarray, idx: int, radius: float):
+def selectNeighbourhood(searchtree: KDTree, coord_map: np.ndarray, idx: int, radius: float):
     """Select points within a certain radius around a point.
 
     Parameters
     ----------
     searchtree: KDTree
         searchtree for fast nearest neighbour search
-    coord_utm: np.ndarray
+    coord_map: np.ndarray
         coordinates of the points (dim: no. points x 2)
     idx: int
         index of the point around which the neighbourhood is selected
     radius: float
         radius of the neighbourhood in [m]
     """
-    neighb_idx = searchtree.query_ball_point(coord_utm[idx, :], r=radius)
+    neighb_idx = searchtree.query_ball_point(coord_map[idx, :], r=radius)
     neighb_idx.remove(idx)  # remove the query point
-    neighb_mask = np.array([True if i in neighb_idx else False for i in range(len(coord_utm))])
+    neighb_mask = np.array([True if i in neighb_idx else False for i in range(len(coord_map))])
     return neighb_idx, neighb_mask
 
 

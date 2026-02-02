@@ -109,7 +109,7 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
         proc_obj.runPreparation()
         m, s = divmod(time.time() - start_time_step, 60)
         logger.info(f"Finished step 0 PREPARATION normally in {m:02.0f} mins {s:02.1f} secs.")
-    required_files = ["background_map.h5", "coord_map.h5", "ifg_network.h5", "ifg_stack.h5",
+    required_files = ["background_map.h5", "coordinates_map.h5", "ifg_network.h5", "ifg_stack.h5",
                       "temporal_coherence.h5"]
 
     if 1 in steps:

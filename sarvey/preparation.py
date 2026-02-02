@@ -237,7 +237,7 @@ def selectPixels(*, path: str, selection_method: str, thrsh: float,
         f"Number of selected pixels using {thrsh:.2f} temporal coherence threshold: {np.sum(cand_mask)}")
     if grid_size is not None:  # -> sparse pixel selection
         logger.debug(f"Select sparse pixels using grid size {grid_size} m.")
-        coord_map_file = join(path, "coordinates_utm.h5")
+        coord_map_file = join(path, "coordinates_map.h5")
         logger.debug(f"Reading coordinates from file: {coord_map_file}")
         coord_map_obj = CoordinatesMap(file_path=coord_map_file, logger=logger)
         coord_map_obj.open()
@@ -250,8 +250,8 @@ def selectPixels(*, path: str, selection_method: str, thrsh: float,
         cand_mask_sparse = ut.selectBestPointsInGrid(box_list=box_list, quality=quality, sel_min=grid_min_val)
         cand_mask &= cand_mask_sparse
         logger.debug(f"Number of selected sparse pixels: {np.sum(cand_mask)}")
-        min_map_coord = np.min(coord_utm_obj.coord_utm[..., cand_mask], axis=1)
-        max_map_coord = np.max(coord_utm_obj.coord_utm[..., cand_mask], axis=1)
+        min_map_coord = np.min(coord_map_obj.coord_map[..., cand_mask], axis=1)
+        max_map_coord = np.max(coord_map_obj.coord_map[..., cand_mask], axis=1)
         logger.debug(
             f"[Min, Max] of map coordinates of selected points along first axis: "
             f"[{min_map_coord[0]:.1f}, {max_map_coord[0]:.1f}].")
