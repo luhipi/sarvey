@@ -443,13 +443,13 @@ class ConsistencyCheck(BaseModel, extra="forbid"):
             raise ValueError('Number of optimization samples cannot be negative or zero.')
         return v
 
-    @field_validator('arc_unwrapping_coherence')
+    @field_validator('arc_unwrapping_coherence', 'point_median_coherence')
     def checkArcCoherence(cls, v):
-        """Check if the arc coherence threshold is valid."""
+        """Check if the coherence threshold for arc and point is valid."""
         if v < 0:
-            raise ValueError('Arc unwrapping coherence threshold cannot be negativ.')
+            raise ValueError('Coherence threshold for arc/point cannot be negativ.')
         if v > 1:
-            raise ValueError('Arc unwrapping coherence threshold cannot be greater than 1.')
+            raise ValueError('Coherence threshold for arc/point cannot be greater than 1.')
         return v
 
     @field_validator('min_num_arc')
