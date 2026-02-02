@@ -6,10 +6,17 @@ History
 Future minor version (release soon)
 -----------------------------------
 
+1.3.0 (2026-02-02)
+------------------
+
+* Improve consistency check with an iterative removal of low-quality points and arcs.
+* Ensure connectivity after removal of low-quality points and arcs.
+* Set delaunay triangulation as default for spatial phase unwrapping in step 2.
+* Deprecate parameter consistency_check:min_num_arc.
 * Enhance argument parsing in command line interface.
 * Improve installation and test with Python 3.13.
 * Add version flag to command line interfaces.
-* enhance logging
+* Enhance logging.
 
 1.2.2 (2025-07-09)
 ------------------
