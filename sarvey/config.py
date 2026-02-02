@@ -359,6 +359,13 @@ class ConsistencyCheck(BaseModel, extra="forbid"):
         default=100
     )
 
+    point_median_coherence: float = Field(
+        title="Point median coherence threshold",
+        description="Set the coherence threshold for the median coherence of all arcs connected to a point. It removes "
+                    "bad points in the consistency check.",
+        default=0.6
+    )
+
     arc_unwrapping_coherence: float = Field(
         title="Arc unwrapping coherence threshold",
         description="Set the arc unwrapping coherence threshold for the consistency check.",

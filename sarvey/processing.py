@@ -328,7 +328,7 @@ class Processing:
         _, point_id = removeBadPointsIteratively(
             net_obj=net_par_obj,
             point_id=point_obj.point_id,
-            quality_thrsh=self.config.consistency_check.arc_unwrapping_coherence,
+            quality_thrsh=self.config.consistency_check.point_median_coherence,
             logger=self.logger
         )
         point_obj.removePoints(keep_id=point_id, input_path=self.config.general.input_path)
