@@ -436,11 +436,6 @@ class Processing:
                                              weights=net_par_obj.gamma,
                                              spatial_ref_idx=spatial_ref_idx, logger=self.logger)
 
-        # demerr = spatialParameterIntegrationIterative(val_arcs=net_par_obj.demerr, all_arcs=net_par_obj.arcs,
-        #                                               coord_xy=point_obj.coord_xy, all_weights=net_par_obj.gamma,
-        #                                               spatial_ref_idx=spatial_ref_idx,
-        #                                               res_tol=5.0,
-        #                                               max_rm_fraction=0.001)
         fig = viewer.plotScatter(value=-demerr, coord=point_obj.coord_xy,
                                  ttl="Parameter integration: DEM correction in [m]",
                                  bmap_obj=bmap_obj, s=3.5, cmap="vanimo", symmetric=True,
@@ -455,12 +450,6 @@ class Processing:
                                           weights=net_par_obj.gamma,
                                           spatial_ref_idx=spatial_ref_idx, logger=self.logger)
 
-        # vel = spatialParameterIntegrationIterative(val_arcs=net_par_obj.vel, all_arcs=net_par_obj.arcs,
-        #                                            coord_xy=point_obj.coord_xy,
-        #                                            all_weights=net_par_obj.gamma,
-        #                                            spatial_ref_idx=spatial_ref_idx,
-        #                                            res_tol=1.0,
-        #                                            max_rm_fraction=0.001)
         fig = viewer.plotScatter(value=-vel, coord=point_obj.coord_xy,
                                  ttl="Parameter integration: mean velocity in [m / year]",
                                  bmap_obj=bmap_obj, s=3.5, cmap="roma", symmetric=True,
