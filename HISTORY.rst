@@ -6,7 +6,7 @@ History
 Future minor version (release soon)
 -----------------------------------
 
-1.3.0 (2026-02-02)
+1.3.0 (2026-02-23)
 ------------------
 
 * Improve consistency check with an iterative removal of low-quality points and arcs.
