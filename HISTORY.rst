@@ -13,6 +13,7 @@ Future minor version (release soon)
 * Ensure connectivity after removal of low-quality points and arcs.
 * Set delaunay triangulation as default for spatial phase unwrapping in step 2.
 * Deprecate parameter consistency_check:min_num_arc.
+* Store configuration file for the tests in the repository.
 * Enhance argument parsing in command line interface.
 * Improve installation and test with Python 3.13.
 * Add version flag to command line interfaces.

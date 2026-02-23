@@ -57,7 +57,7 @@ class TestProcessing(unittest.TestCase):
         if os.path.basename(os.getcwd()) == "tests":
             self.root_path = "../"
 
-        self.config_file = os.path.abspath(f"{self.root_path}/tests/testdata/config_test.json")
+        self.config_file = os.path.abspath(f"{self.root_path}/tests/config_test.json")
         self.configuration = loadConfiguration(path=self.config_file)
 
         self.logger = logging.getLogger(__name__)
