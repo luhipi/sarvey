@@ -49,7 +49,7 @@ class TestConfig(unittest.TestCase):
         if os.path.basename(os.getcwd()) == "tests":
             cls.root_path = "../"
 
-        cls.config_file = os.path.abspath(f"{cls.root_path}tests/testdata/config_test.json")
+        cls.config_file = os.path.abspath(f"{cls.root_path}tests/config_test.json")
 
     def testDataDirectories(self):
         """Test configuration for the data directories settings."""
