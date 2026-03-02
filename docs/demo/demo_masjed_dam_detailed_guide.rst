@@ -44,7 +44,8 @@ Check the downloaded data using `info.py` and `view.py`. For example:
 Step 1.2: Activate SARvey and Change Directory
 """""""""""""""""""""""""""""""""""""""""""""""
 
-If you have not installed SARvey, refer to the `installation instructions <installation.html>`_. Activate the SARvey environment:
+If you have not installed SARvey, refer to the `installation instructions <https://luhipi.github.io/sarvey/main/installation.html>`_.
+Activate the SARvey environment:
 
 .. code-block:: bash
 

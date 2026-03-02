@@ -15,6 +15,9 @@ Fixes # <issue number>
 - [ ] Bug fix
 - [ ] New feature
 - [ ] Documentation update
+- [ ] Improvement
+- [ ] Refactor
+- [ ] Other (please specify):
 
 ---
 

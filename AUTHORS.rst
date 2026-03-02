@@ -16,8 +16,8 @@ Contributors
 * Johannes Knoch <jknoch@gfz-potsdam.de>
 * Erik Rivas <rivas@ipi.uni-hannover.de>
 
-Project management and funding
-------------------------------
+Project management and funding acquisition
+------------------------------------------
 
 * Alison Beamish <alibeam@gfz-potsdam.de>
 * Mahdi Motagh <motagh@gfz-potsdam.de>
