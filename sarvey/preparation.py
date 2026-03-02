@@ -2,7 +2,7 @@
 
 # SARvey - A multitemporal InSAR time series tool for the derivation of displacements.
 #
-# Copyright (C) 2021-2025 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
+# Copyright (C) 2021-2026 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
 #
 # This software was developed together with FERN.Lab (fernlab@gfz-potsdam.de) in the context
 # of the SAR4Infra project with funds of the German Federal Ministry for Digital and
@@ -299,14 +299,15 @@ def createArcsBetweenPoints(*, point_obj: Points, knn: int = None, max_arc_lengt
     arcs: np.ndarray
         Arcs of the triangulation containing the indices of the points for each arc.
     """
-    logger.debug(f"Triangulating {point_obj.coord_xy.shape[0]} points...")
+    logger.info(f"Triangulating {point_obj.coord_xy.shape[0]} points...")
     triang_obj = PointNetworkTriangulation(coord_xy=point_obj.coord_xy, coord_map_xy=point_obj.coord_map, logger=logger)
+
+    triang_obj.triangulateGlobal()
 
     if knn is not None:
         triang_obj.triangulateKnn(k=knn)
 
-    triang_obj.triangulateGlobal()
-
+    logger.info(msg="remove arcs with length > {}.".format(max_arc_length))
     ut_mask = np.triu(triang_obj.dist_mat, k=1) != 0
     logger.debug(f"Triangulation arc lengths - "
                  f"Min: {np.min(triang_obj.dist_mat[ut_mask]):.0f} m, "

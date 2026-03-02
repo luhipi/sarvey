@@ -2,7 +2,7 @@
 
 # SARvey - A multitemporal InSAR time series tool for the derivation of displacements.
 #
-# Copyright (C) 2021-2025 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
+# Copyright (C) 2021-2026 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
 #
 # This software was developed together with FERN.Lab (fernlab@gfz-potsdam.de) in the context
 # of the SAR4Infra project with funds of the German Federal Ministry for Digital and
@@ -359,6 +359,13 @@ class ConsistencyCheck(BaseModel, extra="forbid"):
         default=100
     )
 
+    point_median_coherence: float = Field(
+        title="Point median coherence threshold",
+        description="Set the coherence threshold for the median coherence of all arcs connected to a point. It removes "
+                    "bad points in the consistency check.",
+        default=0.6
+    )
+
     arc_unwrapping_coherence: float = Field(
         title="Arc unwrapping coherence threshold",
         description="Set the arc unwrapping coherence threshold for the consistency check.",
@@ -366,8 +373,8 @@ class ConsistencyCheck(BaseModel, extra="forbid"):
     )
 
     min_num_arc: int = Field(
-        title="Minimum number of arcs per point",
-        description="Set the minimum number of arcs per point.",
+        title="Minimum number of arcs per point (deprecated)",
+        description="This parameter is deprecated and will be removed in a future version of the software.",
         default=3
     )
 
@@ -436,20 +443,13 @@ class ConsistencyCheck(BaseModel, extra="forbid"):
             raise ValueError('Number of optimization samples cannot be negative or zero.')
         return v
 
-    @field_validator('arc_unwrapping_coherence')
+    @field_validator('arc_unwrapping_coherence', 'point_median_coherence')
     def checkArcCoherence(cls, v):
-        """Check if the arc coherence threshold is valid."""
+        """Check if the coherence threshold for arc and point is valid."""
         if v < 0:
-            raise ValueError('Arc unwrapping coherence threshold cannot be negativ.')
+            raise ValueError('Coherence threshold for arc/point cannot be negativ.')
         if v > 1:
-            raise ValueError('Arc unwrapping coherence threshold cannot be greater than 1.')
-        return v
-
-    @field_validator('min_num_arc')
-    def checkMinNumArc(cls, v):
-        """Check if the minimum number of arcs is valid."""
-        if v < 0:
-            raise ValueError('Velocity bound cannot be negative.')
+            raise ValueError('Coherence threshold for arc/point cannot be greater than 1.')
         return v
 
 
@@ -459,8 +459,9 @@ class Unwrapping(BaseModel, extra="forbid"):
     use_arcs_from_temporal_unwrapping: bool = Field(
         title="Use arcs from temporal unwrapping",
         description="If true, use same arcs from temporal unwrapping, where bad arcs were already removed."
-                    "If false, apply new delaunay triangulation.",
-        default=True
+                    "If false, apply new delaunay triangulation."
+                    "(Default: false)",
+        default=False
     )
 
 

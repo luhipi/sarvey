@@ -12,7 +12,7 @@ The workflow is described in the paper
 All processing steps are described in detail in the following sections.
 Two processing strategies are provided with either one- or two-step unwrapping.
 The workflow should be decided based on the characteristics of the displacement (spatial extend, magnitude, temporal behaviour).
-The parameters of each step are handled via the `configuration file`_ for which the parameters are named within the description of each step.
+The parameters of each step are handled via the configuration file for which the parameters are named within the description of each step.
 
 
 Configuration file
@@ -41,8 +41,11 @@ The configuration file has various sections, as detailed below:
 * phase_linking
 
 
- This section specifies the Phase Linking parameters. By default, `"use_phase_linking_results": false`.
- If you wish to perform DS analysis, change it to `true`. Note: If `"use_phase_linking_results": true`, you must complete the corresponding step of MiaplPy as described in `preparation <preparation.rst/#Phase Linking>`_. In the configuration file, set `inverted_path` to the path of the inverted directory of MiaplPy data.
+ This section specifies the Phase Linking parameters.
+ By default, `"use_phase_linking_results": false`.
+ If you wish to perform DS analysis, change it to `true`.
+ Note: If `"use_phase_linking_results": true`, you must complete the corresponding step of MiaplPy as described in `preparation <https://luhipi.github.io/sarvey/main/preparation.html#Phase Linking>`_.
+ In the configuration file, set `inverted_path` to the path of the inverted directory of MiaplPy data.
 
 
 
@@ -87,7 +90,7 @@ Step 0: Preparation
     The resampled SLC (Single Look Complex) data is read from the inputs/slcStack.h5
     This data is complex-valued and contains both amplitude and phase information.
     The data is subsetted to the specified time span (via **preparation:start_date** and **preparation:end_date** in the config file).
-    A description of how to prepare the data and make a spatial subset of the data is described in `data preparation in MiaplPy <preparation.rst>`_.
+    A description of how to prepare the data and make a spatial subset of the data is described in `data preparation in MiaplPy <https://luhipi.github.io/sarvey/main/preparation.html>`_.
 
 - Designing the interferogram network:
     From the stack of SLC images, the interferogram network is designed.
@@ -97,7 +100,7 @@ Step 0: Preparation
 
     a) small baseline network ('sb') (Berardino et al. 2002),
     b) small temporal baseline network ('stb') (only consecutive images are used to form interferograms)
-    c) small temporal baselines + yearly interferograms ('stb_yearly')
+    c) small temporal baselines + yearly interferograms ('stb_year')
     d) delaunay network ('delaunay')
     e) star network ('star', single-reference network) (Ferretti et al. 2001)
 
@@ -134,7 +137,7 @@ Step 1: Consistency Check
     Arcs with a distance above a threshold (**consistency_check:max_arc_length**) are removed from the network to reduce the impact of the atmospheric effects.
 
 - Temporal unwrapping:
-    All arcs in the spatial network are temporally unwrapped based on a phase model consisting of DEM error difference and velocity difference between the two points of the arc.
+    All arcs in the spatial network are temporally unwrapped based on a phase model consisting of DEM correction difference and velocity difference between the two points of the arc.
     The temporal coherence derived from the model fit is maximized by searching within a search space of given bounds (**consistency_check:velocity_bound** and **consistency_check:dem_error_bound**).
     Within the bounds, the search space is discretized (**consistency_check:num_optimization_samples**).
     The final parameters for each arc are derived from a gradient descent refinement of the discrete search space result.
@@ -144,12 +147,12 @@ Step 1: Consistency Check
     Therefore, outliers among the candidates are removed with a consistency check.
     The consistency check is based on the estimated temporal coherence of the temporal unwrapping of each arc.
     A point is assumed to be an outlier, if it is connected by many arcs having a low temporal coherence from temporal unwrapping.
-    Arcs with a temporal coherence below a threshold are removed (**consistency_check:arc_unwrapping_coherence**).
-    Similarly, points with mean coherence of all connected arcs are removed (specified by the same parameter **consistency_check:arc_unwrapping_coherence**).
-    Moreover, points which are connected by a number of arcs less than a threshold (**consistency_check:min_num_arc**) are removed.
-    Afterwards, the consistency within the spatial network is checked.
-    For this purpose, the parameters (DEM error difference and velocity difference) of all arcs are integrated in the spatial network relative to an arbitrary reference point using least squares.
-    The residuals of the integration are used to identify outliers.
+    Per point, the median temporal coherence of all connected arcs is computed.
+    The points with a low median coherence (**consistency_check:point_median_coherence**) are removed iteratively.
+    Afterwards, the points are retriangulated to ensure connectivity in the spatial network.
+    Then, the arcs with a temporal coherence below a threshold are removed (**consistency_check:arc_unwrapping_coherence**).
+    The remaining arcs are used for integrating the parameters from the arcs to the points in step 2 (if **general:apply_temporal_unwrapping** is set to True).
+    Optionally, the remaining arcs can be used for spatial phase unwrapping (if **unwrapping:use_arcs_from_temporal_unwrapping** is set to True, default: False).
 
 - Output of this step
     - point_network.h5
@@ -181,7 +184,7 @@ Option 1) Unwrapping in time and space
     The spatial neighbourhood for unwrapping is defined by the arcs of the spatial network.
     There are two options (**unwrapping:use_arcs_from_temporal_unwrapping**).
     Either the spatial network from consistency check (step 2) can be used for unwrapping, i.e. the spatial network after removing arcs with a low temporal coherence from temporal unwrapping.
-    Or, the spatial network is re-created with a delaunay network.
+    Or, the spatial network is re-created with a delaunay network (default).
 
 - Restore phase contributions to the spatially unwrapped residual phase:
     Finally, the phase contributions are added back to the spatially unwrapped residual phase of each point.
@@ -200,7 +203,7 @@ Option 2) Unwrapping in space
     The spatial neighbourhood for unwrapping is defined by the arcs of the spatial network.
     There are two options (**unwrapping:use_arcs_from_temporal_unwrapping**).
     Either the spatial network from consistency check (step 2) can be used for unwrapping, i.e. the spatial network after removing arcs with a low temporal coherence from temporal unwrapping.
-    Or, the spatial network is re-created with a delaunay network.
+    Or, the spatial network is re-created with a delaunay network (default).
 
 - Adjust reference:
     All unwrapped interferograms are referenced to the peak of velocity histogram derived from all points.
@@ -226,7 +229,7 @@ However, the step 3 has to be executed as the second-order points are selected d
     Second-order points are selected based on a temporal coherence threshold (**filtering:coherence_p2**) on the temporal phase coherence computed during step 0.
     A mask file can be specified (**filtering:mask_p2_file**) to limit the second-order points to the given area of interest.
     Second-order points can also be selected based on the results of phase-linking (set **phase_linking:use_phase_linking_results** to True) implemented in MiaplPy (Mirzaee et al. 2023).
-    More information on Miaplpy and phase-linking can be found `here <preparation>`_.
+    More information on Miaplpy and phase-linking can be found `here <https://luhipi.github.io/sarvey/main/preparation.html>`_.
     The number of siblings (**phase_linking:num_siblings**) used during phase-linking within MiaplPy processing needs to be specified to identify the distributed scatterers (DS) among the pixels selected by MiaplPy.
     A mask file can be specified (**phase_linking:mask_phase_linking_file**) to limit the phase-linking to the given area of interest.
     MiaplPy also provides a selection of persistent scatterers (PS) which can be included as second-order points (set **phase_linking:use_ps** to True) and also specify the path to the maskPS.h5 (**phase_linking:mask_ps_file**) which is also an output of MiaplPy.

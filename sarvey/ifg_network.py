@@ -2,7 +2,7 @@
 
 # SARvey - A multitemporal InSAR time series tool for the derivation of displacements.
 #
-# Copyright (C) 2021-2025 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
+# Copyright (C) 2021-2026 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
 #
 # This software was developed together with FERN.Lab (fernlab@gfz-potsdam.de) in the context
 # of the SAR4Infra project with funds of the German Federal Ministry for Digital and
@@ -335,10 +335,8 @@ class SmallBaselineYearlyNetwork(IfgNetwork):
             # find index of image at roughly one year distance
             diff = np.abs(tbase - (tbase[i] + 365.25))
             year_idx = np.where(diff == diff.min())[0][0]
-            print(year_idx)
             if year_idx != self.num_images - 1:  # avoid connections to the last image
                 self.ifg_list.append((i, year_idx))
-                print("found!")
 
         self.ifg_list = np.unique(self.ifg_list, axis=0)
         self.ifg_list = [(i, j) for i, j in self.ifg_list if i != j]  # remove connections to itself, e.g. (0, 0)
