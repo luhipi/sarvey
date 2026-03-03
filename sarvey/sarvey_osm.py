@@ -2,7 +2,7 @@
 
 # SARvey - A multitemporal InSAR time series tool for the derivation of displacements.
 #
-# Copyright (C) 2021-2025 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
+# Copyright (C) 2021-2026 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
 #
 # This software was developed together with FERN.Lab (fernlab@gfz-potsdam.de) in the context
 # of the SAR4Infra project with funds of the German Federal Ministry for Digital and
@@ -38,6 +38,7 @@ import geopandas as gpd
 from shapely import ops, Point
 import matplotlib
 
+from sarvey import version
 from sarvey.osm_utils import runOsmQueryBridge, runOsmQuery, getSpatialExtend
 
 try:
@@ -80,6 +81,10 @@ def create_parser():
 
     parser.add_argument('-o', dest='out_file_name', default='osm_infra.shp',
                         help="name of output file. (default: 'osm_infra.shp')")
+
+    parser.add_argument('--version', action='version',
+                        version=f"SARvey version {version.__version__} - {version.__versionalias__}, "
+                                f"{version.__versiondate__}")
 
     return parser
 

@@ -2,7 +2,7 @@
 
 # SARvey - A multitemporal InSAR time series tool for the derivation of displacements.
 #
-# Copyright (C) 2021-2025 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
+# Copyright (C) 2021-2026 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
 #
 # This software was developed together with FERN.Lab (fernlab@gfz-potsdam.de) in the context
 # of the SAR4Infra project with funds of the German Federal Ministry for Digital and
@@ -34,7 +34,7 @@ from logging import Logger
 import matplotlib.cm as cm
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
-from matplotlib.collections import PathCollection
+from matplotlib.collections import PathCollection, LineCollection
 from matplotlib import widgets
 from matplotlib.backend_bases import MouseButton
 from matplotlib.colors import Normalize
@@ -198,12 +198,16 @@ def plotColoredPointNetwork(*, x: np.ndarray, y: np.ndarray, arcs: np.ndarray, v
         norm = Normalize(vmin=clim[0], vmax=clim[1])
 
     mapper = cm.ScalarMappable(norm=norm, cmap=cmc.cm.cmaps[cmap])
-    mapper_list = [mapper.to_rgba(v) for v in val]
-    for m in range(arcs.shape[0]):
-        x_val = [x[arcs[m, 0]], x[arcs[m, 1]]]
-        y_val = [y[arcs[m, 0]], y[arcs[m, 1]]]
+    colors = mapper.to_rgba(val)
 
-        ax.plot(x_val, y_val, linewidth=linewidth, c=mapper_list[m])
+    # Prepare line segments for LineCollection
+    line_segments = [
+        [[x[arcs[m, 0]], y[arcs[m, 0]]], [x[arcs[m, 1]], y[arcs[m, 1]]]]
+        for m in range(arcs.shape[0])
+    ]
+    line_collection = LineCollection(line_segments, colors=colors, linewidths=linewidth)
+    ax.add_collection(line_collection)
+
     cbar = fig.colorbar(mapper, ax=ax, pad=0.03, shrink=0.5)
 
     return ax, cbar
@@ -439,7 +443,7 @@ class TimeSeriesViewer:
             raise ValueError(f"Invalid argument: '{self.vel_scale}'")
         self.scale = scale_dict[self.vel_scale]
         self.tree = KDTree(self.point_obj.coord_xy)
-        self.tree_utm = KDTree(self.point_obj.coord_utm)
+        self.tree_utm = KDTree(self.point_obj.coord_map)
         if point_obj.ifg_net_obj.dates is not None:
             self.times = [datetime.date.fromisoformat(date) for date in point_obj.ifg_net_obj.dates]
         else:  # backwards compatible, if ifg_net_obj does not contain dates
@@ -703,7 +707,7 @@ class TimeSeriesViewer:
         """Update the neighbourhood of the selected point."""
         self.neighb_idx, self.neighb_mask = selectNeighbourhood(
             searchtree=self.tree_utm,
-            coord_utm=self.point_obj.coord_utm,
+            coord_map=self.point_obj.coord_map,
             idx=self.ts_point_idx,
             radius=float(self.txt_radius.text)
         )
@@ -830,23 +834,23 @@ class TimeSeriesViewer:
         self.fig2.canvas.draw()
 
 
-def selectNeighbourhood(searchtree: KDTree, coord_utm: np.ndarray, idx: int, radius: float):
+def selectNeighbourhood(searchtree: KDTree, coord_map: np.ndarray, idx: int, radius: float):
     """Select points within a certain radius around a point.
 
     Parameters
     ----------
     searchtree: KDTree
         searchtree for fast nearest neighbour search
-    coord_utm: np.ndarray
+    coord_map: np.ndarray
         coordinates of the points (dim: no. points x 2)
     idx: int
         index of the point around which the neighbourhood is selected
     radius: float
         radius of the neighbourhood in [m]
     """
-    neighb_idx = searchtree.query_ball_point(coord_utm[idx, :], r=radius)
+    neighb_idx = searchtree.query_ball_point(coord_map[idx, :], r=radius)
     neighb_idx.remove(idx)  # remove the query point
-    neighb_mask = np.array([True if i in neighb_idx else False for i in range(len(coord_utm))])
+    neighb_mask = np.array([True if i in neighb_idx else False for i in range(len(coord_map))])
     return neighb_idx, neighb_mask
 
 

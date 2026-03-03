@@ -2,7 +2,7 @@
 
 # SARvey - A multitemporal InSAR time series tool for the derivation of displacements.
 #
-# Copyright (C) 2021-2025 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
+# Copyright (C) 2021-2026 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
 #
 # This software was developed together with FERN.Lab (fernlab@gfz-potsdam.de) in the context
 # of the SAR4Infra project with funds of the German Federal Ministry for Digital and
@@ -214,7 +214,6 @@ def estimateAtmosphericPhaseScreen(*, residuals: np.ndarray, coord_map1: np.ndar
         _, aps1, aps2 = launchSpatialFiltering(parameters=args)
     else:
         logger.info(msg="start parallel processing with {} cores.".format(num_cores))
-        pool = multiprocessing.Pool(processes=num_cores)
 
         aps1 = np.zeros((num_points1, num_time), dtype=np.float32)
         aps2 = np.zeros((num_points2, num_time), dtype=np.float32)
@@ -232,7 +231,8 @@ def estimateAtmosphericPhaseScreen(*, residuals: np.ndarray, coord_map1: np.ndar
             False,
             logger) for idx_range in idx]
 
-        results = pool.map(func=launchSpatialFiltering, iterable=args)
+        with multiprocessing.Pool(processes=num_cores) as pool:
+            results = pool.map(func=launchSpatialFiltering, iterable=args)
 
         # retrieve results
         for i, aps1_i, aps2_i in results:
