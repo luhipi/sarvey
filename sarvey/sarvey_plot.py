@@ -2,7 +2,7 @@
 
 # SARvey - A multitemporal InSAR time series tool for the derivation of displacements.
 #
-# Copyright (C) 2021-2025 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
+# Copyright (C) 2021-2026 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
 #
 # This software was developed together with FERN.Lab (fernlab@gfz-potsdam.de) in the context
 # of the SAR4Infra project with funds of the German Federal Ministry for Digital and
@@ -44,6 +44,7 @@ import cmcrameri as cmc
 
 from miaplpy.objects.slcStack import slcStack
 
+from sarvey import version
 from sarvey.objects import Points, AmplitudeImage
 from sarvey import console
 from sarvey import viewer
@@ -345,6 +346,10 @@ def createParser():
 
     parser.add_argument('-w', '--workdir', default=None, dest="workdir",
                         help='Working directory (default: current directory).')
+
+    parser.add_argument('--version', action='version',
+                        version=f"SARvey version {version.__version__} - {version.__versionalias__}, "
+                                f"{version.__versiondate__}")
 
     return parser
 

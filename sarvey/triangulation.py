@@ -2,7 +2,7 @@
 
 # SARvey - A multitemporal InSAR time series tool for the derivation of displacements.
 #
-# Copyright (C) 2021-2025 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
+# Copyright (C) 2021-2026 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
 #
 # This software was developed together with FERN.Lab (fernlab@gfz-potsdam.de) in the context
 # of the SAR4Infra project with funds of the German Federal Ministry for Digital and
@@ -54,6 +54,8 @@ class PointNetworkTriangulation:
         num_points = self.coord_xy.shape[0]
         self.logger = logger
 
+        self.logger.debug(f"Initializing Point Network Triangulation with {num_points} points...")
+
         # create sparse matrix with dim (num_points x num_points), add 1 if connected.
         # at the end create the network once to reduce computational time.
         self.adj_mat = lil_matrix((num_points, num_points), dtype=np.bool_)
@@ -66,6 +68,7 @@ class PointNetworkTriangulation:
         arcs: np.ndarray
             List of arcs with indices of the start and end point.
         """
+        self.logger.debug(f"Extracting arcs from adjacency matrix with size {self.adj_mat.shape}...")
         a = self.adj_mat.copy()
         # copy entries from lower to upper triangular matrix
         b = (a + a.T)
@@ -85,6 +88,7 @@ class PointNetworkTriangulation:
         self.logger.debug("Triangulating points with delaunay...")
 
         network = Delaunay(points=self.coord_xy)
+        self.logger.debug(f"Number of triangles in Delaunay triangulation: {network.simplices.shape[0]}")
         for p1, p2, p3 in network.simplices:
             self.adj_mat[p1, p2] = True
             self.adj_mat[p1, p3] = True
@@ -132,4 +136,4 @@ class PointNetworkTriangulation:
                             suffix='{}/{} points triangulated'.format(p1 + 1, num_points + 1))
         prog_bar.close()
         m, s = divmod(time.time() - start_time, 60)
-        self.logger.info(msg='time used: {:02.0f} mins {:02.1f} secs.'.format(m, s))
+        self.logger.info(f"time used for triangulation: {m:02.0f} mins {s:02.1f} secs.")

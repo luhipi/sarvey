@@ -2,7 +2,7 @@
 
 # SARvey - A multitemporal InSAR time series tool for the derivation of displacements.
 #
-# Copyright (C) 2021-2025 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
+# Copyright (C) 2021-2026 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
 #
 # This software was developed together with FERN.Lab (fernlab@gfz-potsdam.de) in the context
 # of the SAR4Infra project with funds of the German Federal Ministry for Digital and
@@ -92,7 +92,6 @@ def invertIfgNetwork(*, phase: np.ndarray, num_points: int, ifg_net_obj: IfgNetw
         # use only 10 percent of the cores, because scipy.sparse.linalg.lsqr is already running in parallel
         num_cores = int(np.floor(num_cores / 10))
         logger.info(msg="start parallel processing with {} cores.".format(num_cores))
-        pool = multiprocessing.Pool(processes=num_cores)
 
         phase_ts = np.zeros((num_points, ifg_net_obj.num_images), dtype=np.float32)
 
@@ -106,7 +105,8 @@ def invertIfgNetwork(*, phase: np.ndarray, num_points: int, ifg_net_obj: IfgNetw
             ifg_net_obj.num_images,
             ref_idx) for idx_range in idx]
 
-        results = pool.map(func=launchInvertIfgNetwork, iterable=args)
+        with multiprocessing.Pool(processes=num_cores) as pool:
+            results = pool.map(func=launchInvertIfgNetwork, iterable=args)
 
         # retrieve results
         for i, phase_i in results:
@@ -529,7 +529,7 @@ def splitDatasetForParallelProcessing(*, num_samples: int, num_cores: int):
     """
     rest = np.mod(num_samples, num_cores)
     avg_num_samples_per_core = int((num_samples - rest) / num_cores)
-    num_samples_per_core = np.zeros((num_cores,), dtype=np.int16)
+    num_samples_per_core = np.zeros((num_cores,), dtype=np.int64)
     num_samples_per_core[:] = avg_num_samples_per_core
     c = rest
     i = 0

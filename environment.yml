@@ -22,7 +22,7 @@ dependencies:
   - shapely
   - geopandas
   - gstools
-  - pydantic=1.10.*
+  - pydantic
   - json5
   # setup requirements
   - tox
