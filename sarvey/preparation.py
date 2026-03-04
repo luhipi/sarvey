@@ -300,11 +300,6 @@ def createArcsBetweenPoints(*, point_obj: Points, max_arc_length: float = np.inf
     logger.info(f"Triangulating {point_obj.coord_xy.shape[0]} points...")
     triang_obj = PointNetworkTriangulation(coord_xy=point_obj.coord_xy, logger=logger)
 
-    triang_obj.triangulateGlobal()
-
-    if knn is not None:
-        triang_obj.triangulateKnn(k=knn)
-
     triang_obj.triangulateDelaunay()
 
     triang_obj.triangulateCircularNearestNeighbors(
@@ -315,7 +310,7 @@ def createArcsBetweenPoints(*, point_obj: Points, max_arc_length: float = np.inf
     arcs = triang_obj.getArcsFromAdjMat()
 
     logger.info(msg="remove arcs with length > {}.".format(max_arc_length))
-    distances = np.array([np.linalg.norm(point_obj.coord_utm[arc[0], :] - point_obj.coord_utm[arc[1], :])
+    distances = np.array([np.linalg.norm(point_obj.coord_map[arc[0], :] - point_obj.coord_map[arc[1], :])
                           for arc in arcs])
     logger.debug(f"Initial number of arcs: {arcs.shape[0]}.")
     logger.debug(f"Triangulation arc lengths before long arc removal - "

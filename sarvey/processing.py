@@ -347,7 +347,6 @@ class Processing:
         # 4) re-triangulate the points (network might not be connected anymore) and redo temporal unwrapping
         arcs = createArcsBetweenPoints(point_obj=point_obj,
                                        max_arc_length=self.config.consistency_check.max_arc_length,
-                                       knn=self.config.consistency_check.num_nearest_neighbours,
                                        logger=self.logger)
         net_obj = Network(file_path=join(self.path, "point_network.h5"), logger=self.logger)
         net_obj.computeArcObservations(
