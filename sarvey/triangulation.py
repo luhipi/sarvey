@@ -29,11 +29,9 @@
 
 """Triangulation module for SARvey."""
 import time
-from typing import Optional
 import numpy as np
-from scipy.spatial import Delaunay, distance_matrix, KDTree
-from scipy.sparse import lil_matrix, csr_matrix
-from scipy.sparse.csgraph import connected_components
+from scipy.spatial import Delaunay, KDTree
+from scipy.sparse import lil_matrix
 from logging import Logger
 
 from mintpy.utils import ptime
@@ -42,15 +40,13 @@ from mintpy.utils import ptime
 class PointNetworkTriangulation:
     """PointNetworkTriangulation."""
 
-    def __init__(self, *, coord_xy: np.ndarray, coord_map_xy: Optional[np.ndarray], logger: Logger):
+    def __init__(self, *, coord_xy: np.ndarray, logger: Logger):
         """Triangulate points in space based on distance.
 
         Parameters
         ----------
         coord_xy: np.ndarray
             Radar coordinates of the points.
-        coord_map_xy: np.ndarray
-            map coordinates of the points.
         logger: Logger
             Logging handler.
         """
@@ -61,21 +57,8 @@ class PointNetworkTriangulation:
         self.logger.debug(f"Initializing Point Network Triangulation with {num_points} points...")
 
         # create sparse matrix with dim (num_points x num_points), add 1 if connected.
-        # create network afterwards once. reduces time.
+        # at the end create the network once to reduce computational time.
         self.adj_mat = lil_matrix((num_points, num_points), dtype=np.bool_)
-
-        if coord_map_xy is not None:
-            logger.debug(f"Map coordinates available. Creating distance matrix between all {num_points} points...")
-            logger.debug(f"[Min, Max] of x coordinates: "
-                         f"[{np.min(coord_map_xy[:, 0]):.2f}/{np.max(coord_map_xy[:, 0]):.2f}]")
-            logger.debug(f"[Min, Max] of y coordinates: "
-                         f"[{np.min(coord_map_xy[:, 1]):.2f}/{np.max(coord_map_xy[:, 1]):.2f}]")
-            self.dist_mat = distance_matrix(coord_map_xy, coord_map_xy)
-            # todo: check out alternatives:
-            #       scipy.spatial.KDTree.sparse_distance_matrix
-        else:  # if only global delaunay shall be computed without memory issues
-            logger.debug("No Map coordinates given. No distance matrix calculated.")
-            self.dist_mat = None
 
     def getArcsFromAdjMat(self):
         """Convert the adjacency matrix into a list of arcs.
@@ -100,29 +83,9 @@ class PointNetworkTriangulation:
         arcs = np.array(arcs)
         return arcs
 
-    def removeLongArcs(self, *, max_dist: float):
-        """Remove arcs from network which are longer than given threshold.
-
-        Parameter
-        ---------
-        max_dist: float
-            distance threshold on arc length in [m]
-        """
-        mask = self.dist_mat > max_dist
-        self.logger.debug(f"Removing {np.sum(mask)} arcs with distance longer that {max_dist}.")
-        self.adj_mat[mask] = False
-
-    def isConnected(self):
-        """Check if the network is connected."""
-        n_components = connected_components(csgraph=csr_matrix(self.adj_mat), directed=False, return_labels=False)
-        if n_components == 1:
-            return True
-        else:
-            return False
-
-    def triangulateGlobal(self):
-        """Connect the points with a GLOBAL delaunay triangulation."""
-        self.logger.debug("Triangulating points with global delaunay...")
+    def triangulateDelaunay(self):
+        """Connect the points with a delaunay triangulation."""
+        self.logger.debug("Triangulating points with delaunay...")
 
         network = Delaunay(points=self.coord_xy)
         self.logger.debug(f"Number of triangles in Delaunay triangulation: {network.simplices.shape[0]}")
@@ -131,24 +94,46 @@ class PointNetworkTriangulation:
             self.adj_mat[p1, p3] = True
             self.adj_mat[p2, p3] = True
 
-    def triangulateKnn(self, *, k: int):
-        """Connect points to the k-nearest neighbours."""
-        self.logger.debug(f"Triangulating points with {k}-nearest neighbours....")
+    def triangulateCircularNearestNeighbors(self, *, num_partitions: int = 8):
+        """Connect points to the nearest neighbors in all directions based on circular partitions.
+
+        Parameters
+        ----------
+        num_partitions: int
+            Number of partitions to divide the area around each point. Default: 8.
+        """
+        self.logger.info(msg="Triangulate points with circular nearest neighbors.")
         num_points = self.coord_xy.shape[0]
-        prog_bar = ptime.progressBar(maxValue=num_points)
-        start_time = time.time()
-        count = 0
+        angles = np.linspace(0, 2 * np.pi, num_partitions + 1)[:-1]
         tree = KDTree(data=self.coord_xy)
 
-        if k > num_points:
-            self.logger.debug(f"{k} k > {num_points} number of points. Connect all points with each other.")
-            k = num_points
+        prog_bar = ptime.progressBar(maxValue=num_points)
+        start_time = time.time()
+
+        k_search = min(150, num_points)
         for p1 in range(num_points):
-            idx = tree.query(self.coord_xy[p1, :], k)[1]
-            self.adj_mat[p1, idx] = True
-            count += 1
-            prog_bar.update(value=count + 1, every=np.int16(num_points / (num_points / 5)),
-                            suffix='{}/{} points triangulated'.format(count + 1, num_points + 1))
+            # find all nearest neighbours independent of the direction within the max_dist
+            idx = tree.query(self.coord_xy[p1, :], k=k_search)[1]
+            idx = np.atleast_1d(idx)
+            idx = idx[1:]
+
+            # add the neighbours to the predefined bins based on the angle to the point
+            angles_to_neighbors = np.arctan2(self.coord_xy[idx, 1] - self.coord_xy[p1, 1],
+                                             self.coord_xy[idx, 0] - self.coord_xy[p1, 0])
+            angle_bins = np.digitize(angles_to_neighbors, angles) - 1  # -1 to make it zero-indexed
+
+            # select the closest neighbour per angle partition
+            for angle_idx in range(num_partitions):
+                # find the indices of the neighbours in this angle partition
+                angle_mask = (angle_bins == angle_idx)
+                if np.any(angle_mask):
+                    # take the neighbour from the bin which has the smallest idx number
+                    closest_idx = np.min(idx[angle_mask])
+
+                    # add the connection to the adjacency matrix
+                    self.adj_mat[p1, closest_idx] = True
+            prog_bar.update(value=p1 + 1, every=np.int16(num_points / (num_points / 5)),
+                            suffix='{}/{} points triangulated'.format(p1 + 1, num_points + 1))
         prog_bar.close()
         m, s = divmod(time.time() - start_time, 60)
-        self.logger.debug(f"time used for knn triangulation: {m:02.0f} mins {s:02.1f} secs.")
+        self.logger.info(f"time used for triangulation: {m:02.0f} mins {s:02.1f} secs.")

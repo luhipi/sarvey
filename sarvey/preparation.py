@@ -33,6 +33,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from logging import Logger
 from os.path import join
+import networkx as nx
 
 import mintpy.utils.readfile as readfile
 
@@ -275,8 +276,7 @@ def selectPixels(*, path: str, selection_method: str, thrsh: float,
     return cand_mask
 
 
-def createArcsBetweenPoints(*, point_obj: Points, knn: int = None, max_arc_length: float = np.inf,
-                            logger: Logger) -> np.ndarray:
+def createArcsBetweenPoints(*, point_obj: Points, max_arc_length: float = np.inf, logger: Logger) -> np.ndarray:
     """Create a spatial network of arcs to triangulate the points.
 
     All points are triangulated with a Delaunay triangulation. If knn is given, the triangulation is done with the k
@@ -287,8 +287,6 @@ def createArcsBetweenPoints(*, point_obj: Points, knn: int = None, max_arc_lengt
     ----------
     point_obj: Points
         Point object.
-    knn: int
-        Number of nearest neighbors to consider (default: None).
     max_arc_length: float
         Maximum length of an arc. Longer arcs will be removed. Default: np.inf.
     logger: Logger
@@ -300,39 +298,52 @@ def createArcsBetweenPoints(*, point_obj: Points, knn: int = None, max_arc_lengt
         Arcs of the triangulation containing the indices of the points for each arc.
     """
     logger.info(f"Triangulating {point_obj.coord_xy.shape[0]} points...")
-    triang_obj = PointNetworkTriangulation(coord_xy=point_obj.coord_xy, coord_map_xy=point_obj.coord_map, logger=logger)
+    triang_obj = PointNetworkTriangulation(coord_xy=point_obj.coord_xy, logger=logger)
 
-    triang_obj.triangulateGlobal()
+    triang_obj.triangulateDelaunay()
 
-    if knn is not None:
-        triang_obj.triangulateKnn(k=knn)
-
-    logger.info(msg="remove arcs with length > {}.".format(max_arc_length))
-    ut_mask = np.triu(triang_obj.dist_mat, k=1) != 0
-    logger.debug(f"Triangulation arc lengths - "
-                 f"Min: {np.min(triang_obj.dist_mat[ut_mask]):.0f} m, "
-                 f"Max: {np.max(triang_obj.dist_mat[ut_mask]):.0f} m, "
-                 f"Mean: {np.mean(triang_obj.dist_mat[ut_mask]):.0f} m.")
-
-    triang_obj.removeLongArcs(max_dist=max_arc_length)
-
-    logger.debug(f"Triangulation arc lengths after long arc removal - "
-                 f"Min: {np.min(triang_obj.dist_mat[ut_mask]):.0f} m, "
-                 f"Max: {np.max(triang_obj.dist_mat[ut_mask]):.0f} m, "
-                 f"Mean: {np.mean(triang_obj.dist_mat[ut_mask]):.0f} m.")
-
-    if not triang_obj.isConnected():
-        logger.debug("Network is not connected. Triangulating again with global delaunay...")
-        triang_obj.triangulateGlobal()
+    triang_obj.triangulateCircularNearestNeighbors(
+        num_partitions=9
+    )
 
     logger.info("Retrieve arcs from adjacency matrix.")
     arcs = triang_obj.getArcsFromAdjMat()
-    logger.debug(f"Final number of arcs: {arcs.shape[0]}.")
 
-    ut_mask = np.triu(triang_obj.dist_mat, k=1) != 0
+    logger.info(msg="remove arcs with length > {}.".format(max_arc_length))
+    distances = np.array([np.linalg.norm(point_obj.coord_map[arc[0], :] - point_obj.coord_map[arc[1], :])
+                          for arc in arcs])
+    logger.debug(f"Initial number of arcs: {arcs.shape[0]}.")
+    logger.debug(f"Triangulation arc lengths before long arc removal - "
+                 f"Min: {np.min(distances):.0f} m, "
+                 f"Max: {np.max(distances):.0f} m, "
+                 f"Mean: {np.mean(distances):.0f} m.")
+
+    graph = nx.Graph()
+    for idx, arc in enumerate(arcs):
+        graph.add_edge(arc[0], arc[1], weight=distances[idx])
+
+    mst = nx.minimum_spanning_tree(graph, algorithm="kruskal")
+    mst_edges = set(mst.edges)
+
+    # Identify long arcs that are not part of the MST
+    long_arc_mask = (distances < max_arc_length).ravel()
+    long_arcs = [
+        (arc[0], arc[1]) for idx, arc in enumerate(arcs)
+        if long_arc_mask[idx] and (arc[0], arc[1]) not in mst_edges and (arc[1], arc[0]) not in mst_edges
+    ]
+    long_arc_indices = [
+        idx for idx, arc in enumerate(arcs)
+        if (arc[0], arc[1]) in long_arcs or (arc[1], arc[0]) in long_arcs
+    ]
+    mask = np.ones_like(distances, dtype=bool)
+    mask[long_arc_indices] = False
+    arcs = arcs[mask]
+    distances = distances[mask]
+
+    logger.debug(f"Final number of arcs: {arcs.shape[0]}.")
     logger.debug(f"Final triangulation arc lengths - "
-                 f"Min: {np.min(triang_obj.dist_mat[ut_mask]):.0f} m, "
-                 f"Max: {np.max(triang_obj.dist_mat[ut_mask]):.0f} m, "
-                 f"Mean: {np.mean(triang_obj.dist_mat[ut_mask]):.0f} m.")
+                 f"Min: {np.min(distances):.0f} m, "
+                 f"Max: {np.max(distances):.0f} m, "
+                 f"Mean: {np.mean(distances):.0f} m.")
 
     return arcs
