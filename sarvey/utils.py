@@ -2,7 +2,7 @@
 
 # SARvey - A multitemporal InSAR time series tool for the derivation of displacements.
 #
-# Copyright (C) 2021-2025 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
+# Copyright (C) 2021-2026 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
 #
 # This software was developed together with FERN.Lab (fernlab@gfz-potsdam.de) in the context
 # of the SAR4Infra project with funds of the German Federal Ministry for Digital and
@@ -383,8 +383,8 @@ def splitImageIntoBoxesRngAz(*, length: int, width: int, num_box_az: int, num_bo
     num_box: int
         number of boxes
     """
-    y_step = int(np.rint((length / num_box_rng) / 10) * 10)
-    x_step = int(np.rint((width / num_box_az) / 10) * 10)
+    y_step = int(length / num_box_rng)
+    x_step = int(width / num_box_az)
 
     box_list = []
     y0 = 0

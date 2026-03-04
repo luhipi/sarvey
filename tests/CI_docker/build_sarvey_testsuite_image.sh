@@ -12,7 +12,6 @@ print(version["__version__"])
 '
 version=`python -c "$python_script"`
 tag="sarvey_ci:$version"
-gitlab_runner="sarvey_gitlab_CI_runner"
 
 echo "#### Build runner docker image"
 if [[ "$(docker images ${tag} | grep ${tag} 2> /dev/null)" != "" ]]; then

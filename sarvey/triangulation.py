@@ -2,7 +2,7 @@
 
 # SARvey - A multitemporal InSAR time series tool for the derivation of displacements.
 #
-# Copyright (C) 2021-2025 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
+# Copyright (C) 2021-2026 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
 #
 # This software was developed together with FERN.Lab (fernlab@gfz-potsdam.de) in the context
 # of the SAR4Infra project with funds of the German Federal Ministry for Digital and
@@ -61,6 +61,8 @@ class PointNetworkTriangulation:
         self.logger = logger
         self.verbose = verbose
 
+        self.logger.debug(f"Initializing Point Network Triangulation with {num_points} points...")
+
         # create sparse matrix with dim (num_points x num_points), add 1 if connected.
         # create network afterwards once. reduces time.
         self.adj_mat = lil_matrix((num_points, num_points), dtype=np.bool_)
@@ -68,10 +70,16 @@ class PointNetworkTriangulation:
         if coord_map_xy is not None:
             if self.verbose:
                 logger.info(msg="create distance matrix between all points...")
+            logger.debug(f"Map coordinates available. Creating distance matrix between all {num_points} points...")
+            logger.debug(f"[Min, Max] of x coordinates: "
+                         f"[{np.min(coord_map_xy[:, 0]):.2f}/{np.max(coord_map_xy[:, 0]):.2f}]")
+            logger.debug(f"[Min, Max] of y coordinates: "
+                         f"[{np.min(coord_map_xy[:, 1]):.2f}/{np.max(coord_map_xy[:, 1]):.2f}]")
             self.dist_mat = distance_matrix(coord_map_xy, coord_map_xy)
             # todo: check out alternatives:
             #       scipy.spatial.KDTree.sparse_distance_matrix
         else:  # if only global delaunay shall be computed without memory issues
+            logger.debug("No Map coordinates given. No distance matrix calculated.")
             self.dist_mat = None
 
     def getArcsFromAdjMat(self):
@@ -82,6 +90,7 @@ class PointNetworkTriangulation:
         arcs: np.ndarray
             List of arcs with indices of the start and end point.
         """
+        self.logger.debug(f"Extracting arcs from adjacency matrix with size {self.adj_mat.shape}...")
         a = self.adj_mat.copy()
         # copy entries from lower to upper triangular matrix
         b = (a + a.T)
@@ -105,6 +114,7 @@ class PointNetworkTriangulation:
             distance threshold on arc length in [m]
         """
         mask = self.dist_mat > max_dist
+        self.logger.debug(f"Removing {np.sum(mask)} arcs with distance longer that {max_dist}.")
         self.adj_mat[mask] = False
 
     def isConnected(self):
@@ -118,9 +128,10 @@ class PointNetworkTriangulation:
     def triangulateGlobal(self):
         """Connect the points with a GLOBAL delaunay triangulation."""
         if self.verbose:
-            self.logger.info(msg="Triangulate points with global delaunay.")
+            self.logger.debug("Triangulating points with global delaunay...")
 
         network = Delaunay(points=self.coord_xy)
+        self.logger.debug(f"Number of triangles in Delaunay triangulation: {network.simplices.shape[0]}")
         for p1, p2, p3 in network.simplices:
             self.adj_mat[p1, p2] = True
             self.adj_mat[p1, p3] = True
@@ -128,8 +139,7 @@ class PointNetworkTriangulation:
 
     def triangulateKnn(self, *, k: int):
         """Connect points to the k-nearest neighbours."""
-        if self.verbose:
-            self.logger.info(msg="Triangulate points with {}-nearest neighbours.".format(k))
+        self.logger.debug(f"Triangulating points with {k}-nearest neighbours....")
         num_points = self.coord_xy.shape[0]
         prog_bar = ptime.progressBar(maxValue=num_points)
         start_time = time.time()
@@ -137,8 +147,8 @@ class PointNetworkTriangulation:
         tree = KDTree(data=self.coord_xy)
 
         if k > num_points:
+            self.logger.debug(f"{k} k > {num_points} number of points. Connect all points with each other.")
             k = num_points
-            self.logger.info(msg="k > number of points. Connect all points with each other.")
         for p1 in range(num_points):
             idx = tree.query(self.coord_xy[p1, :], k)[1]
             self.adj_mat[p1, idx] = True
@@ -147,4 +157,4 @@ class PointNetworkTriangulation:
                             suffix='{}/{} points triangulated'.format(count + 1, num_points + 1))
         prog_bar.close()
         m, s = divmod(time.time() - start_time, 60)
-        self.logger.debug(msg='time used: {:02.0f} mins {:02.1f} secs.'.format(m, s))
+        self.logger.debug(f"time used for knn triangulation: {m:02.0f} mins {s:02.1f} secs.")

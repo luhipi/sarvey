@@ -2,7 +2,7 @@
 
 # SARvey - A multitemporal InSAR time series tool for the derivation of displacements.
 #
-# Copyright (C) 2021-2025 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
+# Copyright (C) 2021-2026 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
 #
 # This software was developed together with FERN.Lab (fernlab@gfz-potsdam.de) in the context
 # of the SAR4Infra project with funds of the German Federal Ministry for Digital and
@@ -111,14 +111,14 @@ def computeIfgsAndTemporalCoherence(*, path_temp_coh: str, path_ifgs: str, path_
             for i in range(num_ifgs):
                 avg_neighbours[:, :, i] = convolve2d(in1=ifgs[:, :, i], in2=filter_kernel, mode='same', boundary="symm")
         else:
-            pool = multiprocessing.Pool(processes=num_cores)
 
             args = [(
                 idx,
                 ifgs[:, :, idx],
                 filter_kernel) for idx in range(num_ifgs)]
 
-            results = pool.map(func=launchConvolve2d, iterable=args)
+            with multiprocessing.Pool(processes=num_cores) as pool:
+                results = pool.map(func=launchConvolve2d, iterable=args)
 
             # retrieve results
             for j, avg_neigh in results:

@@ -12,6 +12,34 @@ Future major version
 Future minor version (release soon)
 -----------------------------------
 
+1.3.0 (2026-02-23)
+------------------
+
+* Improve consistency check with an iterative removal of low-quality points and arcs.
+* Ensure connectivity after removal of low-quality points and arcs.
+* Set delaunay triangulation as default for spatial phase unwrapping in step 2.
+* Deprecate parameter consistency_check:min_num_arc.
+* Store configuration file for the tests in the repository.
+* Enhance argument parsing in command line interface.
+* Improve installation and test with Python 3.13.
+* Add version flag to command line interfaces.
+* Enhance logging.
+
+1.2.2 (2025-07-09)
+------------------
+
+* Migrate from Pydantic v1 to v2 and update environment requirements.
+* Show all arcs in spatial network plot in step 1.
+
+1.2.1 (2025-07-08)
+------------------
+
+* Fix integer overflow occurring in large datasets.
+* Enhance proper resource cleanup in multiprocessing.
+* Update CI docker builder.
+* Update runner to test installation.
+* Update documentation with new instruction for installation including pip.
+* Fix numerical problems when computing grid size.
 
 1.2.0 (2025-02-19)
 ------------------

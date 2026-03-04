@@ -2,7 +2,7 @@
 
 # SARvey - A multitemporal InSAR time series tool for the derivation of displacements.
 #
-# Copyright (C) 2021-2025 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
+# Copyright (C) 2021-2026 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
 #
 # This software was developed together with FERN.Lab (fernlab@gfz-potsdam.de) in the context
 # of the SAR4Infra project with funds of the German Federal Ministry for Digital and
@@ -44,8 +44,10 @@ with open("sarvey/version.py") as version_file:
 
 req = [
     "cython", "numpy", "pyproj", "matplotlib", "numba", "scipy",
-    "mintpy", "h5py", "overpy", "miaplpy", "gstools", "shapely", "pandas", "geopandas", "pymaxflow",
-    "pillow", "pydantic<=1.10.10", "importlib_resources", "kamui", "json5", "cmcrameri"
+    "mintpy", "h5py", "overpy", "gstools", "shapely", "pandas", "geopandas", "pymaxflow",
+    "pillow", "importlib_resources", "json5", "cmcrameri", 'pydantic',
+    "kamui @ git+https://github.com/yoyolicoris/kamui.git@84c10df2fa89091a0aa4ecf12049a70d0d01391f",
+    "miaplpy @ git+https://github.com/insarlab/MiaplPy.git"
 ]
 
 req_setup = []
@@ -63,6 +65,8 @@ req_lint = ['flake8', 'pycodestyle', 'pydocstyle']
 
 req_dev = ['twine'] + req_setup + req_test + req_doc + req_lint
 
+extra_req = ["gdal"]
+
 setup(
     author="Andreas Piter",
     author_email='piter@ipi.uni-hannover.de',
@@ -73,10 +77,7 @@ setup(
         'None',
         'Natural Language :: English',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9',
-        'Programming Language :: Python :: 3.10'
+        'Programming Language :: Python :: 3.13'
     ],
     description="InSAR time series analysis software for SAR4Infra project",
     entry_points={

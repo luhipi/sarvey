@@ -2,7 +2,7 @@
 
 # SARvey - A multitemporal InSAR time series tool for the derivation of displacements.
 #
-# Copyright (C) 2021-2025 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
+# Copyright (C) 2021-2026 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
 #
 # This software was developed together with FERN.Lab (fernlab@gfz-potsdam.de) in the context
 # of the SAR4Infra project with funds of the German Federal Ministry for Digital and
@@ -58,7 +58,7 @@ class TestProcessing(unittest.TestCase):
         if os.path.basename(os.getcwd()) == "tests":
             self.root_path = "../"
 
-        self.config_file = os.path.abspath(f"{self.root_path}/tests/testdata/config_test.json")
+        self.config_file = os.path.abspath(f"{self.root_path}/tests/config_test.json")
         self.configuration = loadConfiguration(path=self.config_file)
 
         self.logger = logging.getLogger(__name__)
