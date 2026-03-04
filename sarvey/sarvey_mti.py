@@ -108,7 +108,7 @@ def run(*, config: Config, args: argparse.Namespace, logger: Logger):
             raise ValueError
 
     if config.temporarily_coherent_scatterer.use_tcs:
-        printCurrentConfig(config_section=config.temporarily_coherent_scatterer.dict(),
+        printCurrentConfig(config_section=config.temporarily_coherent_scatterer.model_dump(),
                            config_section_default=config_default_dict["temporarily_coherent_scatterer"],
                            logger=logger)
 

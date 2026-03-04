@@ -223,7 +223,7 @@ class PhaseLinking(BaseModel, extra="forbid"):
         return v
 
 
-class TemporarilyCoherentScatterer(BaseModel, extra=Extra.forbid):
+class TemporarilyCoherentScatterer(BaseModel, extra="forbid"):
     """Template for settings in config file."""
 
     use_tcs: bool = Field(

@@ -428,7 +428,7 @@ def launchSpatialUnwrapping(parameters: tuple) -> tuple[np.ndarray, np.ndarray]:
 
 
 def spatialUnwrapping(*, num_ifgs: int, num_points: int, phase: np.ndarray, method: str, num_cores: int,
-                      edges: Union[np.ndarray, list[np.ndarray]], logger: Logger,
+                      edges: [np.ndarray, list[np.ndarray]], logger: Logger,
                       lifetime_ifgs: np.ndarray = None):
     """Spatial unwrapping of interferograms for a set of points.
 
