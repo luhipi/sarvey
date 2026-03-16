@@ -255,6 +255,10 @@ def convertToRadarCoordPolygon(*, gdf_infra: gpd.geodataframe, csearch: Coordina
 
     num_ways = gdf_infra.shape[0]
     way_iter = 0
+    if num_ways <= 0:
+        logger.error("Invalid number of line segments: %s, expected > 0", num_ways)
+        raise ValueError(f"Invalid number of line segments: {num_ways}, expected > 0")
+
     prog_bar = ptime.progressBar(maxValue=num_ways)
 
     dist_thrsh = 1.3 * csearch.getMeanDistanceBetweenPixels()
@@ -410,6 +414,10 @@ def convertToRadarCoord(*, gdf_infra: gpd.geodataframe, csearch: CoordinateSearc
     img_pil_draw = ImageDraw.Draw(im=img_pil)
 
     num_roads = gdf_infra.shape[0]
+    if num_roads <= 0:
+        logger.error("Invalid number of line segments: %s, expected > 0", num_roads)
+        raise ValueError(f"Invalid number of line segments: {num_roads}, expected > 0")
+
     prog_bar = ptime.progressBar(maxValue=num_roads)
 
     dist_thrsh = 1.3 * csearch.getMeanDistanceBetweenPixels()
