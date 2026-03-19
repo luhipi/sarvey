@@ -12,6 +12,7 @@ SARvey documentation
    usage
    preparation
    processing
+   parallelization
    visualization
    demo_datasets
    modules

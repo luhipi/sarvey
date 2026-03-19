@@ -504,7 +504,6 @@ class Processing:
             phase=unw_phase,
             num_points=point_obj.num_points,
             ifg_net_obj=point_obj.ifg_net_obj,
-            num_cores=1,  # self.config.general.num_cores,
             ref_idx=0,
             logger=self.logger
         )
@@ -575,7 +574,6 @@ class Processing:
         # for sbas the ifg network needs to be inverted to get the phase time series
         phase_ts = ut.invertIfgNetwork(phase=unw_phase, num_points=point_obj.num_points,
                                        ifg_net_obj=point_obj.ifg_net_obj,
-                                       num_cores=1,  # self.config.general.num_cores,
                                        ref_idx=0,
                                        logger=self.logger)
 
@@ -1071,7 +1069,6 @@ class Processing:
             phase=unw_phase,
             num_points=point2_obj.num_points,
             ifg_net_obj=point2_obj.ifg_net_obj,
-            num_cores=1,  # self.config.general.num_cores,
             ref_idx=0,
             logger=self.logger)
 
@@ -1131,7 +1128,6 @@ class Processing:
 
         phase_ts = ut.invertIfgNetwork(phase=unw_phase, num_points=point_obj.num_points,
                                        ifg_net_obj=point_obj.ifg_net_obj,
-                                       num_cores=1,  # self.config.general.num_cores,
                                        ref_idx=0,
                                        logger=self.logger)
 
