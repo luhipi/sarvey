@@ -6,6 +6,8 @@ History
 Future minor version (release soon)
 -----------------------------------
 
+* Fix bug in progress bar for small number of samples.
+
 1.3.0 (2026-02-23)
 ------------------
 
