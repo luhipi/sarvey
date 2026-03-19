@@ -28,7 +28,6 @@
 # with this program. If not, see <https://www.gnu.org/licenses/>.
 
 """Utils module for SARvey."""
-import multiprocessing
 import os
 import time
 from os.path import exists, join

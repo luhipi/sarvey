@@ -35,7 +35,6 @@ import shutil
 from os.path import join
 
 import json5
-import matplotlib
 import sys
 import logging
 import time
@@ -47,11 +46,6 @@ from sarvey.console import printStep, printCurrentConfig, showLogoSARvey
 from sarvey.processing import Processing
 from sarvey.config import Config, loadConfiguration
 from sarvey.utils import checkIfRequiredFilesExist, setNativeThreadEnvIfUnset
-
-try:
-    matplotlib.use('QtAgg')
-except ImportError as e:
-    print(e)
 
 EXAMPLE = """Example:
   sarvey -f config.json -g                        # create default config file with the name config.json and exit
