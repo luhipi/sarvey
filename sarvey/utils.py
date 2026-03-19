@@ -83,8 +83,6 @@ def invertIfgNetwork(*, phase: np.ndarray, num_points: int, ifg_net_obj: IfgNetw
         number of points.
     ifg_net_obj: IfgNetwork
         instance of class IfgNetwork.
-    num_cores: int
-        number of cores to use for multiprocessing.
     ref_idx: int
         index of temporal reference date for interferogram network inversion.
     logger: Logger
@@ -103,74 +101,10 @@ def invertIfgNetwork(*, phase: np.ndarray, num_points: int, ifg_net_obj: IfgNetw
     start_time = time.time()
     design_mat = ifg_net_obj.getDesignMatrix()
 
-    if num_cores == 1:
-        args = (np.arange(num_points), num_points, phase, design_mat, ifg_net_obj.num_images, ref_idx)
-        idx_range, phase_ts = launchInvertIfgNetwork(parameters=args)
-    else:
-        # use only 10 percent of the cores, because scipy.sparse.linalg.lsqr is already running in parallel
-        num_cores = int(np.floor(num_cores / 10))
-        logger.info(msg="start parallel processing with {} cores.".format(num_cores))
-
-        phase_ts = np.zeros((num_points, ifg_net_obj.num_images), dtype=np.float32)
-
-        num_cores = num_points if num_cores > num_points else num_cores  # avoids having more samples than cores
-        idx = splitDatasetForParallelProcessing(num_samples=num_points, num_cores=num_cores)
-        args = [(
-            idx_range,
-            idx_range.shape[0],
-            phase[idx_range, :],
-            design_mat,
-            ifg_net_obj.num_images,
-            ref_idx) for idx_range in idx]
-
-        with multiprocessing.Pool(processes=num_cores) as pool:
-            results = pool.map(func=launchInvertIfgNetwork, iterable=args)
-
-        # retrieve results
-        for i, phase_i in results:
-            phase_ts[i, :] = phase_i
-
-    m, s = divmod(time.time() - start_time, 60)
-    logger.debug(msg='time used: {:02.0f} mins {:02.1f} secs.'.format(m, s))
-    return phase_ts
-
-
-def launchInvertIfgNetwork(parameters: tuple):
-    """Launch the inversion of the interferogram network in parallel.
-
-    Parameters
-    ----------
-    parameters: tuple
-        parameters for inversion
-
-        Tuple contains:
-            idx_range: np.ndarray
-                range of point indices to be processed
-            num_points: int
-                number of points
-            phase: np.ndarray
-                interferometric phases of the points
-            design_mat: np.ndarray
-                design matrix
-            num_images: int
-                number of images
-            ref_idx: int
-                index of temporal reference date for interferogram network inversion
-
-    Returns
-    -------
-        idx_range: np.ndarray
-            range of indices of the points processed
-        phase_ts: np.ndarray
-            inverted phase time series
-    """
-    # Unpack the parameters
-    (idx_range, num_points, phase, design_mat, num_images, ref_idx) = parameters
-
     design_mat = np.delete(arr=design_mat, obj=ref_idx, axis=1)  # remove reference date
-    idx = np.ones((num_images,), dtype=np.bool_)
+    idx = np.ones((ifg_net_obj.num_images,), dtype=np.bool_)
     idx[ref_idx] = False
-    phase_ts = np.zeros((num_points, num_images), dtype=np.float32)
+    phase_ts = np.zeros((num_points, ifg_net_obj.num_images), dtype=np.float32)
 
     prog_bar = ptime.progressBar(maxValue=num_points)
     for i in range(num_points):
@@ -178,7 +112,10 @@ def launchInvertIfgNetwork(parameters: tuple):
         prog_bar.update(value=i + 1, every=np.ceil(num_points / 100),
                         suffix='{}/{} points'.format(i + 1, num_points))
 
-    return idx_range, phase_ts
+    m, s = divmod(time.time() - start_time, 60)
+    logger.debug(msg='time used: {:02.0f} mins {:02.1f} secs.'.format(m, s))
+
+    return phase_ts
 
 
 def predictPhase(*, obj: [NetworkParameter, Points], vel: np.ndarray = None, demerr: np.ndarray = None,
