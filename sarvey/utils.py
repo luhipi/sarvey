@@ -29,6 +29,7 @@
 
 """Utils module for SARvey."""
 import multiprocessing
+import os
 import time
 from os.path import exists, join
 
@@ -885,3 +886,28 @@ def checkIfRequiredFilesExist(*, path_to_files: str, required_files: list, logge
         if not exists(join(path_to_files, file)):
             logger.error(f"File from previous step(s) is missing: {file}.")
             raise FileNotFoundError
+
+
+def setNativeThreadEnvIfUnset(*, num_threads: int = 1, logger: Logger = None) -> dict:
+    """Set native library thread limits only if environment variables are unset."""
+    if num_threads <= 0:
+        raise ValueError("Number of native threads must be greater than zero.")
+
+    env_vars = (
+        "OMP_NUM_THREADS",
+        "OPENBLAS_NUM_THREADS",
+        "MKL_NUM_THREADS",
+        "NUMEXPR_NUM_THREADS",
+    )
+
+    updates = {}
+    for var_name in env_vars:
+        if os.environ.get(var_name) is None:
+            os.environ[var_name] = str(num_threads)
+            updates[var_name] = str(num_threads)
+
+    if (logger is not None) and updates:
+        logger.info(msg="Set native thread limits for unset environment variables: {}"
+                    .format(", ".join(f"{k}={v}" for k, v in updates.items())))
+
+    return updates
