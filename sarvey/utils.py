@@ -53,7 +53,24 @@ def convertBboxToBlock(*, bbox: tuple):
     return block
 
 
-def invertIfgNetwork(*, phase: np.ndarray, num_points: int, ifg_net_obj: IfgNetwork, num_cores: int, ref_idx: int,
+def clampNumCores(*, requested_cores: int, num_samples: int) -> int:
+    """Clamp the requested number of worker processes to a safe usable range."""
+    if requested_cores <= 0:
+        raise ValueError("Number of cores must be greater than zero.")
+    if num_samples <= 0:
+        raise ValueError("Number of samples must be greater than zero.")
+    return min(requested_cores, num_samples)
+
+
+def scaleNumCores(*, requested_cores: int, num_samples: int, scale: float = 1.0) -> int:
+    """Scale and clamp worker count while guaranteeing at least one worker."""
+    if scale <= 0:
+        raise ValueError("Scale must be greater than zero.")
+    scaled_cores = max(1, int(np.floor(requested_cores * scale)))
+    return clampNumCores(requested_cores=scaled_cores, num_samples=num_samples)
+
+
+def invertIfgNetwork(*, phase: np.ndarray, num_points: int, ifg_net_obj: IfgNetwork, ref_idx: int,
                      logger: Logger):
     """Wrap the ifg network inversion running in parallel.
 
@@ -527,6 +544,7 @@ def splitDatasetForParallelProcessing(*, num_samples: int, num_cores: int):
     idx: list
         list of sample ranges for each core
     """
+    num_cores = clampNumCores(requested_cores=num_cores, num_samples=num_samples)
     rest = np.mod(num_samples, num_cores)
     avg_num_samples_per_core = int((num_samples - rest) / num_cores)
     num_samples_per_core = np.zeros((num_cores,), dtype=np.int64)

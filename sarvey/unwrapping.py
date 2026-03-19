@@ -350,8 +350,7 @@ def temporalUnwrapping(*, ifg_net_obj: IfgNetwork, net_obj: Network, wavelength:
         vel = np.zeros((net_obj.num_arcs, 1), dtype=np.float32)
         gamma = np.zeros((net_obj.num_arcs, 1), dtype=np.float32)
 
-        num_cores = net_obj.num_arcs if num_cores > net_obj.num_arcs else num_cores  # avoids having more samples
-        # then cores
+        num_cores = ut.clampNumCores(requested_cores=num_cores, num_samples=net_obj.num_arcs)
         idx = ut.splitDatasetForParallelProcessing(num_samples=net_obj.num_arcs, num_cores=num_cores)
 
         args = [(
@@ -476,8 +475,7 @@ def spatialUnwrapping(*, num_ifgs: int, num_points: int, phase: np.ndarray, edge
         logger.info(msg="start parallel processing with {} cores.".format(num_cores))
 
         unw_phase = np.zeros((num_points, num_ifgs), dtype=np.float32)
-        num_cores = num_ifgs if num_cores > num_ifgs else num_cores
-        # avoids having more samples than cores
+        num_cores = ut.clampNumCores(requested_cores=num_cores, num_samples=num_ifgs)
         idx = ut.splitDatasetForParallelProcessing(num_samples=num_ifgs, num_cores=num_cores)
 
         args = [(

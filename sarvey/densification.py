@@ -224,10 +224,9 @@ def densifyNetwork(*, point1_obj: Points, vel_p1: np.ndarray, demerr_p1: np.ndar
                 velocity_bound, demerr_bound, num_samples)
         idx_range, demerr_p2, vel_p2, gamma_p2 = launchDensifyNetworkConsistencyCheck(args)
     else:
+        num_cores = ut.clampNumCores(requested_cores=num_cores, num_samples=point2_obj.num_points)
         with multiprocessing.Pool(num_cores, initializer=densificationInitializer, initargs=init_args) as pool:
             logger.info(msg="start parallel processing with {} cores.".format(num_cores))
-            num_cores = point2_obj.num_points if num_cores > point2_obj.num_points else num_cores
-            # avoids having less samples than cores
             idx = ut.splitDatasetForParallelProcessing(num_samples=point2_obj.num_points, num_cores=num_cores)
             args = [(
                 idx_range,

@@ -110,6 +110,7 @@ def computeIfgsAndTemporalCoherence(*, path_temp_coh: str, path_ifgs: str, path_
                 avg_neighbours[:, :, i] = convolve2d(in1=ifgs[:, :, i], in2=filter_kernel, mode='same', boundary="symm")
         else:
 
+            num_cores = min(num_cores, num_ifgs)
             args = [(
                 idx,
                 ifgs[:, :, idx],

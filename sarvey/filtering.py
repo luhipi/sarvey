@@ -218,7 +218,7 @@ def estimateAtmosphericPhaseScreen(*, residuals: np.ndarray, coord_utm1: np.ndar
         aps1 = np.zeros((num_points1, num_time), dtype=np.float32)
         aps2 = np.zeros((num_points2, num_time), dtype=np.float32)
 
-        num_cores = num_time if num_cores > num_time else num_cores  # avoids having more samples than cores
+        num_cores = ut.clampNumCores(requested_cores=num_cores, num_samples=num_time)
         idx = ut.splitDatasetForParallelProcessing(num_samples=num_time, num_cores=num_cores)
 
         args = [(
