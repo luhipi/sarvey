@@ -35,7 +35,6 @@ import time
 from os.path import join
 import PIL.Image as Image
 import PIL.ImageDraw as ImageDraw
-import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import spatial
@@ -47,11 +46,6 @@ from mintpy.utils import writefile, ptime, utils
 
 from sarvey import version
 from sarvey.osm_utils import getSpatialExtend
-
-try:
-    matplotlib.use('TkAgg')
-except ImportError as e:
-    print(e)
 
 EXAMPLE = """Example:
   sarvey_mask path/to/file.shp --geom ./geometryRadar.h5 --width 6 -o mask_infra.h5
