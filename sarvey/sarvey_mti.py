@@ -316,7 +316,7 @@ def main(iargs=None):
     config = loadConfiguration(path=config_file_path)
 
     # Apply unset-only native-thread defaults based on user configuration to reduce nested parallelism.
-    native_thread_updates = setNativeThreadEnvIfUnset(num_threads=config.general.num_cores)
+    native_thread_updates = setNativeThreadEnvIfUnset(num_threads=1)
     if native_thread_updates:
         logger.info(msg=(
             "Native thread limits set by SARvey (unset-only, using general:num_cores={0}): {1}"

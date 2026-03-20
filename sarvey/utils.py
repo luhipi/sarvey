@@ -31,6 +31,7 @@
 import os
 import time
 from os.path import exists, join
+import multiprocessing
 
 import numpy as np
 from scipy.sparse.linalg import lsqr
@@ -70,7 +71,7 @@ def scaleNumCores(*, requested_cores: int, num_samples: int, scale: float = 1.0)
     return clampNumCores(requested_cores=scaled_cores, num_samples=num_samples)
 
 
-def invertIfgNetwork(*, phase: np.ndarray, num_points: int, ifg_net_obj: IfgNetwork, ref_idx: int,
+def invertIfgNetwork(*, phase: np.ndarray, num_points: int, ifg_net_obj: IfgNetwork, num_cores: int, ref_idx: int,
                      logger: Logger):
     """Wrap the ifg network inversion running in parallel.
 
@@ -82,6 +83,8 @@ def invertIfgNetwork(*, phase: np.ndarray, num_points: int, ifg_net_obj: IfgNetw
         number of points.
     ifg_net_obj: IfgNetwork
         instance of class IfgNetwork.
+    num_cores: int
+        number of cores to use for multiprocessing.
     ref_idx: int
         index of temporal reference date for interferogram network inversion.
     logger: Logger
@@ -100,10 +103,72 @@ def invertIfgNetwork(*, phase: np.ndarray, num_points: int, ifg_net_obj: IfgNetw
     start_time = time.time()
     design_mat = ifg_net_obj.getDesignMatrix()
 
+    if num_cores == 1:
+        args = (np.arange(num_points), num_points, phase, design_mat, ifg_net_obj.num_images, ref_idx)
+        idx_range, phase_ts = launchInvertIfgNetwork(parameters=args)
+    else:
+        num_cores = clampNumCores(requested_cores=num_cores, num_samples=num_points)
+        logger.info(msg="start parallel processing with {} cores.".format(num_cores))
+
+        phase_ts = np.zeros((num_points, ifg_net_obj.num_images), dtype=np.float32)
+
+        idx = splitDatasetForParallelProcessing(num_samples=num_points, num_cores=num_cores)
+        args = [(
+            idx_range,
+            idx_range.shape[0],
+            phase[idx_range, :],
+            design_mat,
+            ifg_net_obj.num_images,
+            ref_idx) for idx_range in idx]
+
+        with multiprocessing.Pool(processes=num_cores) as pool:
+            results = pool.map(func=launchInvertIfgNetwork, iterable=args)
+
+        # retrieve results
+        for i, phase_i in results:
+            phase_ts[i, :] = phase_i
+
+    m, s = divmod(time.time() - start_time, 60)
+    logger.debug(msg='time used: {:02.0f} mins {:02.1f} secs.'.format(m, s))
+    return phase_ts
+
+
+def launchInvertIfgNetwork(parameters: tuple):
+    """Launch the inversion of the interferogram network in parallel.
+
+    Parameters
+    ----------
+    parameters: tuple
+        parameters for inversion
+
+        Tuple contains:
+            idx_range: np.ndarray
+                range of point indices to be processed
+            num_points: int
+                number of points
+            phase: np.ndarray
+                interferometric phases of the points
+            design_mat: np.ndarray
+                design matrix
+            num_images: int
+                number of images
+            ref_idx: int
+                index of temporal reference date for interferogram network inversion
+
+    Returns
+    -------
+        idx_range: np.ndarray
+            range of indices of the points processed
+        phase_ts: np.ndarray
+            inverted phase time series
+    """
+    # Unpack the parameters
+    (idx_range, num_points, phase, design_mat, num_images, ref_idx) = parameters
+
     design_mat = np.delete(arr=design_mat, obj=ref_idx, axis=1)  # remove reference date
-    idx = np.ones((ifg_net_obj.num_images,), dtype=np.bool_)
+    idx = np.ones((num_images,), dtype=np.bool_)
     idx[ref_idx] = False
-    phase_ts = np.zeros((num_points, ifg_net_obj.num_images), dtype=np.float32)
+    phase_ts = np.zeros((num_points, num_images), dtype=np.float32)
 
     prog_bar = ptime.progressBar(maxValue=num_points)
     for i in range(num_points):
@@ -111,10 +176,7 @@ def invertIfgNetwork(*, phase: np.ndarray, num_points: int, ifg_net_obj: IfgNetw
         prog_bar.update(value=i + 1, every=np.ceil(num_points / 100),
                         suffix='{}/{} points'.format(i + 1, num_points))
 
-    m, s = divmod(time.time() - start_time, 60)
-    logger.debug(msg='time used: {:02.0f} mins {:02.1f} secs.'.format(m, s))
-
-    return phase_ts
+    return idx_range, phase_ts
 
 
 def predictPhase(*, obj: [NetworkParameter, Points], vel: np.ndarray = None, demerr: np.ndarray = None,

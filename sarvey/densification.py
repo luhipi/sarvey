@@ -141,7 +141,7 @@ def launchDensifyNetworkConsistencyCheck(args: tuple):
             design_mat=design_mat
         )
 
-        prog_bar.update(counter + 1, every=np.int16(200),
+        prog_bar.update(counter + 1, every=200,
                         suffix='{}/{} points'.format(counter + 1, num_points))
         counter += 1
 
