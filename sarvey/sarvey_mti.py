@@ -35,7 +35,6 @@ import shutil
 from os.path import join
 
 import json5
-import matplotlib
 import sys
 import logging
 import time
@@ -46,12 +45,7 @@ from sarvey import version
 from sarvey.console import printStep, printCurrentConfig, showLogoSARvey
 from sarvey.processing import Processing
 from sarvey.config import Config, loadConfiguration
-from sarvey.utils import checkIfRequiredFilesExist
-
-try:
-    matplotlib.use('QtAgg')
-except ImportError as e:
-    print(e)
+from sarvey.utils import checkIfRequiredFilesExist, setNativeThreadEnvIfUnset
 
 EXAMPLE = """Example:
   sarvey -f config.json -g                        # create default config file with the name config.json and exit
@@ -320,6 +314,18 @@ def main(iargs=None):
     config_file_path = os.path.abspath(join(args.workdir, args.filepath))
 
     config = loadConfiguration(path=config_file_path)
+
+    # Apply unset-only native-thread defaults based on user configuration to reduce nested parallelism.
+    native_thread_updates = setNativeThreadEnvIfUnset(num_threads=1)
+    if native_thread_updates:
+        logger.info(msg=(
+            "Native thread limits set by SARvey (unset-only, using general:num_cores={0}): {1}"
+        ).format(config.general.num_cores,
+                 ", ".join(f"{k}={v}" for k, v in sorted(native_thread_updates.items()))))
+    else:
+        logger.info(msg=(
+            "Native thread limits unchanged (unset-only): existing environment values preserved."
+        ))
 
     current_datetime = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
     log_filename = f"sarvey_{current_datetime}.log"

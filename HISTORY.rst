@@ -6,6 +6,9 @@ History
 Future minor version (release soon)
 -----------------------------------
 
+* Set native thread environment variable to number of cores from config if not set in the environment.
+* Improve parallelization to reduce risk of computational overhead.
+
 1.3.0 (2026-02-23)
 ------------------
 

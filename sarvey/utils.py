@@ -28,9 +28,10 @@
 # with this program. If not, see <https://www.gnu.org/licenses/>.
 
 """Utils module for SARvey."""
-import multiprocessing
+import os
 import time
 from os.path import exists, join
+import multiprocessing
 
 import numpy as np
 from scipy.sparse.linalg import lsqr
@@ -51,6 +52,23 @@ def convertBboxToBlock(*, bbox: tuple):
     if len(bbox) == 6:
         block = (bbox[2], bbox[5], bbox[1], bbox[4], bbox[0], bbox[3])
     return block
+
+
+def clampNumCores(*, requested_cores: int, num_samples: int) -> int:
+    """Clamp the requested number of worker processes to a safe usable range."""
+    if requested_cores <= 0:
+        raise ValueError("Number of cores must be greater than zero.")
+    if num_samples <= 0:
+        raise ValueError("Number of samples must be greater than zero.")
+    return min(requested_cores, num_samples)
+
+
+def scaleNumCores(*, requested_cores: int, num_samples: int, scale: float = 1.0) -> int:
+    """Scale and clamp worker count while guaranteeing at least one worker."""
+    if scale <= 0:
+        raise ValueError("Scale must be greater than zero.")
+    scaled_cores = max(1, int(np.floor(requested_cores * scale)))
+    return clampNumCores(requested_cores=scaled_cores, num_samples=num_samples)
 
 
 def invertIfgNetwork(*, phase: np.ndarray, num_points: int, ifg_net_obj: IfgNetwork, num_cores: int, ref_idx: int,
@@ -89,13 +107,11 @@ def invertIfgNetwork(*, phase: np.ndarray, num_points: int, ifg_net_obj: IfgNetw
         args = (np.arange(num_points), num_points, phase, design_mat, ifg_net_obj.num_images, ref_idx)
         idx_range, phase_ts = launchInvertIfgNetwork(parameters=args)
     else:
-        # use only 10 percent of the cores, because scipy.sparse.linalg.lsqr is already running in parallel
-        num_cores = int(np.floor(num_cores / 10))
+        num_cores = clampNumCores(requested_cores=num_cores, num_samples=num_points)
         logger.info(msg="start parallel processing with {} cores.".format(num_cores))
 
         phase_ts = np.zeros((num_points, ifg_net_obj.num_images), dtype=np.float32)
 
-        num_cores = num_points if num_cores > num_points else num_cores  # avoids having more samples than cores
         idx = splitDatasetForParallelProcessing(num_samples=num_points, num_cores=num_cores)
         args = [(
             idx_range,
@@ -527,6 +543,7 @@ def splitDatasetForParallelProcessing(*, num_samples: int, num_cores: int):
     idx: list
         list of sample ranges for each core
     """
+    num_cores = clampNumCores(requested_cores=num_cores, num_samples=num_samples)
     rest = np.mod(num_samples, num_cores)
     avg_num_samples_per_core = int((num_samples - rest) / num_cores)
     num_samples_per_core = np.zeros((num_cores,), dtype=np.int64)
@@ -867,3 +884,28 @@ def checkIfRequiredFilesExist(*, path_to_files: str, required_files: list, logge
         if not exists(join(path_to_files, file)):
             logger.error(f"File from previous step(s) is missing: {file}.")
             raise FileNotFoundError
+
+
+def setNativeThreadEnvIfUnset(*, num_threads: int = 1, logger: Logger = None) -> dict:
+    """Set native library thread limits only if environment variables are unset."""
+    if num_threads <= 0:
+        raise ValueError("Number of native threads must be greater than zero.")
+
+    env_vars = (
+        "OMP_NUM_THREADS",
+        "OPENBLAS_NUM_THREADS",
+        "MKL_NUM_THREADS",
+        "NUMEXPR_NUM_THREADS",
+    )
+
+    updates = {}
+    for var_name in env_vars:
+        if os.environ.get(var_name) is None:
+            os.environ[var_name] = str(num_threads)
+            updates[var_name] = str(num_threads)
+
+    if (logger is not None) and updates:
+        logger.info(msg="Set native thread limits for unset environment variables: {}"
+                    .format(", ".join(f"{k}={v}" for k, v in updates.items())))
+
+    return updates

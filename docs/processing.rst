@@ -320,6 +320,8 @@ By setting **general:num_patches** the data is split into spatial patches and pr
 However, only use the patching option if the memory is not sufficient to process the data in one go.
 Using multiple patches will slow down the processing due to the overhead of loading and saving the data multiple times.
 
+For practical user-side tuning guidance of **general:num_cores** and **general:num_patches**, see :doc:`parallel_processing`.
+
 
 Processing steps for one-step unwrapping workflow
 -------------------------------------------------
