@@ -583,7 +583,7 @@ def createMask(*, input_file: str, width: int, work_dir: str, out_file_name: str
         mask_img = convertToRadarCoord(gdf_infra=gdf_infra, csearch=csearch, width=width, logger=logger)
 
     elif gdf_infra.geometry[0].geom_type == "Polygon":
-        mask_img = convertToRadarCoordPolygon(gdf_infra=gdf_infra, csearch=csearch, width=width, logger=logger)
+        mask_img = convertToRadarCoordPolygon(gdf_infra=gdf_infra, csearch=csearch, logger=logger)
     else:
         logger.error(msg=f"Geometry type is {gdf_infra.geometry[0].geom_type}."
                          f"Only 'LineString' and 'Polygon' supported!")
