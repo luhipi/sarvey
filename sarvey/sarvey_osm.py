@@ -36,16 +36,9 @@ import time
 from os.path import join
 import geopandas as gpd
 from shapely import ops, Point
-import matplotlib
 
 from sarvey import version
 from sarvey.osm_utils import runOsmQueryBridge, runOsmQuery, getSpatialExtend
-
-try:
-    matplotlib.use('TkAgg')
-except ImportError as e:
-    print(e)
-
 
 EXAMPLE = """Example:
   sarvey_osm --geom ./geometryRadar.h5 --railway                       # download railway

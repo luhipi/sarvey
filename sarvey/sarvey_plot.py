@@ -54,8 +54,8 @@ from sarvey.viewer import LineSelector, ImageViewer
 
 try:
     matplotlib.use('QtAgg')
-except ImportError as e:
-    print(e)
+except Exception:
+    pass
 
 EXAMPLE = """Example:
   sarvey_plot outputs/p2_coh60_ts.h5 -t                # plot average velocity and time series
