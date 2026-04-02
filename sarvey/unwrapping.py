@@ -280,10 +280,10 @@ def launchAmbiguityFunctionSearch(parameters: tuple):
 
     demerr_range = np.linspace(-demerr_bound, demerr_bound, num_samples)
     vel_range = np.linspace(-velocity_bound, velocity_bound, num_samples)
-
     prog_bar = ptime.progressBar(maxValue=num_arcs)
 
     factor = 4 * np.pi / wavelength
+    every = max(1, num_arcs // 10)
 
     for k in range(num_arcs):
         design_mat[:, 0] = factor * ifg_net_obj.pbase_ifg / (slant_range[k] * np.sin(loc_inc[k]))
@@ -295,7 +295,7 @@ def launchAmbiguityFunctionSearch(parameters: tuple):
             obs_phase=phase[k, :],
             design_mat=design_mat
         )
-        prog_bar.update(value=k + 1, every=num_arcs // 10,
+        prog_bar.update(value=k + 1, every=every,
                         suffix='{}/{} arcs processed. '.format(k + 1, num_arcs))
 
     return arc_idx_range, demerr, vel, gamma
