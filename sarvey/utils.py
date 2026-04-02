@@ -155,9 +155,10 @@ def launchInvertIfgNetwork(parameters: tuple):
     phase_ts = np.zeros((num_points, num_images), dtype=np.float32)
 
     prog_bar = ptime.progressBar(maxValue=num_points)
+    every = max(1, num_points // 30)
     for i in range(num_points):
         phase_ts[i, idx] = lsqr(design_mat, phase[i, :])[0]
-        prog_bar.update(value=i + 1, every=np.ceil(num_points / 100),
+        prog_bar.update(value=i + 1, every=every,
                         suffix='{}/{} points'.format(i + 1, num_points))
 
     return idx_range, phase_ts
