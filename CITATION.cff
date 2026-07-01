@@ -51,7 +51,7 @@ preferred-citation:
       given-names: Daniel
     - family-names: Beamish
       given-names: Alison
-    title: "SARvey - survey with SAR: A new Open-Source InSAR Research Software"
-    journal: Environmental Modelling & Software
-    year: 2026
-    url: https://www.sciencedirect.com/science/article/pii/S1364815226001519
+  title: "SARvey - survey with SAR: A new Open-Source InSAR Research Software"
+  journal: Environmental Modelling & Software
+  year: 2026
+  url: https://www.sciencedirect.com/science/article/pii/S1364815226001519
