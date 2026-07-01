@@ -33,24 +33,24 @@ url: https://luhipi.github.io/sarvey/main
 version: 1.3.0
 date-released: 2026-02-23
 preferred-citation:
-  - type: article
-    authors:
-      - family-names: Piter
-        given-names: Andreas
-      - family-names: Haghshenas Haghighi
-        given-names: Mahmud
-      - family-names: Rabe
-        given-names: Daniela
-      - family-names: Motagh
-        given-names: Mahdi
-      - family-names: Knoch
-        given-names: Johannes
-      - family-names: Goncalves
-        given-names: Romulo
-      - family-names: Scheffler
-        given-names: Daniel
-      - family-names: Beamish
-        given-names: Alison
+  type: article
+  authors:
+    - family-names: Piter
+      given-names: Andreas
+    - family-names: Haghshenas Haghighi
+      given-names: Mahmud
+    - family-names: Rabe
+      given-names: Daniela
+    - family-names: Motagh
+      given-names: Mahdi
+    - family-names: Knoch
+      given-names: Johannes
+    - family-names: Goncalves
+      given-names: Romulo
+    - family-names: Scheffler
+      given-names: Daniel
+    - family-names: Beamish
+      given-names: Alison
     title: "SARvey - survey with SAR: A new Open-Source InSAR Research Software"
     journal: Environmental Modelling & Software
     year: 2026
