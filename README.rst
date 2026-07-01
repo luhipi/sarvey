@@ -2,9 +2,7 @@
 SARvey - survey with SAR
 ========================
 
-Open-source InSAR time series analysis software developed within the project SAR4Infra.
-**SARvey** aims to analyze InSAR displacement time series for engineering applications.
-
+**SARvey** is an open-source InSAR time series analysis software which aims to analyze InSAR displacement time series for engineering applications.
 
 
 Documentation
@@ -87,7 +85,7 @@ SARvey is a command-line-based software. The major steps for running SARvey are 
 * **Preprocessing**
 
   The software requires a coregistered stack of SLC and the related geometry information in the MiaplPy_  data format.
-  The coregistered stack of SLC can be created using an InSAR processor. Currently MiaplPy_ only supports ISCE_. Support for GAMMA and SNAP_ is planned for future.
+  The coregistered stack of SLC can be created using an InSAR processor. Currently MiaplPy_ only supports ISCE2_ and GAMMA. Support for SNAP_ is under development and for ISCE3 is planned for future.
   After creating the coregistered stack of SLC, run the "load_data" step from Miaplpy_ to create the "inputs" directory which contains "slcStack.h5" and "geometryRadar.h5".
   Details are explained in the preparation_ section
 
@@ -196,7 +194,7 @@ This package was created with Cookiecutter_ and the `fernlab/cookiecutter-python
 .. _`history`: https://luhipi.github.io/sarvey/main/history.html
 .. _MiaplPy: https://github.com/insarlab/MiaplPy
 .. _MintPy: https://github.com/insarlab/MintPy
-.. _ISCE: https://github.com/isce-framework/isce2
+.. _ISCE2: https://github.com/isce-framework/isce2
 .. _SNAP: https://step.esa.int/main/toolboxes/snap
 .. _Shapefiles: https://doc.arcgis.com/en/arcgis-online/reference/shapefiles.htm
 .. _QGIS: https://qgis.org/en/site/
