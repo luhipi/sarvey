@@ -14,6 +14,7 @@ SARvey documentation
    processing
    visualization
    demo_datasets
+   publications
    modules
    contributing
    authors
