@@ -10,14 +10,16 @@ Development Lead
 Contributors
 ------------
 
-* Mahmud H. Haghighi <mahmud@ipi.uni-hannover.de>
-* Daniela Rabe <dara@gfz-potsdam.de>
-* Romulo Goncalves <romulo@gfz-potsdam.de>
-* Johannes Knoch <jknoch@gfz-potsdam.de>
+* Mahmud H. Haghighi <https://github.com/mahmud1>
+* Daniela Rabe <dara@gfz.de>
+* Romulo Goncalves <https://github.com/romulogoncalves>
+* Johannes Knoch <jknoch@gfz.de>
 * Erik Rivas <rivas@ipi.uni-hannover.de>
+* Alison Seidel <alison.seidel@kit.edu>
 
 Project management and funding acquisition
 ------------------------------------------
 
-* Alison Beamish <alibeam@gfz-potsdam.de>
-* Mahdi Motagh <motagh@gfz-potsdam.de>
+* Mahmud H. Haghighi <https://github.com/mahmud1>
+* Alison Beamish <alibeam@gfz.de>
+* Mahdi Motagh <motagh@gfz.de>

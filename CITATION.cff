@@ -1,0 +1,57 @@
+cff-version: 1.2.0
+message: "If you use SARvey, please cite the software and the associated paper."
+title: "SARvey"
+type: software
+abstract: >-
+  SARvey is an open-source InSAR time series analysis software for engineering
+  applications.
+authors:
+  - family-names: Piter
+    given-names: Andreas
+    email: piter@ipi.uni-hannover.de
+    affiliation: Institute of Photogrammetry and GeoInformation, Leibniz University Hannover
+  - family-names: Haghshenas Haghighi
+    given-names: Mahmud
+    affiliation: Leibniz University Hannover
+  - name: FERN.Lab
+    affiliation: GFZ German Research Centre for Geosciences, Potsdam
+  - family-names: Motagh
+    given-names: Mahdi
+    affiliation: GFZ German Research Centre for Geosciences, Potsdam
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.12544130
+keywords:
+  - InSAR time series analysis
+  - Displacement
+  - Sentinel-1
+  - TerraSAR-X
+  - Engineering applications
+license: GPL-3.0-or-later
+repository-code: https://github.com/luhipi/sarvey
+url: https://luhipi.github.io/sarvey/main
+version: 1.3.0
+date-released: 2026-02-23
+preferred-citation:
+  type: article
+  authors:
+    - family-names: Piter
+      given-names: Andreas
+    - family-names: Haghshenas Haghighi
+      given-names: Mahmud
+    - family-names: Rabe
+      given-names: Daniela
+    - family-names: Motagh
+      given-names: Mahdi
+    - family-names: Knoch
+      given-names: Johannes
+    - family-names: Goncalves
+      given-names: Romulo
+    - family-names: Scheffler
+      given-names: Daniel
+    - family-names: Beamish
+      given-names: Alison
+  title: "SARvey - survey with SAR: A new Open-Source InSAR Research Software"
+  journal: Environmental Modelling & Software
+  year: 2026
+  url: https://www.sciencedirect.com/science/article/pii/S1364815226001519

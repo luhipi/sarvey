@@ -5,7 +5,9 @@ Multitemporal InSAR processing workflow
 =======================================
 
 The `sarvey` command line interface executes the multitemporal InSAR processing workflow.
-The workflow is described in the paper
+The workflow is described in the following two papers:
+
+    Piter A, Haghshenas Haghighi M, Rabe D, Motagh M, Knoch J, Goncalves R, Scheffler D, Beamish A (2026). SARvey - survey with SAR: A new Open-Source InSAR Research Software. Environmental Modelling & Software, 107004.
 
     Piter A, Haghshenas Haghighi M, Motagh M (2024). Challenges and Opportunities of Sentinel-1 InSAR for Transport Infrastructure Monitoring. PFG – Journal of Photogrammetry, Remote Sensing and Geoinformation Science, 92, 609-627.
 
@@ -334,6 +336,8 @@ Since the densification step is not performed, you should reduce the coherence t
 
 Literature
 ----------
+
+* Piter A, Haghshenas Haghighi M, Rabe D, Motagh M, Knoch J, Goncalves R, Scheffler D, Beamish A (2026). SARvey - survey with SAR: A new Open-Source InSAR Research Software. Environmental Modelling & Software, 107004.
 
 * Piter A, Haghshenas Haghighi M, Motagh M (2024). Challenges and Opportunities of Sentinel-1 InSAR for Transport Infrastructure Monitoring. PFG – Journal of Photogrammetry, Remote Sensing and Geoinformation Science, 92, 609-627.
 

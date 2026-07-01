@@ -116,7 +116,7 @@ If you commit new Python files, please note that they have to contain the follow
     #
     # Copyright (C) 2021-2025 Andreas Piter (IPI Hannover, piter@ipi.uni-hannover.de)
     #
-    # This software was developed together with FERN.Lab (fernlab@gfz-potsdam.de) in the context
+    # This software was developed together with FERN.Lab (fernlab@gfz.de) in the context
     # of the SAR4Infra project with funds of the German Federal Ministry for Digital and
     # Transport and contributions from Landesamt fuer Vermessung und Geoinformation
     # Schleswig-Holstein and Landesbetrieb Strassenbau und Verkehr Schleswig-Holstein.

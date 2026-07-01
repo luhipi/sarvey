@@ -2,9 +2,7 @@
 SARvey - survey with SAR
 ========================
 
-Open-source InSAR time series analysis software developed within the project SAR4Infra.
-**SARvey** aims to analyze InSAR displacement time series for engineering applications.
-
+**SARvey** is an open-source InSAR time series analysis software which aims to analyze InSAR displacement time series for engineering applications.
 
 
 Documentation
@@ -51,7 +49,7 @@ If you use **SARvey** in your research, please cite the following.
 
 1. The paper describing the methodology:
 
-   Piter A, Haghshenas Haghighi M, Motagh M (2024). Challenges and Opportunities of Sentinel-1 InSAR for Transport Infrastructure Monitoring. PFG – Journal of Photogrammetry, Remote Sensing and Geoinformation Science, 92, 609-627.  `Link to paper <https://link.springer.com/article/10.1007/s41064-024-00314-x>`_.
+   Piter A, Haghshenas Haghighi M, Rabe D, Motagh M, Knoch J, Goncalves R, Scheffler D, Beamish A (2026). SARvey - survey with SAR: A new Open-Source InSAR Research Software. Environmental Modelling & Software, 107004. `Link to paper <https://www.sciencedirect.com/science/article/pii/S1364815226001519>`_.
 
 2. The software itself. Please specify the version you use:
 
@@ -87,7 +85,7 @@ SARvey is a command-line-based software. The major steps for running SARvey are 
 * **Preprocessing**
 
   The software requires a coregistered stack of SLC and the related geometry information in the MiaplPy_  data format.
-  The coregistered stack of SLC can be created using an InSAR processor. Currently MiaplPy_ only supports ISCE_. Support for GAMMA and SNAP_ is planned for future.
+  The coregistered stack of SLC can be created using an InSAR processor. Currently MiaplPy_ only supports ISCE2_ and GAMMA. Support for SNAP_ is under development and for ISCE3 is planned for future.
   After creating the coregistered stack of SLC, run the "load_data" step from Miaplpy_ to create the "inputs" directory which contains "slcStack.h5" and "geometryRadar.h5".
   Details are explained in the preparation_ section
 
@@ -178,8 +176,8 @@ the `Institute of Photogrammetry and GeoInformation`_ at Leibniz University Hann
 `FERN.Lab`_ (innovation and technology transfer lab of the GFZ German Research Centre for Geosciences, Potsdam),
 `Landesamt fuer Vermessung und Geoinformation Schleswig-Holstein`_,
 and `Landesbetrieb Strassenbau und Verkehr Schleswig-Holstein`_.
-The scientific and methodological development was carried out by Andreas Piter (piter@ipi.uni-hannover.de), supervised by Mahmud H. Haghighi (mahmud@ipi.uni-hannover.de) and Mahdi Motagh (motagh@gfz-potsdam.de).
-The `FERN.Lab`_ (fernlab@gfz-potsdam.de) contributed to the development, documentation, continuous integration, and testing of the package.
+The scientific and methodological development was carried out by Andreas Piter (piter@ipi.uni-hannover.de), supervised by Mahmud H. Haghighi (mahmud@ipi.uni-hannover.de) and Mahdi Motagh (motagh@gfz.de).
+The `FERN.Lab`_ (fernlab@gfz.de) contributed to the development, documentation, continuous integration, and testing of the package.
 
 
 This package was created with Cookiecutter_ and the `fernlab/cookiecutter-python-package`_ project template.
@@ -196,7 +194,7 @@ This package was created with Cookiecutter_ and the `fernlab/cookiecutter-python
 .. _`history`: https://luhipi.github.io/sarvey/main/history.html
 .. _MiaplPy: https://github.com/insarlab/MiaplPy
 .. _MintPy: https://github.com/insarlab/MintPy
-.. _ISCE: https://github.com/isce-framework/isce2
+.. _ISCE2: https://github.com/isce-framework/isce2
 .. _SNAP: https://step.esa.int/main/toolboxes/snap
 .. _Shapefiles: https://doc.arcgis.com/en/arcgis-online/reference/shapefiles.htm
 .. _QGIS: https://qgis.org/en/site/
