@@ -10,10 +10,10 @@ We here list scientific publications that have used **SARvey** for InSAR time se
 2026
 ----
 
-* Azadnejad, S., Kandiri, A., Hrysiewicz, A., O’Loughlin, F., Holohan, E. P., Dev, S., & Donohue, S. (2025). Application of deep learning for coherent pixel selection in time series InSAR for urban area and transport infrastructure monitoring. International Journal of Applied Earth Observation and Geoinformation, 142, 104718.
+* Azadnejad, S., Kandiri, A., Hrysiewicz, A., O’Loughlin, F., Holohan, E. P., Dev, S., & Donohue, S. (2026). Application of deep learning for coherent pixel selection in time series InSAR for urban area and transport infrastructure monitoring. International Journal of Applied Earth Observation and Geoinformation, 142, 104718.
   `Link to paper <https://www.sciencedirect.com/science/article/pii/S0034425726001422>`_.
 
-* Crosetto, M., Cuevas-González, M., Mróz, M. S., Moldestad, D. A., Raspini, F., Casagli, N., ... & Comerci, V. European Ground Motion Service: A Decade of Sentinel-1 Observations. Available at SSRN 5190061.
+* Crosetto, M., Cuevas-González, M., Mróz, M. S., Moldestad, D. A., Raspini, F., Casagli, N., ... & Comerci, V (2026). European Ground Motion Service: A Decade of Sentinel-1 Observations. Available at SSRN 5190061.
   `Link to paper <https://www.sciencedirect.com/science/article/pii/S0034425726001598?ssrnid=5190061&dgcid=SSRN_redirect_SD>`_.
 
 * Piter, A., Haghighi, M. H., Rabe, D., Motagh, M., Knoch, J., Goncalves, R., ... & Beamish, A. (2026). SARvey-survey with SAR: A new Open-Source InSAR Research Software. Environmental Modelling & Software, 107004.
@@ -26,7 +26,7 @@ We here list scientific publications that have used **SARvey** for InSAR time se
 * Isken, M. P., Karstens, J., Nomikou, P., Parks, M. M., Drouin, V., Rivalta, E., ... & Berndt, C. (2025). Volcanic crisis reveals coupled magma system at Santorini and Kolumbo. Nature, 645(8082), 939-945.
     `Link to paper <https://www.nature.com/articles/s41586-025-09525-7>`_.
 
-* Haghighi, M. H., Piter, A., & Motagh, M. (2025, August). SARvey and InSAR Explorer: Open-Source Tools for InSAR Data Processing and Visualization. In IGARSS 2025-2025 IEEE International Geoscience and Remote Sensing Symposium (pp. 9414-9417). IEEE.
+* Haghighi, M. H., Piter, A., & Motagh, M. (2025). SARvey and InSAR Explorer: Open-Source Tools for InSAR Data Processing and Visualization. In IGARSS 2025-2025 IEEE International Geoscience and Remote Sensing Symposium (pp. 9414-9417). IEEE.
   `Link to paper <https://ieeexplore.ieee.org/abstract/document/11313961>`_.
 
 2024
