@@ -33,22 +33,6 @@ url: https://luhipi.github.io/sarvey/main
 version: 1.3.0
 date-released: 2026-02-23
 preferred-citation:
-  type: software
-  title: "SARvey - survey with SAR"
-  authors:
-    - family-names: Piter
-      given-names: Andreas
-      email: piter@ipi.uni-hannover.de
-    - family-names: Haghshenas Haghighi
-      given-names: Mahmud
-    - name: FERN.Lab
-    - family-names: Motagh
-      given-names: Mahdi
-  year: 2026
-  version: 1.3.0
-  doi: 10.5281/zenodo.12544130
-  url: https://doi.org/10.5281/zenodo.12544130
-references:
   - type: article
     authors:
       - family-names: Piter
@@ -71,17 +55,3 @@ references:
     journal: Environmental Modelling & Software
     year: 2026
     url: https://www.sciencedirect.com/science/article/pii/S1364815226001519
-  - type: article
-    authors:
-      - family-names: Boykov
-        given-names: Yuri
-      - family-names: Kolmogorov
-        given-names: Vladimir
-    title: "An experimental comparison of min-cut/max-flow algorithms for energy minimization in vision"
-    journal: IEEE Transactions on Pattern Analysis and Machine Intelligence
-    year: 2004
-    volume: 26
-    issue: 9
-    pages: 1124-1137
-    doi: 10.1109/TPAMI.2004.60
-    url: https://ieeexplore.ieee.org/document/1316848
