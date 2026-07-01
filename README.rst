@@ -178,8 +178,8 @@ the `Institute of Photogrammetry and GeoInformation`_ at Leibniz University Hann
 `FERN.Lab`_ (innovation and technology transfer lab of the GFZ German Research Centre for Geosciences, Potsdam),
 `Landesamt fuer Vermessung und Geoinformation Schleswig-Holstein`_,
 and `Landesbetrieb Strassenbau und Verkehr Schleswig-Holstein`_.
-The scientific and methodological development was carried out by Andreas Piter (piter@ipi.uni-hannover.de), supervised by Mahmud H. Haghighi (mahmud@ipi.uni-hannover.de) and Mahdi Motagh (motagh@gfz-potsdam.de).
-The `FERN.Lab`_ (fernlab@gfz-potsdam.de) contributed to the development, documentation, continuous integration, and testing of the package.
+The scientific and methodological development was carried out by Andreas Piter (piter@ipi.uni-hannover.de), supervised by Mahmud H. Haghighi (mahmud@ipi.uni-hannover.de) and Mahdi Motagh (motagh@gfz.de).
+The `FERN.Lab`_ (fernlab@gfz.de) contributed to the development, documentation, continuous integration, and testing of the package.
 
 
 This package was created with Cookiecutter_ and the `fernlab/cookiecutter-python-package`_ project template.

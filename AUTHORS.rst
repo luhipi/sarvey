@@ -11,13 +11,13 @@ Contributors
 ------------
 
 * Mahmud H. Haghighi <mahmud@ipi.uni-hannover.de>
-* Daniela Rabe <dara@gfz-potsdam.de>
-* Romulo Goncalves <romulo@gfz-potsdam.de>
-* Johannes Knoch <jknoch@gfz-potsdam.de>
+* Daniela Rabe <dara@gfz.de>
+* Romulo Goncalves <romulo@gfz.de>
+* Johannes Knoch <jknoch@gfz.de>
 * Erik Rivas <rivas@ipi.uni-hannover.de>
 
 Project management and funding acquisition
 ------------------------------------------
 
-* Alison Beamish <alibeam@gfz-potsdam.de>
-* Mahdi Motagh <motagh@gfz-potsdam.de>
+* Alison Beamish <alibeam@gfz.de>
+* Mahdi Motagh <motagh@gfz.de>
