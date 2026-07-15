@@ -10,7 +10,7 @@ We here list scientific publications that have used **SARvey** for InSAR time se
 2026
 ----
 
-* Azadnejad, S., Kandiri, A., Hrysiewicz, A., O’Loughlin, F., Holohan, E. P., Dev, S., & Donohue, S. (2026). Application of deep learning for coherent pixel selection in time series InSAR for urban area and transport infrastructure monitoring. International Journal of Applied Earth Observation and Geoinformation, 142, 104718.
+* Azadnejad, S., Trafford, A., O'Loughlin, F., Holohan, E. P., Dashwood, B., White, A., ... & Donohue, S. (2026). A low-cost passive corner reflector design for SAR and InSAR applications. Remote Sensing of Environment, 338, 115372.
   `Link to paper <https://www.sciencedirect.com/science/article/pii/S0034425726001422>`_.
 
 * Crosetto, M., Cuevas-González, M., Mróz, M. S., Moldestad, D. A., Raspini, F., Casagli, N., ... & Comerci, V (2026). European Ground Motion Service: A Decade of Sentinel-1 Observations. Available at SSRN 5190061.
