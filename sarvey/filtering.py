@@ -40,6 +40,10 @@ from mintpy.utils import ptime
 
 import sarvey.utils as ut
 
+# Largest float64 array gstools may allocate for one kriging evaluation: it builds a
+# (conditioning points x evaluated points) matrix, which is hundreds of gigabytes on a large stack.
+KRIGE_BLOCK_BYTES = 128 * 1024 ** 2
+
 
 def launchSpatialFiltering(parameters: tuple):
     """Launch_spatial_filtering.
@@ -121,12 +125,17 @@ def launchSpatialFiltering(parameters: tuple):
             cond_val=field,
         )
 
+        # evaluate in blocks of at most KRIGE_BLOCK_BYTES: gstools allocates one
+        # (number of conditioning points x number of evaluated points) float64 array per call,
+        # which is hundreds of gigabytes on a large stack
+        chunk_size = max(1, int(KRIGE_BLOCK_BYTES / (8 * x.size)))
+
         # 4) evaluate the kriging model at ORIGINAL locations
-        fld_sk, _ = sk((x, y), return_var=True)
+        fld_sk, _ = sk((x, y), return_var=True, chunk_size=chunk_size)
         aps1[:, i] = fld_sk
 
         # 5) evaluate the kriging model at NEW locations
-        fld_sk_new, var_sk_new = sk((x_new, y_new), return_var=True)
+        fld_sk_new, var_sk_new = sk((x_new, y_new), return_var=True, chunk_size=chunk_size)
         aps2[:, i] = fld_sk_new
 
         prog_bar.update(value=i + 1, every=1, suffix='{}/{} images'.format(i + 1, num_time))
