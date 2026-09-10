@@ -896,10 +896,7 @@ class Processing:
             mask_unstable_p1 = p1_mask & (~aps1_mask)
             unstable_p1_id = point_id_img[np.where(mask_unstable_p1)]
 
-            mask_unstable_p1_in_p2 = np.ones((aps2_obj.num_points,), dtype=np.bool_)
-            for p in aps2_obj.point_id:
-                if p not in unstable_p1_id:
-                    mask_unstable_p1_in_p2[aps2_obj.point_id == p] = False
+            mask_unstable_p1_in_p2 = np.isin(aps2_obj.point_id, unstable_p1_id)
 
             # add unstable p1 from aps2 to aps1
             aps1_obj.addPointsFromObj(
@@ -930,10 +927,7 @@ class Processing:
                 raise NotImplementedError("Use all p1 is not implemented.")
             else:
                 # remove also values from estimated parameters
-                mask = np.ones((point1_obj.num_points,), dtype=np.bool_)
-                for p in point1_obj.point_id:
-                    if p not in aps1_obj.point_id:
-                        mask[point1_obj.point_id == p] = False
+                mask = np.isin(point1_obj.point_id, aps1_obj.point_id)
 
                 vel_p1 = vel_p1[mask]
                 demerr_p1 = demerr_p1[mask]
