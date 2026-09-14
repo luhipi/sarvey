@@ -649,10 +649,7 @@ class Points:
             path to input files (slcStack.h5, geometryRadar.h5).
         """
         if mask is None:
-            mask = np.ones((self.num_points,), dtype=np.bool_)
-            for p in self.point_id:
-                if p not in keep_id:
-                    mask[self.point_id == p] = False
+            mask = np.isin(self.point_id, keep_id)
         self.point_id = self.point_id[mask]
         self.coord_xy = self.coord_xy[mask, :]
         self.phase = self.phase[mask, :]
