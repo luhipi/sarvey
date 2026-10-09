@@ -452,6 +452,7 @@ class TimeSeriesViewer:
         vel, demerr, ref_atmo, coherence, omega, v_hat = ut.estimateParameters(obj=self.point_obj, ifg_space=False)
         self.vel = vel
         self.demerr = demerr
+        self.elevation = np.array(self.demerr) + np.array(self.point_obj.height)
         self.ref_atmo = ref_atmo
 
         self.bmap_obj = AmplitudeImage(file_path=os.path.join(os.path.dirname(self.point_obj.file_path),
@@ -500,7 +501,7 @@ class TimeSeriesViewer:
 
         # add radiobutton to select parameter
         self.ax_radio_par = self.fig1.add_axes((0.15, 0.9, 0.2, 0.08))  # (left, bottom, width, height)
-        self.rb_par = widgets.RadioButtons(self.ax_radio_par, labels=['Velocity', 'DEM correction', 'None'], active=0)
+        self.rb_par = widgets.RadioButtons(self.ax_radio_par, labels=['Velocity', 'Elevation', 'None'], active=0)
         self.rb_par.on_clicked(self.plotMap)
 
         # add radiobutton to select background image
@@ -620,19 +621,23 @@ class TimeSeriesViewer:
                 self.ax_slide_coh = None
 
         par = None
-        v_range = None
+        v_min = None
+        v_max = None
         cb_ttl = ""
         cmap = None
         if self.rb_par.value_selected == "Velocity":  # show velocity
-            v_range = np.max(np.abs(self.vel * self.scale))
+            v_max = np.max(np.abs(self.vel * self.scale))
+            v_min = -v_max
             par = self.vel * self.scale
             cb_ttl = f"[{self.vel_scale}/\nyear]"
             cmap = cmc.cm.cmaps["roma"]
-        elif self.rb_par.value_selected == "DEM correction":  # show demerr
-            v_range = np.max(np.abs(self.demerr))
-            par = self.demerr
+        elif self.rb_par.value_selected == "Elevation":  # show elevation
+            # use 95th percentile to avoid outliers
+            v_min = np.nanpercentile(self.elevation, 5)
+            v_max = np.nanpercentile(self.elevation, 95)
+            par = self.elevation
             cb_ttl = "[m]"
-            cmap = cmc.cm.cmaps["vanimo"]
+            cmap = cmc.cm.cmaps["batlow"]
 
         if self.rb_par.value_selected != "None":
             self.sc = self.ax_img.scatter(self.point_obj.coord_xy[:, 1],
@@ -640,8 +645,8 @@ class TimeSeriesViewer:
                                           c=par,
                                           s=5,
                                           cmap=cmap,
-                                          vmin=-v_range,
-                                          vmax=v_range)
+                                          vmin=v_min,
+                                          vmax=v_max)
 
         self.cb.ax.set_title(cb_ttl, fontsize=self.font_size)
         self.cb = self.fig1.colorbar(self.sc, cax=self.ax_cb, ax=self.ax_img, pad=0.03, shrink=0.8, aspect=10,
@@ -727,6 +732,7 @@ class TimeSeriesViewer:
         vel, demerr, ref_atmo, coherence, omega, v_hat = ut.estimateParameters(obj=self.point_obj, ifg_space=False)
         self.vel = vel
         self.demerr = demerr
+        self.elevation = self.demerr + np.array(self.point_obj.height)
         self.ref_atmo = ref_atmo
         self.plotMap(val=None)
 
@@ -811,8 +817,8 @@ class TimeSeriesViewer:
             self.ax_ts.set_xlim(np.min(self.point_obj.ifg_net_obj.pbase), np.max(self.point_obj.ifg_net_obj.pbase))
 
         self.text_obj_time.remove()
-        point_info = "DEM error: {:.0f} m\nVelocity: {:.0f} {:s}/year".format(
-            self.demerr[self.ts_point_idx],
+        point_info = "Elevation: {:.0f} m\nVelocity: {:.0f} {:s}/year".format(
+            self.elevation[self.ts_point_idx],
             self.vel[self.ts_point_idx] * self.scale,
             self.vel_scale,
         )
