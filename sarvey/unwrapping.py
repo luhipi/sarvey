@@ -532,34 +532,33 @@ def spatialParameterIntegration(*,
     val_points: np.ndarray
         Estimated parameters at the points resulting from the integration of the parameters at the arcs.
     """
+    start_time = time.time()
     arcs = np.array(arcs)
     num_points = coord_xy.shape[0]
     num_arcs = arcs.shape[0]
 
-    # create design matrix
-    design_mat = np.zeros((num_arcs, num_points))
-    for i in range(num_arcs):
-        design_mat[i, arcs[i][0]] = 1
-        design_mat[i, arcs[i][1]] = -1
+    # create a sparse matrix
+    rows = np.repeat(np.arange(num_arcs), 2)
+    cols = arcs.reshape(-1)
+    data = np.tile([1.0, -1.0], num_arcs)
 
-    # remove reference point from design matrix
-    design_mat = csr_matrix(weights * np.delete(design_mat, spatial_ref_idx, 1))
+    design_mat = csr_matrix((data, (rows, cols)), shape=(num_arcs, num_points))
 
-    # don't even start if the network is not connected
     if structural_rank(design_mat) < design_mat.shape[1]:
         raise Exception("Spatial point network is not connected. Cannot integrate parameters spatially!")
 
-    start_time = time.time()
+    # Remove reference point and weight matrix
+    design_mat = design_mat[:, np.arange(num_points) != spatial_ref_idx]
+    design_mat = design_mat.multiply(weights.reshape(-1, 1))
 
-    obv_vec = val_arcs.reshape(-1, ) * weights.reshape(-1, )
-
+    obv_vec = val_arcs * weights
     x_hat = lsqr(design_mat, obv_vec)[0]
 
     m, s = divmod(time.time() - start_time, 60)
     logger.debug(msg='time used: {:02.0f} mins {:02.1f} secs.'.format(m, s))
 
-    val_points = np.zeros((num_points,))
-    points_idx = np.ones((num_points,), dtype=bool)
+    val_points = np.zeros(num_points)
+    points_idx = np.ones(num_points, dtype=bool)
     points_idx[spatial_ref_idx] = False
     val_points[points_idx] = x_hat
 
