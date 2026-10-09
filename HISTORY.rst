@@ -6,6 +6,7 @@ History
 Future minor version (release soon)
 -----------------------------------
 
+* Add elevation of the scatterers to sarvey_export with optional geoid height offset.
 * Remove import of matplotlib backend QtAgg and related error message, except for sarvey_plot.
 
 1.3.0 (2026-02-23)

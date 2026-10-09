@@ -57,7 +57,8 @@ warnings.filterwarnings("ignore", category=ShapelyDeprecationWarning)
 
 
 def exportDataToGisFormat(*, file_path: str, output_path: str, input_path: str,
-                          correct_geolocation: bool = False, no_timeseries: bool = False, logger: Logger):
+                          correct_geolocation: bool = False, no_timeseries: bool = False,
+                          geoid_height: float = 0.0, logger: Logger):
     """Export data to GIS format (shp or gpkg).
 
     Parameters
@@ -72,6 +73,8 @@ def exportDataToGisFormat(*, file_path: str, output_path: str, input_path: str,
         Correct geolocation or not
     no_timeseries: bool
         Export time series data or not
+    geoid_height: float
+        Geoid height offset in meters applied to the estimated terrain elevation.
     logger: Logger
         Logger handle.
     """
@@ -79,7 +82,6 @@ def exportDataToGisFormat(*, file_path: str, output_path: str, input_path: str,
 
     point_obj.open(input_path=input_path)
 
-    # todo: add corrected height to output
     # todo: add option to mask the output to e.g. linear infrastructures or other AOI
 
     vel, demerr, _, coherence, omega, _ = ut.estimateParameters(obj=point_obj, ifg_space=False)
@@ -139,13 +141,16 @@ def exportDataToGisFormat(*, file_path: str, output_path: str, input_path: str,
     coord_utm += coord_correction
     df_points['coord'] = (coord_utm).tolist()
     df_points['coord'] = df_points['coord'].apply(Point)
+    estimated_elevation = point_obj.height + demerr + geoid_height
+
     df_points.insert(0, 'point_id', point_obj.point_id.tolist())
     df_points.insert(1, 'velocity', vel * 1000)  # in [mm]
     df_points.insert(2, 'coherence', coherence)
     df_points.insert(3, 'omega', omega)
     df_points.insert(4, 'st_consistency', stc * 1000)  # in [mm]
     df_points.insert(5, 'dem_error', demerr)  # in [m]
-    df_points.insert(6, 'dem', point_obj.height)  # in [m]
+    df_points.insert(6, 'elevation', estimated_elevation)  # in [m]
+    df_points.insert(7, 'dem', point_obj.height)  # in [m]
 
     df_points.columns = [col[:10] for col in df_points.columns]
 
@@ -168,6 +173,7 @@ def createParser():
         sarvey_export outputs/p2_coh50_ts.h5 -o outputs/shp/p2_coh50.shp             # export time series to shapefile
         sarvey_export outputs/p2_coh50_ts.h5 -o outputs/shp/p2_coh50.gpkg            # export time series to geopackage
         sarvey_export outputs/p2_coh90_ts.h5 -o outputs/shp/p2_coh90.shp -g          # apply geolocation correction
+        sarvey_export outputs/p2_coh90_ts.h5 -o outputs/shp/p2_coh90.shp --offset 34.5  # add geoid offset to elevation
         sarvey_export outputs/p2_coh90_ts.h5 -o outputs/shp/p2_coh90.shp -g -t       # skip time series data
         """)
 
@@ -175,10 +181,6 @@ def createParser():
 
     parser.add_argument("-o", "--output_path", type=str, dest="output_path", default="",
                         help="Path to output file. If empty, the name of the input file will be used.")
-
-    # parser.add_argument("-f", "--format", type=str, required=False, metavar="FILE", dest="format",
-    #                     help="Output file format (if not already specified within '-o'). Can be 'shp', 'gpkg',
-    #                     'csv'.")
 
     parser.add_argument("-l", "--log_dir", type=str, required=False, metavar="FILE", dest="log_dir",
                         default="logfiles/", help="Logfile directory (default: 'logfiles/')")
@@ -191,6 +193,9 @@ def createParser():
 
     parser.add_argument('-t', '--no-time-series', default=False, action="store_true", dest="no_timeseries",
                         help='Do not export time series (default: False).')
+
+    parser.add_argument('--geoid-height', '--offset', type=float, default=0.0, dest='geoid_height',
+                        help='Geoid height offset in meters added to DEM-based estimated elevation (default: 0.0).')
 
     parser.add_argument('--version', action='version',
                         version=f"SARvey version {version.__version__} - {version.__versionalias__}, "
@@ -283,13 +288,16 @@ def main(iargs=None):
     # specify time series flag
     logger.info(msg=f"Export time series data: {not args.no_timeseries}")
 
+    # specify geoid offset
+    logger.info(msg=f"Geoid height offset: {args.geoid_height} m")
+
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
 
     exportDataToGisFormat(file_path=args.file_path, output_path=args.output_path,
                           input_path=config.general.input_path,
                           correct_geolocation=args.correct_geolocation, no_timeseries=args.no_timeseries,
-                          logger=logger)
+                          geoid_height=args.geoid_height, logger=logger)
 
 
 if __name__ == '__main__':
