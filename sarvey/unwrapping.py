@@ -542,10 +542,7 @@ def spatialParameterIntegration(*,
     cols = arcs.reshape(-1)
     data = np.tile([1.0, -1.0], num_arcs)
 
-    if rows.shape != cols.shape != data.shape:
-        raise Exception("Wrong shape")
-    else:
-        design_mat = csr_matrix((data, (rows, cols)), shape=(num_arcs, num_points))
+    design_mat = csr_matrix((data, (rows, cols)), shape=(num_arcs, num_points))
 
     if structural_rank(design_mat) < design_mat.shape[1]:
         raise Exception("Spatial point network is not connected. Cannot integrate parameters spatially!")
