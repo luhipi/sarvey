@@ -621,7 +621,8 @@ class TimeSeriesViewer:
                 self.ax_slide_coh = None
 
         par = None
-        v_range = None
+        v_min = None
+        v_max = None
         cb_ttl = ""
         cmap = None
         if self.rb_par.value_selected == "Velocity":  # show velocity
