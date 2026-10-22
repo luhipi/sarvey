@@ -6,6 +6,7 @@ History
 Future minor version (release soon)
 -----------------------------------
 
+* Remove badly unwrapped points using a posteriori temporal coherence in densification step with spatial phase unwrapping.
 * Improve speed in step 3 filtering for large datasets by vectorization and evaluating kriging in blocks of bounded size.
 * Improve speed in step 2 spatial unwrapping for large datasets by initializing a sparse matrix.
 * Remove import of matplotlib backend QtAgg and related error message, except for sarvey_plot.
