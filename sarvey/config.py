@@ -590,7 +590,9 @@ class Densification(BaseModel, extra="forbid"):
 
     arc_unwrapping_coherence: float = Field(
         title="Arc unwrapping coherence threshold for densification",
-        description="Set arc unwrapping coherence threshold for densification.",
+        description="Set arc unwrapping coherence threshold for densification (if temporal unwrapping is set to True)."
+                    "This parameter is used as a threshold for the posteriori temporal coherence if only spatial"
+                    "unwrapping is applied. ",
         default=0.5
     )
 
