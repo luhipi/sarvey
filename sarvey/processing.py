@@ -1129,6 +1129,33 @@ class Processing:
                                        ref_idx=0,
                                        logger=self.logger)
 
+        # assess the quality of the unwrapping results by computing the posteriori temporal coherence from the residuals
+        residual = unw_phase - np.dot(a_ifg, phase_ts.T).T
+        temp_coh_posteriori = np.abs(np.mean(np.exp(1j * residual), axis=1))
+
+        bmap_obj = AmplitudeImage(file_path=join(self.path, "background_map.h5"))
+        fig = viewer.plotScatter(value=temp_coh_posteriori, coord=point_obj.coord_xy,
+                                 ttl="Posteriori temporal coherence\nBefore outlier removal", bmap_obj=bmap_obj, s=3.5,
+                                 cmap="lajolla", vmin=0, vmax=1, logger=self.logger)[0]
+        fig.savefig(join(self.path, "pic", "step_4_posteriori_coherence_p2_coh{}.png".format(coh_value)), dpi=300)
+        plt.close(fig)
+
         point_obj.phase = phase_ts
+
+        # remove bad points
+        mask_gamma = temp_coh_posteriori >= self.config.densification.arc_unwrapping_coherence
+        temp_coh_posteriori = temp_coh_posteriori[mask_gamma]
+        self.logger.info(msg=f"Reduce the dense point set by {mask_gamma[~mask_gamma].shape[0]} points,")
+        self.logger.info(msg=f"due to posteriori coherence from interferogram network inversion < "
+                             f"{self.config.densification.arc_unwrapping_coherence} (see config: "
+                             f"densification.arc_unwrapping_coherence)")
+        point_obj.removePoints(mask=mask_gamma, keep_id=[], input_path=self.config.general.input_path)
+
+        fig = viewer.plotScatter(value=temp_coh_posteriori, coord=point_obj.coord_xy,
+                                 ttl="Posteriori temporal coherence\nAfter outlier removal", bmap_obj=bmap_obj, s=3.5,
+                                 cmap="lajolla", vmin=0, vmax=1, logger=self.logger)[0]
+        fig.savefig(join(self.path, "pic", "step_4_posteriori_coherence_p2_coh{}_reduced.png".format(coh_value)),
+                    dpi=300)
+        plt.close(fig)
 
         point_obj.writeToFile()

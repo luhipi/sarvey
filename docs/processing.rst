@@ -310,7 +310,19 @@ Option 2: Unwrapping in space
 - Removing APS from interferograms
     The wrapped interferograms are corrected for the interpolated APS for both the first and second order points.
 
-Afterwards, the processing is the same as in the spatial unwrapping during step 2.
+- Spatial unwrapping:
+    The interferograms are unwrapped independently in space with a sparse point network unwrapping method (**general:spatial_unwrapping_method**) (Bioucas-Dias and Valadao 2007, Boykov and Kolmogorov 2004).
+    The spatial neighbourhood for unwrapping is defined by the arcs of a spatial delaunay network.
+
+- Adjust reference:
+    All unwrapped interferograms are referenced to the peak of velocity histogram derived from all points.
+
+- Inverting the interferogram network:
+    The interferogram network is inverted for each point to retrieve the displacement time series relative to the first acquisition.
+
+- Remove outliers:
+    The a posteriori temporal coherence is computed based on the difference between the unwrapped interferograms and the recomputed interferograms from the inverted displacement time series (Pepe and Lanari, 2006).
+    Points with a low temporal coherence are removed based on a threshold (**densification:arc_unwrapping_coherence**) from the final set of points.
 
 
 Handling big datasets
@@ -358,3 +370,5 @@ Literature
 * Boykov Y, Kolmogorov V (2004). An experimental comparison of min-cut/max- flow algorithms for energy minimization in vision. IEEE Transactions on Pattern Analysis and Machine Intelligence 26(9):1124–1137, DOI 10.1109/TPAMI.2004.60
 
 * Müller S, Schüler L, Zech A, Heße F (2022). GSTools v1.3: a toolbox for geostatistical modelling in Python. Geoscientific Model Development, 15, 3161-3182.
+
+* Pepe A, Lanari R (2006). On the Extension of the Minimum Cost Flow Algorithm for Phase Unwrapping of Multitemporal Differential SAR Interferograms. IEEE Transactions on Geoscience and Remote Sensing , Vol. 44, No. 9, p. 2374-2383
